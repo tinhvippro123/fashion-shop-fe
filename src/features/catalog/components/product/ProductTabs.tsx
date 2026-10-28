@@ -1,0 +1,269 @@
+"use client";
+
+import { useState } from "react";
+import {
+  ProductDetail,
+  ProductReviewItem,
+} from "@/features/catalog/types/product";
+import { useAuthStore } from "@/features/users/stores/auth.store";
+import { apiFetch } from "@/shared/lib/api";
+import { toast } from "react-toastify";
+
+interface ProductTabsProps {
+  product: ProductDetail;
+  reviews: ProductReviewItem[];
+  onReviewAdded: (review: ProductReviewItem) => void;
+}
+
+export default function ProductTabs({
+  product,
+  reviews,
+  onReviewAdded,
+}: ProductTabsProps) {
+  const [activeTab, setActiveTab] = useState<
+    "intro" | "detail" | "preserve" | "reviews"
+  >("intro");
+  const [isDescExpanded, setIsDescExpanded] = useState(false);
+  const { isAuthenticated } = useAuthStore();
+
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!isAuthenticated) {
+      toast.info("Vui lòng đăng nhập để gửi đánh giá sản phẩm.");
+      return;
+    }
+    if (!comment.trim()) return;
+    setSubmitting(true);
+    try {
+      const created = await apiFetch<ProductReviewItem>(
+        `/catalog/products/${product.id}/reviews`,
+        {
+          method: "POST",
+          body: JSON.stringify({ rating, comment: comment.trim() }),
+        }
+      );
+      onReviewAdded(created);
+      setComment("");
+      setRating(5);
+      toast.success("Gửi đánh giá sản phẩm thành công!");
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="mt-[32px]">
+      <ul className="flex flex-wrap gap-[24px] border-b border-[#f0f0f0] mb-[24px] list-none p-0">
+        <li>
+          <button
+            onClick={() => setActiveTab("intro")}
+            className={`pb-[8px] text-[13px] font-bold uppercase transition-colors cursor-pointer ${
+              activeTab === "intro"
+                ? "text-[#222] border-b-2 border-[#000]"
+                : "text-[#6c757d] hover:text-[#222] border-b-2 border-transparent"
+            }`}
+          >
+            Giới thiệu
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => setActiveTab("detail")}
+            className={`pb-[8px] text-[13px] font-bold uppercase transition-colors cursor-pointer ${
+              activeTab === "detail"
+                ? "text-[#222] border-b-2 border-[#000]"
+                : "text-[#6c757d] hover:text-[#222] border-b-2 border-transparent"
+            }`}
+          >
+            Chi tiết sản phẩm
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => setActiveTab("preserve")}
+            className={`pb-[8px] text-[13px] font-bold uppercase transition-colors cursor-pointer ${
+              activeTab === "preserve"
+                ? "text-[#222] border-b-2 border-[#000]"
+                : "text-[#6c757d] hover:text-[#222] border-b-2 border-transparent"
+            }`}
+          >
+            Bảo quản
+          </button>
+        </li>
+        <li>
+          <button
+            onClick={() => setActiveTab("reviews")}
+            className={`pb-[8px] text-[13px] font-bold uppercase transition-colors cursor-pointer ${
+              activeTab === "reviews"
+                ? "text-[#222] border-b-2 border-[#000]"
+                : "text-[#6c757d] hover:text-[#222] border-b-2 border-transparent"
+            }`}
+          >
+            Đánh giá ({reviews.length})
+          </button>
+        </li>
+      </ul>
+
+      <div className="tab-content">
+        {activeTab === "intro" && (
+          <div className="animate-fadeIn">
+            <div
+              className={`relative overflow-hidden transition-all duration-300 ease-in-out ${
+                isDescExpanded ? "max-h-[1000px]" : "max-h-[150px]"
+              }`}
+            >
+              <div className="text-[#6c757d] text-[14px] leading-[1.8] whitespace-pre-line">
+                {product.description}
+              </div>
+            </div>
+
+            <div className="text-center mt-[16px] relative">
+              <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-[#eee] -z-10"></div>
+              <button
+                onClick={() => setIsDescExpanded(!isDescExpanded)}
+                className="bg-white border border-[#eee] rounded-full w-[30px] h-[30px] flex items-center justify-center mx-auto hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <i
+                  className={`fas fa-chevron-${
+                    isDescExpanded ? "up" : "down"
+                  } text-[#666] text-[12px]`}
+                ></i>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "detail" && (
+          <div className="text-[#6c757d] text-[14px] leading-[1.8] animate-fadeIn space-y-2">
+            <p>
+              <strong>Dòng sản phẩm:</strong> {product.category?.name || "LUXE Fashion"}
+            </p>
+            <p>
+              <strong>Thương hiệu:</strong> {product.brand || "LUXE Fashion"}
+            </p>
+            <p>
+              <strong>Mã sản phẩm:</strong> {product.sku || `SP-${product.id}`}
+            </p>
+            <p>
+              <strong>Màu sắc có sẵn:</strong>{" "}
+              {product.productColors.map((c) => c.color.name).join(", ")}
+            </p>
+          </div>
+        )}
+
+        {activeTab === "preserve" && (
+          <div className="text-[#6c757d] text-[14px] leading-[1.8] animate-fadeIn space-y-2">
+            <p>
+              - Khuyến khích giặt tay với nước lạnh hoặc giặt máy ở chế độ nhẹ để
+              giữ phom dáng chuẩn.
+            </p>
+            <p>
+              - Không sử dụng chất tẩy rửa mạnh; phơi ở nơi thoáng mát, tránh ánh
+              nắng trực tiếp.
+            </p>
+            <p>- Ủi ở nhiệt độ thấp dưới 110 độ C.</p>
+          </div>
+        )}
+
+        {activeTab === "reviews" && (
+          <div className="animate-fadeIn space-y-6">
+            {isAuthenticated ? (
+              <form
+                onSubmit={handleSubmitReview}
+                className="border border-[#e7e8e9] p-4 rounded-[8px] bg-[#f8f9fa]"
+              >
+                <div className="font-semibold text-[14px] text-[#222] mb-2">
+                  Gửi đánh giá của bạn
+                </div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-[13px] text-[#6c6d70]">Số sao:</span>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(star)}
+                      className="text-[18px] text-[#ffc107] bg-transparent border-none cursor-pointer"
+                    >
+                      <i
+                        className={
+                          star <= rating ? "fas fa-star" : "far fa-star"
+                        }
+                      ></i>
+                    </button>
+                  ))}
+                </div>
+                <textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  rows={3}
+                  required
+                  placeholder="Chia sẻ cảm nhận thực tế về chất liệu và kiểu dáng sản phẩm..."
+                  className="w-full border border-[#ddd] rounded-[4px] p-3 text-[13px] bg-white outline-none focus:border-[#222] mb-3"
+                />
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="bg-[#222] text-white px-5 py-2 text-[13px] font-bold uppercase rounded-tl-[12px] rounded-br-[12px] hover:bg-black transition-colors cursor-pointer"
+                >
+                  {submitting ? "Đang gửi..." : "Gửi đánh giá"}
+                </button>
+              </form>
+            ) : (
+              <div className="text-[13px] text-[#6c757d] italic">
+                Vui lòng đăng nhập để viết đánh giá cho sản phẩm này.
+              </div>
+            )}
+
+            {reviews.length === 0 ? (
+              <div className="text-[#6c757d] text-[14px]">
+                Chưa có đánh giá nào cho sản phẩm này.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map((rev) => (
+                  <div
+                    key={rev.id}
+                    className="border-b border-[#eee] pb-4 last:border-b-0"
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-bold text-[14px] text-[#222]">
+                        {rev.customerName}
+                      </span>
+                      <span className="text-[12px] text-[#999]">
+                        {rev.createdAt}
+                      </span>
+                    </div>
+                    <div className="text-[#ffc107] text-[12px] mb-2">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <i
+                          key={i}
+                          className={
+                            i < rev.rating ? "fas fa-star" : "far fa-star"
+                          }
+                        ></i>
+                      ))}
+                    </div>
+                    <p className="text-[14px] text-[#333] mb-2">{rev.comment}</p>
+                    {rev.reply && (
+                      <div className="bg-[#f8f9fa] border-l-2 border-[#222] pl-3 py-2 text-[13px] text-[#555]">
+                        <strong className="text-[#222]">LUXE Phản hồi:</strong>{" "}
+                        {rev.reply}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+

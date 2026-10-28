@@ -1,0 +1,117 @@
+"use client";
+
+import { useCallback, useEffect, useState } from "react";
+import { apiFetch } from "@/shared/lib/api";
+import {
+  AdminCategory,
+  AdminProduct,
+  RawProductResponseDto,
+} from "../types/catalog.admin";
+
+function mapRawToAdminProduct(p: RawProductResponseDto): AdminProduct {
+  return {
+    id: String(p.id),
+    numericId: p.id,
+    name: p.name,
+    sku: p.sku || `SP-${p.id}`,
+    brand: p.brand || "LUXE",
+    category: p.category?.name || "Chưa phân loại",
+    categorySlug: p.category?.slug || "",
+    price:
+      p.formattedPrice ||
+      `${Number(p.effectivePrice || p.basePrice || 0).toLocaleString("vi-VN")}đ`,
+    basePrice: Number(p.basePrice || 0),
+    stock: p.totalStock ?? 0,
+    sold: p.sold ?? 0,
+    rating: p.rating ?? 5,
+    reviewCount: p.reviewCount ?? 0,
+    isActive: Boolean(p.isActive),
+    image: p.images?.[0],
+    description: p.description,
+  };
+}
+
+export function useProducts() {
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const raw = await apiFetch<RawProductResponseDto[]>("/admin/products");
+      setProducts((raw || []).map(mapRawToAdminProduct));
+    } catch {
+      setProducts([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  const setProductActiveState = useCallback(
+    async (product: AdminProduct, nextActive: boolean) => {
+      const updated = await apiFetch<RawProductResponseDto>(
+        `/admin/products/${product.numericId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify({
+            name: product.name,
+            description: product.description || "",
+            price: product.basePrice,
+            sku: product.sku,
+            stock: product.stock,
+            category: product.categorySlug || product.category,
+            brand: product.brand || "LUXE",
+            status: nextActive ? "published" : "draft",
+          }),
+        }
+      );
+      const mapped = mapRawToAdminProduct(updated);
+      setProducts((prev) =>
+        prev.map((item) => (item.id === product.id ? mapped : item))
+      );
+      return mapped;
+    },
+    []
+  );
+
+  return {
+    products,
+    setProducts,
+    isLoading,
+    reload,
+    setProductActiveState,
+  };
+}
+
+export function useCategories() {
+  const [categories, setCategories] = useState<AdminCategory[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const data = await apiFetch<AdminCategory[]>("/admin/categories");
+      setCategories(data || []);
+    } catch {
+      setCategories([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    reload();
+  }, [reload]);
+
+  return {
+    categories,
+    setCategories,
+    isLoading,
+    reload,
+  };
+}
+
