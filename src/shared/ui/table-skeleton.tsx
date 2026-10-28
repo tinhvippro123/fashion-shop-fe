@@ -16,3 +16,4 @@ export function TableSkeleton({ columns = 5, rows = 5 }: { columns?: number, row
     </>
   )
 }
+

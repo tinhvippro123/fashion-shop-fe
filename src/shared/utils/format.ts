@@ -10,3 +10,4 @@ export const resolveImageUrl = (
   if (url.startsWith("http") || url.startsWith("/")) return url;
   return `/uploads/${url}`;
 };
+

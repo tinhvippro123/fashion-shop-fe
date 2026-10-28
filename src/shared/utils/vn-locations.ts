@@ -193,3 +193,4 @@ export async function loadVnWards(
   }
   return FALLBACK_PROVINCES[0].districts[0].wards;
 }
+
