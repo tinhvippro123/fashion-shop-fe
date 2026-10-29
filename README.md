@@ -9,11 +9,11 @@ Repository này hợp nhất **Storefront (Giao diện Khách hàng)** và **Adm
 ## Kiến trúc Route Groups
 
 - **`src/app/(storefront)/...`** (`http://localhost:3000/`):
-  - Giữ nguyên 100% giao diện LUXE Fashion Storefront (`Montserrat`, header mega-menu, giỏ hàng mini, bộ lọc danh mục, chi tiết biến thể màu sắc/kích thước, đặt hàng áp mã Voucher, theo dõi đơn hàng, quản lý hồ sơ, sổ địa chỉ, yêu thích, đánh giá sản phẩm, gửi liên hệ).
+  - Giữ nguyên 100% giao diện LUXE Fashion Storefront (`Montserrat`, header mega-menu, giỏ hàng mini, bộ lọc danh mục, chi tiết biến thể màu sắc/kích thước, đặt hàng áp mã Voucher, tra cứu & theo dõi tiến trình đơn hàng, quản lý hồ sơ, sổ địa chỉ, sản phẩm yêu thích, đánh giá sản phẩm).
 - **`src/app/(admin)/admin/...`** (`http://localhost:3000/admin`):
   - Giữ nguyên 100% giao diện Admin Dashboard (`Geist` + Shadcn UI `@base-ui/react`, Dark/Light mode):
     - `/admin/login`: Đăng nhập quản trị viên
-    - `/admin/dashboard` & `/admin/reports`: Tổng quan doanh thu, lợi nhuận gộp, vốn nhập kho, biểu đồ doanh thu & top sản phẩm bán chạy
+    - `/admin/dashboard`: Tổng quan doanh thu, lợi nhuận gộp, vốn nhập kho, biểu đồ doanh thu & top sản phẩm bán chạy
     - `/admin/orders` & `/admin/orders/[id]`: Duyệt đơn, bàn giao vận chuyển, hoàn thành hoặc hủy đơn (tự động hoàn kho)
     - `/admin/products`, `/admin/products/create`, `/admin/products/[id]/edit`: Quản lý sản phẩm & trình sinh biến thể SKU
     - `/admin/stock-imports`: **Quản lý Nhập kho (`StockImport` / `StockImportItem`)** — lập phiếu nhập hàng từ nhà cung cấp, tự động cộng tồn kho và tính lại giá vốn bình quân gia quyền
@@ -21,7 +21,6 @@ Repository này hợp nhất **Storefront (Giao diện Khách hàng)** và **Adm
     - `/admin/vouchers`: Quản lý mã giảm giá (`PERCENTAGE` / `FIXED_AMOUNT`)
     - `/admin/customers` & `/admin/customers/[id]`: Quản lý hồ sơ, lịch sử mua hàng, khóa/mở khóa tài khoản
     - `/admin/reviews` & `/admin/reviews/[id]`: Kiểm duyệt hiển thị & phản hồi công khai đánh giá
-    - `/admin/contacts` & `/admin/contacts/[id]`: Tiếp nhận & phản hồi liên hệ khách hàng
 
 ---
 

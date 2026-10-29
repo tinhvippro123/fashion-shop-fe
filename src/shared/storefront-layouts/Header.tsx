@@ -266,14 +266,6 @@ export default function Header() {
               />
             </form>
 
-            <Link
-              href="/contact"
-              className="hidden xl:block text-[#333] text-[18px] relative transition-colors"
-              title="Liên hệ"
-            >
-              <i className="fas fa-headset"></i>
-            </Link>
-
             {isAuthenticated ? (
               <div className="hidden xl:block relative" ref={userMenuRef}>
                 <button

@@ -34,47 +34,37 @@ function OrderSuccessContent() {
     });
 
   const paymentDisplay =
-    order?.paymentMethod === "MOMO"
-      ? "Ví điện tử MoMo (Đã thanh toán)"
-      : order?.paymentMethod === "BANK_TRANSFER"
-      ? "Thẻ / Chuyển khoản ngân hàng (Đã thanh toán)"
+    order?.paymentMethod === "BANK_TRANSFER"
+      ? "Chuyển khoản ngân hàng"
       : "Thanh toán khi nhận hàng (COD)";
 
   return (
     <div className="pb-[80px]">
       <div className="container-luxe px-[15px] min-[1200px]:px-[85px] mx-auto mt-4">
-        {/* Progress Bar Container */}
+        {/* 3-Step Progress Bar */}
         <div className="max-w-[800px] mx-auto px-[20px] md:px-[40px]">
           <div className="flex justify-between relative mb-[40px] md:mb-[50px] mt-[20px] md:mt-[30px]">
-            <div className="absolute top-[5px] md:top-[7px] left-[40px] right-[40px] h-[3px] bg-[#222] z-[1]"></div>
+            <div className="absolute top-[5px] md:top-[7px] left-[50px] right-[50px] h-[2px] bg-[#222] z-[1]"></div>
 
-            <div className="relative z-[2] text-center w-[80px]">
+            <div className="relative z-[2] text-center w-[100px]">
               <div className="w-[12px] h-[12px] md:w-[16px] md:h-[16px] mx-auto rounded-full bg-[#222] mb-[5px] md:mb-[10px] relative z-10"></div>
-              <span className="text-[12px] md:text-[14px] whitespace-nowrap text-[#333] relative z-10 bg-white px-1">
+              <div className="text-[12px] md:text-[14px] text-[#333] bg-white px-1">
                 Giỏ hàng
-              </span>
+              </div>
             </div>
 
-            <div className="relative z-[2] text-center w-[80px]">
+            <div className="relative z-[2] text-center w-[100px]">
               <div className="w-[12px] h-[12px] md:w-[16px] md:h-[16px] mx-auto rounded-full bg-[#222] mb-[5px] md:mb-[10px] relative z-10"></div>
-              <span className="text-[12px] md:text-[14px] whitespace-nowrap text-[#333] relative z-10 bg-white px-1">
+              <div className="text-[12px] md:text-[14px] text-[#333] bg-white px-1">
                 Đặt hàng
-              </span>
+              </div>
             </div>
 
-            <div className="relative z-[2] text-center w-[80px]">
+            <div className="relative z-[2] text-center w-[100px]">
               <div className="w-[12px] h-[12px] md:w-[16px] md:h-[16px] mx-auto rounded-full bg-[#222] mb-[5px] md:mb-[10px] relative z-10"></div>
-              <span className="text-[12px] md:text-[14px] whitespace-nowrap text-[#333] relative z-10 bg-white px-1">
-                Thanh toán
-              </span>
-            </div>
-
-            <div className="relative z-[2] text-center w-[80px]">
-              <div className="w-[12px] h-[12px] md:w-[16px] md:h-[16px] mx-auto rounded-full bg-[#222] mb-[5px] md:mb-[10px] relative z-10"></div>
-              <span className="text-[12px] md:text-[14px] whitespace-nowrap text-[#333] relative z-10 bg-white px-1 flex flex-col leading-[1.2]">
-                <span>Hoàn thành</span>
-                <span>đơn</span>
-              </span>
+              <div className="text-[12px] md:text-[14px] font-medium text-[#222] bg-white px-1">
+                Hoàn thành đơn
+              </div>
             </div>
           </div>
         </div>

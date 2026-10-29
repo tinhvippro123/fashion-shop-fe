@@ -7,16 +7,31 @@ import {
   CardHeader,
   CardTitle,
 } from "@/shared/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/shared/ui/table";
 import { Badge } from "@/shared/ui/badge";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
-import { DollarSign, ShoppingBag, Users, CreditCard } from "lucide-react";
+import {
+  DollarSign,
+  ShoppingBag,
+  Users,
+  CreditCard,
+  TrendingUp,
+} from "lucide-react";
 import { OverviewChart } from "./OverviewChart";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { useRouter } from "next/navigation";
 
 export function DashboardOverview() {
   const router = useRouter();
-  const { stats, recentOrders, chartData, isLoading } = useDashboardStats();
+  const { stats, recentOrders, chartData, bestSellers, isLoading } =
+    useDashboardStats();
 
   if (isLoading || !stats) {
     return (
@@ -81,16 +96,15 @@ export function DashboardOverview() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Khách Hàng Mới</CardTitle>
+            <CardTitle className="text-sm font-medium">Khách Hàng</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              +{Number(stats.newCustomers || 0).toLocaleString("vi-VN")}
+              {Number(stats.newCustomers || 0).toLocaleString("vi-VN")}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats.customerChange > 0 ? "+" : ""}
-              {stats.customerChange}% so với tháng trước
+              Tài khoản khách hàng đang hoạt động
             </p>
           </CardContent>
         </Card>
@@ -101,22 +115,21 @@ export function DashboardOverview() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              +{Number(stats.totalOrders || 0).toLocaleString("vi-VN")}
+              {Number(stats.totalOrders || 0).toLocaleString("vi-VN")}
             </div>
             <p className="text-xs text-muted-foreground">
-              {stats.orderChange > 0 ? "+" : ""}
-              {stats.orderChange}% so với tháng trước
+              Đang chờ xử lý: {stats.pendingOrders} đơn
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Doanh Số Online</CardTitle>
+            <CardTitle className="text-sm font-medium">Sản Phẩm Đã Bán</CardTitle>
             <CreditCard className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              +{Number(stats.onlineSales || 0).toLocaleString("vi-VN")} SP
+              {Number(stats.onlineSales || 0).toLocaleString("vi-VN")} SP
             </div>
             <p className="text-xs text-muted-foreground">
               Vốn nhập kho:{" "}
@@ -187,7 +200,68 @@ export function DashboardOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Top Best Sellers Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-orange-500" />
+            Top Sản phẩm Bán chạy nhất
+          </CardTitle>
+          <CardDescription>
+            Danh sách 5 sản phẩm có số lượng bán ra cao nhất tại cửa hàng.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {bestSellers.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Chưa có dữ liệu sản phẩm bán ra.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mã SP</TableHead>
+                  <TableHead>Tên sản phẩm</TableHead>
+                  <TableHead>Danh mục</TableHead>
+                  <TableHead className="text-right">Đã bán</TableHead>
+                  <TableHead className="text-right">Doanh thu ước tính</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bestSellers.map((item, index) => (
+                  <TableRow
+                    key={item.numericId}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() =>
+                      router.push(`/admin/products/${item.numericId}/edit`)
+                    }
+                  >
+                    <TableCell className="font-medium">{item.sku}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <div className="h-7 w-7 bg-muted rounded flex items-center justify-center text-[10px] text-muted-foreground font-semibold shrink-0">
+                          #{index + 1}
+                        </div>
+                        <span className="font-semibold">{item.name}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{item.category}</Badge>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {item.sold.toLocaleString("vi-VN")}
+                    </TableCell>
+                    <TableCell className="text-right font-bold text-foreground">
+                      {item.revenue}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
     </>
   );
 }
-

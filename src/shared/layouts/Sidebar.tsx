@@ -9,10 +9,8 @@ import {
   ShoppingCart,
   Users,
   Tag,
-  MessageSquare,
   Gift,
   Star,
-  BarChart3,
   PackageOpen,
   ExternalLink,
 } from "lucide-react";
@@ -23,7 +21,6 @@ const navGroups = [
     title: "Quản lý chung",
     items: [
       { name: "Tổng quan", href: "/admin/dashboard", icon: LayoutDashboard },
-      { name: "Báo cáo", href: "/admin/reports", icon: BarChart3 },
       { name: "Đơn hàng", href: "/admin/orders", icon: ShoppingCart },
       { name: "Sản phẩm", href: "/admin/products", icon: Package },
       { name: "Nhập kho", href: "/admin/stock-imports", icon: PackageOpen },
@@ -37,10 +34,6 @@ const navGroups = [
       { name: "Mã giảm giá", href: "/admin/vouchers", icon: Gift },
       { name: "Danh mục", href: "/admin/categories", icon: Tag },
     ],
-  },
-  {
-    title: "Chăm sóc khách hàng",
-    items: [{ name: "Liên hệ", href: "/admin/contacts", icon: MessageSquare }],
   },
 ];
 

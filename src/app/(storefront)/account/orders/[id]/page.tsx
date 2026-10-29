@@ -7,6 +7,8 @@ import { apiFetch } from "@/shared/lib/api";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
 
+const STEP_ORDER = ["PENDING", "PROCESSING", "SHIPPING", "COMPLETED"];
+
 export default function OrderDetailPage({
   params,
 }: {
@@ -102,6 +104,11 @@ export default function OrderDetailPage({
     );
   }
 
+  const activeStepIdx =
+    order.status === "CANCELLED"
+      ? 0
+      : Math.max(0, STEP_ORDER.indexOf(order.status));
+
   return (
     <div className="flex flex-col lg:flex-row mx-[-15px]">
       {/* Main Content */}
@@ -121,6 +128,73 @@ export default function OrderDetailPage({
           <div className="text-[14px] font-bold">
             {getStatusDisplay(order.status)}
           </div>
+        </div>
+
+        {/* Integrated 4-Step Order Progress Bar */}
+        <div
+          className="mb-[28px] border border-[#e1e1e1] px-[15px] lg:px-[36px] py-[28px]"
+          style={{ borderRadius: "20px 0 20px 0" }}
+        >
+          <div className="w-full relative">
+            <div className="absolute top-[6px] left-[7px] right-[7px] h-[2px] bg-[#e1e1e1] z-[1]"></div>
+
+            <div className="flex justify-between relative z-[2] h-[48px]">
+              {order.status === "CANCELLED" ? (
+                <>
+                  <div className="relative w-[14px]">
+                    <div className="w-[14px] h-[14px] rounded-full bg-[#222] mx-auto"></div>
+                    <div className="text-[12px] text-[#6c6d70] text-left leading-tight absolute top-[24px] left-[-5px] w-max">
+                      Đơn hàng đã đặt
+                    </div>
+                  </div>
+                  <div className="relative w-[14px]">
+                    <div className="w-[14px] h-[14px] rounded-full bg-[#dc3545] mx-auto"></div>
+                    <div className="text-[12px] text-[#dc3545] font-semibold text-right leading-tight absolute top-[24px] right-[-5px] w-max">
+                      Đã hủy
+                    </div>
+                  </div>
+                </>
+              ) : (
+                [
+                  { key: "PENDING", label: "Đã đặt đơn" },
+                  { key: "PROCESSING", label: "Đang xử lý" },
+                  { key: "SHIPPING", label: "Đang giao" },
+                  { key: "COMPLETED", label: "Hoàn thành" },
+                ].map((step, idx) => {
+                  const reached = idx <= activeStepIdx;
+                  return (
+                    <div key={step.key} className="relative w-[14px]">
+                      <div
+                        className={`w-[14px] h-[14px] rounded-full mx-auto ${
+                          reached
+                            ? "bg-[#222]"
+                            : "bg-white border-[2px] border-[#e1e1e1]"
+                        }`}
+                      ></div>
+                      <div
+                        className={`text-[12px] leading-tight absolute top-[24px] w-max ${
+                          idx === 0
+                            ? "left-[-5px]"
+                            : idx === 3
+                            ? "right-[-5px]"
+                            : "left-1/2 -translate-x-1/2"
+                        } ${
+                          reached ? "text-[#222] font-medium" : "text-[#999]"
+                        }`}
+                      >
+                        {step.label}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+          {order.status === "CANCELLED" && order.cancelReason && (
+            <div className="mt-2 pt-3 border-t border-[#f0f0f0] text-[13px] text-[#dc3545]">
+              Lý do hủy: {order.cancelReason}
+            </div>
+          )}
         </div>
 
         {/* Items */}
@@ -172,27 +246,18 @@ export default function OrderDetailPage({
         </div>
 
         {/* Action Buttons */}
-        <div className="flex flex-wrap gap-[12px] items-start mt-[16px] pt-[8px]">
-          <Link
-            href={`/account/orders/${encodeURIComponent(
-              order.orderCode
-            )}/tracking`}
-            className="bg-[#222] text-white font-bold py-[8px] px-[24px] rounded-tl-[12px] rounded-br-[12px] text-[14px] border border-[#222] hover:bg-white hover:text-[#222] transition-colors uppercase"
-          >
-            Theo dõi đơn hàng
-          </Link>
-
-          {order.status === "PENDING" && (
+        {order.status === "PENDING" && (
+          <div className="flex flex-wrap gap-[12px] items-start mt-[16px] pt-[8px]">
             <button
               type="button"
               disabled={cancelling}
               onClick={handleCancelOrder}
-              className="bg-white text-[#dc3545] font-bold py-[8px] px-[24px] rounded-tl-[12px] rounded-br-[12px] text-[14px] border border-[#dc3545] hover:bg-[#dc3545] hover:text-white transition-colors uppercase disabled:opacity-60"
+              className="bg-white text-[#dc3545] font-bold py-[8px] px-[24px] rounded-tl-[12px] rounded-br-[12px] text-[14px] border border-[#dc3545] hover:bg-[#dc3545] hover:text-white transition-colors uppercase disabled:opacity-60 cursor-pointer"
             >
               {cancelling ? "Đang hủy..." : "Hủy đơn hàng"}
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Sidebar Right */}
@@ -258,4 +323,3 @@ export default function OrderDetailPage({
     </div>
   );
 }
-
