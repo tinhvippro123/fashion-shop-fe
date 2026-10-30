@@ -29,7 +29,7 @@ import { Badge } from "@/shared/ui/badge";
 import dynamic from "next/dynamic";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import {
   Form,
   FormControl,
@@ -79,7 +79,9 @@ interface ProductFormProps {
 export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [loadingInitial, setLoadingInitial] = useState(mode === "edit");
+  const [loadedProductId, setLoadedProductId] = useState<string | null>(null);
+  const loadingInitial =
+    mode === "edit" && Boolean(productId) && loadedProductId !== productId;
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [suggestions, setSuggestions] = useState<IOptionSuggestions>({
     names: ["Màu sắc", "Kích thước"],
@@ -128,9 +130,10 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
 
   useEffect(() => {
     if (mode !== "edit" || !productId) return;
-    setLoadingInitial(true);
+    let active = true;
     apiFetch<RawProductResponseDto>(`/admin/products/${productId}`)
       .then((prod) => {
+        if (!active) return;
         form.reset({
           name: prod.name || "",
           description: prod.description || "",
@@ -155,9 +158,16 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
         });
       })
       .catch(() => {
-        toast.error("Không tìm thấy sản phẩm cần chỉnh sửa!");
+        if (active) {
+          toast.error("Không tìm thấy sản phẩm cần chỉnh sửa!");
+        }
       })
-      .finally(() => setLoadingInitial(false));
+      .finally(() => {
+        if (active) setLoadedProductId(productId);
+      });
+    return () => {
+      active = false;
+    };
   }, [mode, productId, form]);
 
   const {
@@ -180,7 +190,19 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     name: "variants",
   });
 
-  const currentImages = form.watch("images") || [];
+  const watchedImages = useWatch({
+    control: form.control,
+    name: "images",
+  });
+  const currentImages = watchedImages || [];
+  const watchedOptions = useWatch({
+    control: form.control,
+    name: "options",
+  });
+  const watchedVariants = useWatch({
+    control: form.control,
+    name: "variants",
+  });
 
   const handleAddImage = (imgUrl: string) => {
     const trimmed = imgUrl.trim();
@@ -553,6 +575,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                             key={idx}
                             className="relative aspect-2/3 rounded-md overflow-hidden border bg-muted group"
                           >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={resolveImageUrl(img)}
                               alt="Preview"
@@ -780,9 +803,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                 />
 
                                 {(() => {
-                                  const currentName = form.watch(
-                                    `options.${index}.name`
-                                  );
+                                  const currentName =
+                                    watchedOptions?.[index]?.name;
                                   if (
                                     !currentName ||
                                     !suggestions.values[currentName]
@@ -808,12 +830,11 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   );
                                 })()}
 
-                                {(form.watch(`options.${index}.values`) || [])
+                                {(watchedOptions?.[index]?.values || [])
                                   .length > 0 && (
                                   <div className="flex flex-wrap gap-2 mt-3 p-2 bg-muted/50 rounded-md border min-h-[42px]">
                                     {(
-                                      form.watch(`options.${index}.values`) ||
-                                      []
+                                      watchedOptions?.[index]?.values || []
                                     ).map((val, vIdx) => (
                                       <Badge
                                         key={vIdx}
@@ -888,7 +909,9 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               <div>
                                 <p className="font-semibold text-sm">
                                   {Object.values(
-                                    form.watch(`variants.${i}.options`) || {}
+                                    watchedVariants?.[i]?.options ||
+                                      v.options ||
+                                      {}
                                   ).join(" / ")}
                                 </p>
                               </div>

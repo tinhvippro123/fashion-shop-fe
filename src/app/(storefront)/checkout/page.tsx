@@ -1,6 +1,11 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useSyncExternalStore,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -26,11 +31,17 @@ import {
   VoucherDto,
 } from "@/features/cart-and-order/types/order";
 
+const emptySubscribe = () => () => {};
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalPrice, clearCart } = useCartStore();
   const { isAuthenticated, user } = useAuthStore();
-  const [isMounted, setIsMounted] = useState(false);
+  const isMounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
   const [submitting, setSubmitting] = useState(false);
 
   // Vouchers
@@ -93,7 +104,6 @@ export default function CheckoutPage() {
   }, [isAuthenticated]);
 
   useEffect(() => {
-    setIsMounted(true);
     loadVnProvinces().then(setProvinces);
     apiFetch<VoucherDto[]>("/catalog/vouchers/active")
       .then(setAvailableVouchers)
@@ -101,10 +111,24 @@ export default function CheckoutPage() {
   }, []);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      fetchUserAddresses();
-    }
-  }, [isAuthenticated, fetchUserAddresses]);
+    if (!isAuthenticated) return;
+    let active = true;
+    apiFetch<AddressDto[]>("/account/addresses")
+      .then((list) => {
+        if (!active) return;
+        setAddresses(list);
+        if (list.length > 0) {
+          const def = list.find((a) => a.isDefault) || list[0];
+          setSelectedAddress((prev) => prev || def);
+        }
+      })
+      .catch(() => {
+        // ignore
+      });
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated]);
 
   const submitFinalOrder = useCallback(async () => {
     if (submitting) return;

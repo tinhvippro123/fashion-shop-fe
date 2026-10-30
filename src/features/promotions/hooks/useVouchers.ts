@@ -21,8 +21,21 @@ export function useVouchers() {
   }, []);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let active = true;
+    apiFetch<Voucher[]>("/admin/vouchers")
+      .then((data) => {
+        if (active) setVouchers(data || []);
+      })
+      .catch(() => {
+        if (active) setVouchers([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const triggerAction = useCallback(
     async (

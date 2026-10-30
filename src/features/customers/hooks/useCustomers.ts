@@ -21,8 +21,21 @@ export function useCustomers() {
   }, []);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let active = true;
+    apiFetch<Customer[]>("/admin/customers")
+      .then((data) => {
+        if (active) setCustomers(data || []);
+      })
+      .catch(() => {
+        if (active) setCustomers([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const updateCustomerStatus = useCallback(
     async (customerId: string, status: "ACTIVE" | "BANNED") => {
@@ -46,24 +59,42 @@ export function useCustomers() {
 
 export function useCustomerDetail(customerId: string) {
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const [manualLoading, setManualLoading] = useState(false);
+  const isLoading =
+    manualLoading || (Boolean(customerId) && loadedId !== customerId);
 
   const reload = useCallback(async () => {
     if (!customerId) return;
-    setIsLoading(true);
+    setManualLoading(true);
     try {
       const data = await apiFetch<Customer>(`/admin/customers/${customerId}`);
       setCustomer(data);
     } catch {
       setCustomer(null);
     } finally {
-      setIsLoading(false);
+      setLoadedId(customerId);
+      setManualLoading(false);
     }
   }, [customerId]);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (!customerId) return;
+    let active = true;
+    apiFetch<Customer>(`/admin/customers/${customerId}`)
+      .then((data) => {
+        if (active) setCustomer(data);
+      })
+      .catch(() => {
+        if (active) setCustomer(null);
+      })
+      .finally(() => {
+        if (active) setLoadedId(customerId);
+      });
+    return () => {
+      active = false;
+    };
+  }, [customerId]);
 
   return { customer, isLoading, reload };
 }

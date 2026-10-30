@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import ProductCard, { Product } from "@/shared/storefront-ui/ProductCard";
 import Pagination from "@/shared/storefront-ui/Pagination";
 import { apiFetch } from "@/shared/lib/api";
@@ -29,7 +29,7 @@ export default function ProductGrid({
   const [selectedSort, setSelectedSort] = useState("Sắp xếp theo");
   const [sortCode, setSortCode] = useState("default");
   const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [fetchedQuery, setFetchedQuery] = useState<string | null>(null);
 
   const sortOptions = [
     { value: "default", label: "Mặc định" },
@@ -38,7 +38,7 @@ export default function ProductGrid({
     { value: "price_desc", label: "Giá: cao đến thấp" },
   ];
 
-  useEffect(() => {
+  const queryString = useMemo(() => {
     const params = new URLSearchParams();
 
     if (categorySlug) {
@@ -64,12 +64,27 @@ export default function ProductGrid({
       params.set("maxPrice", String(filters.maxPrice));
     if (sortCode && sortCode !== "default") params.set("sort", sortCode);
 
-    setLoading(true);
-    apiFetch<Product[]>(`/catalog/products?${params.toString()}`)
-      .then((res) => setProducts(Array.isArray(res) ? res : []))
-      .catch(() => setProducts([]))
-      .finally(() => setLoading(false));
+    return params.toString();
   }, [categorySlug, keyword, filters, sortCode]);
+
+  const loading = fetchedQuery !== queryString;
+
+  useEffect(() => {
+    let active = true;
+    apiFetch<Product[]>(`/catalog/products?${queryString}`)
+      .then((res) => {
+        if (active) setProducts(Array.isArray(res) ? res : []);
+      })
+      .catch(() => {
+        if (active) setProducts([]);
+      })
+      .finally(() => {
+        if (active) setFetchedQuery(queryString);
+      });
+    return () => {
+      active = false;
+    };
+  }, [queryString]);
 
   const totalPages = Math.max(1, Math.ceil(products.length / ITEMS_PER_PAGE));
   const safePage = Math.min(Math.max(1, currentPage), totalPages);

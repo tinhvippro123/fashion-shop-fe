@@ -21,8 +21,21 @@ export function useOrders() {
   }, []);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let active = true;
+    apiFetch<Order[]>("/admin/orders")
+      .then((data) => {
+        if (active) setOrders(data || []);
+      })
+      .catch(() => {
+        if (active) setOrders([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const updateOrderStatus = useCallback(
     async (idOrCode: string, status: OrderStatus, reason?: string) => {

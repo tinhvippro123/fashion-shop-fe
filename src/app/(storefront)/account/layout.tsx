@@ -1,10 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useSyncExternalStore } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import AccountSidebar from "@/features/users/components/account/AccountSidebar";
 import { useAuthStore } from "@/features/users/stores/auth.store";
+
+const emptySubscribe = () => () => {};
 
 export default function AccountLayout({
   children,
@@ -14,11 +16,11 @@ export default function AccountLayout({
   const router = useRouter();
   const pathname = usePathname();
   const { isAuthenticated } = useAuthStore();
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const hydrated = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   useEffect(() => {
     if (hydrated && !isAuthenticated) {

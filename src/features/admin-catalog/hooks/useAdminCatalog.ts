@@ -48,8 +48,21 @@ export function useProducts() {
   }, []);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let active = true;
+    apiFetch<RawProductResponseDto[]>("/admin/products")
+      .then((raw) => {
+        if (active) setProducts((raw || []).map(mapRawToAdminProduct));
+      })
+      .catch(() => {
+        if (active) setProducts([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const setProductActiveState = useCallback(
     async (product: AdminProduct, nextActive: boolean) => {
@@ -104,8 +117,21 @@ export function useCategories() {
   }, []);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let active = true;
+    apiFetch<AdminCategory[]>("/admin/categories")
+      .then((data) => {
+        if (active) setCategories(data || []);
+      })
+      .catch(() => {
+        if (active) setCategories([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return {
     categories,

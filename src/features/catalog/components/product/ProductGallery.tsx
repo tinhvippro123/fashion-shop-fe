@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { ProductColor } from "@/features/catalog/types/product";
 import { resolveImageUrl } from "@/shared/utils/format";
 
@@ -10,11 +10,23 @@ interface ProductGalleryProps {
 
 export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
   const images = selectedColor?.images || [];
-  const [activeIndex, setActiveIndex] = useState(0);
+  const colorKey = selectedColor?.id;
+  const [selection, setSelection] = useState<{
+    colorKey?: string | number;
+    index: number;
+  }>({ colorKey, index: 0 });
 
-  useEffect(() => {
-    setActiveIndex(0);
-  }, [selectedColor?.id]);
+  const activeIndex = selection.colorKey === colorKey ? selection.index : 0;
+  const setActiveIndex = (
+    updater: number | ((prevIndex: number) => number)
+  ) => {
+    setSelection((prev) => {
+      const baseIndex = prev.colorKey === colorKey ? prev.index : 0;
+      const nextIndex =
+        typeof updater === "function" ? updater(baseIndex) : updater;
+      return { colorKey, index: nextIndex };
+    });
+  };
 
   if (images.length === 0) {
     return (

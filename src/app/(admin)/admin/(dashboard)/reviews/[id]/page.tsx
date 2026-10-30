@@ -34,22 +34,31 @@ export default function ReviewDetailPage() {
   const id = params.id as string;
 
   const [review, setReview] = useState<Review | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
   const [replyHtml, setReplyHtml] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const loading = loadedId !== id;
 
   useEffect(() => {
-    setLoading(true);
+    let active = true;
     apiFetch<Review[]>("/admin/reviews")
       .then((list) => {
+        if (!active) return;
         const found = (list || []).find((r) => String(r.id) === String(id));
         setReview(found || null);
         if (found?.reply) {
           setReplyHtml(found.reply);
         }
       })
-      .catch(() => setReview(null))
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (active) setReview(null);
+      })
+      .finally(() => {
+        if (active) setLoadedId(id);
+      });
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (loading) {

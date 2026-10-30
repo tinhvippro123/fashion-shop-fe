@@ -34,8 +34,21 @@ export default function AddressesPage() {
   }, []);
 
   useEffect(() => {
-    fetchAddresses();
-  }, [fetchAddresses]);
+    let active = true;
+    apiFetch<AddressDto[]>("/account/addresses")
+      .then((list) => {
+        if (active) setAddresses(list);
+      })
+      .catch(() => {
+        if (active) setAddresses([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleDelete = async (id: number) => {
     if (!confirm("Bạn có chắc muốn xóa địa chỉ này?")) return;

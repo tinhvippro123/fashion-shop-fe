@@ -6,11 +6,14 @@ import { Order, OrderStatus } from "../types/order.admin";
 
 export function useOrderDetail(orderId: string) {
   const [order, setOrder] = useState<Order | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const [manualLoading, setManualLoading] = useState(false);
+  const isLoading =
+    manualLoading || (Boolean(orderId) && loadedId !== orderId);
 
   const reload = useCallback(async () => {
     if (!orderId) return;
-    setIsLoading(true);
+    setManualLoading(true);
     try {
       const data = await apiFetch<Order>(
         `/admin/orders/${encodeURIComponent(orderId)}`
@@ -19,13 +22,28 @@ export function useOrderDetail(orderId: string) {
     } catch {
       setOrder(null);
     } finally {
-      setIsLoading(false);
+      setLoadedId(orderId);
+      setManualLoading(false);
     }
   }, [orderId]);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    if (!orderId) return;
+    let active = true;
+    apiFetch<Order>(`/admin/orders/${encodeURIComponent(orderId)}`)
+      .then((data) => {
+        if (active) setOrder(data);
+      })
+      .catch(() => {
+        if (active) setOrder(null);
+      })
+      .finally(() => {
+        if (active) setLoadedId(orderId);
+      });
+    return () => {
+      active = false;
+    };
+  }, [orderId]);
 
   const updateStatus = useCallback(
     async (status: OrderStatus, reason?: string) => {

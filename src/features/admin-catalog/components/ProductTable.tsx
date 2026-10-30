@@ -340,6 +340,7 @@ export function ProductTable({
                       </TableCell>
                       <TableCell>
                         <div className="w-12 aspect-2/3 rounded-md bg-muted overflow-hidden relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={resolveImageUrl(product.image, "/login-bg.jpg")}
                             alt={product.name}
@@ -455,6 +456,7 @@ export function ProductTable({
                     />
                   </div>
                   <div className="w-20 aspect-2/3 rounded-md bg-muted overflow-hidden relative shrink-0 ml-6">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={resolveImageUrl(product.image, "/login-bg.jpg")}
                       alt={product.name}

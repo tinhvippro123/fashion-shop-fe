@@ -304,6 +304,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4">
                         <div className="relative w-14 aspect-2/3 rounded-md overflow-hidden bg-muted shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={resolveImageUrl(item.image)}
                             alt={item.name}

@@ -11,7 +11,7 @@ import {
 } from "@/shared/ui/select";
 import { Switch } from "@/shared/ui/switch";
 import { Button } from "@/shared/ui/button";
-import { Resolver, useForm } from "react-hook-form";
+import { Resolver, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Form,
@@ -74,7 +74,10 @@ export function VoucherForm({
     },
   });
 
-  const discountType = form.watch("discountType");
+  const discountType = useWatch({
+    control: form.control,
+    name: "discountType",
+  });
 
   const onSubmit = async (values: TVoucherPayload) => {
     if (submitting) return;

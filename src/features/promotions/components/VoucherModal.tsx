@@ -9,7 +9,7 @@ import {
 } from "@/shared/ui/dialog";
 import { VoucherForm } from "./VoucherForm";
 import { Voucher } from "../types/promotion.admin";
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { TVoucherPayload } from "../schemas/voucher.schema";
 import { Label } from "@/shared/ui/label";
 import { Input } from "@/shared/ui/input";
@@ -31,57 +31,48 @@ export function VoucherModal({
   voucherId,
   vouchers,
 }: VoucherModalProps) {
-  const [defaultValues, setDefaultValues] = useState<
-    Partial<TVoucherPayload> | undefined
-  >();
-  const [status, setStatus] = useState<
-    "Sắp diễn ra" | "Đang diễn ra" | "Đã kết thúc" | undefined
-  >();
+  const { defaultValues, status } = useMemo(() => {
+    if (
+      isOpen &&
+      (mode === "edit" || mode === "view" || mode === "duplicate") &&
+      voucherId
+    ) {
+      const voucher = vouchers.find((v) => v.id === voucherId);
+      if (voucher) {
+        const isPercent = voucher.discountType === "PERCENTAGE";
+        const startStr = voucher.startDate
+          ? voucher.startDate.slice(0, 16)
+          : "2026-01-01T00:00";
+        const endStr = voucher.endDate
+          ? voucher.endDate.slice(0, 16)
+          : "2026-12-31T23:59";
 
-  useEffect(() => {
-    if (isOpen) {
-      if (
-        (mode === "edit" || mode === "view" || mode === "duplicate") &&
-        voucherId
-      ) {
-        const voucher = vouchers.find((v) => v.id === voucherId);
-        if (voucher) {
-          const isPercent = voucher.discountType === "PERCENTAGE";
-          const startStr = voucher.startDate
-            ? voucher.startDate.slice(0, 16)
-            : "2026-01-01T00:00";
-          const endStr = voucher.endDate
-            ? voucher.endDate.slice(0, 16)
-            : "2026-12-31T23:59";
+        const vals: Partial<TVoucherPayload> = {
+          code: mode === "duplicate" ? `${voucher.code}_COPY` : voucher.code,
+          discountType: isPercent ? "percent" : "vnd",
+          discount: Number(voucher.discountValue || 0),
+          maxDiscount: voucher.maxDiscountAmount
+            ? Number(voucher.maxDiscountAmount)
+            : 100000,
+          minOrder: Number(voucher.minOrderValueRaw || 0),
+          quantity: Number(voucher.usageLimit || 100),
+          isActive: voucher.status !== "Đã kết thúc",
+          isPublic: true,
+          startDate: startStr,
+          endDate: endStr,
+        };
 
-          const vals: Partial<TVoucherPayload> = {
-            code: mode === "duplicate" ? `${voucher.code}_COPY` : voucher.code,
-            discountType: isPercent ? "percent" : "vnd",
-            discount: Number(voucher.discountValue || 0),
-            maxDiscount: voucher.maxDiscountAmount
-              ? Number(voucher.maxDiscountAmount)
-              : 100000,
-            minOrder: Number(voucher.minOrderValueRaw || 0),
-            quantity: Number(voucher.usageLimit || 100),
-            isActive: voucher.status !== "Đã kết thúc",
-            isPublic: true,
-            startDate: startStr,
-            endDate: endStr,
-          };
-          setDefaultValues(vals);
-          setStatus(
-            voucher.status as
-              | "Đang diễn ra"
-              | "Sắp diễn ra"
-              | "Đã kết thúc"
-              | undefined
-          );
-        }
-      } else {
-        setDefaultValues(undefined);
-        setStatus(undefined);
+        return {
+          defaultValues: vals,
+          status: voucher.status as
+            | "Đang diễn ra"
+            | "Sắp diễn ra"
+            | "Đã kết thúc"
+            | undefined,
+        };
       }
     }
+    return { defaultValues: undefined, status: undefined };
   }, [isOpen, mode, voucherId, vouchers]);
 
   const getTitle = () => {

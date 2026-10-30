@@ -21,8 +21,21 @@ export function useReviews() {
   }, []);
 
   useEffect(() => {
-    reload();
-  }, [reload]);
+    let active = true;
+    apiFetch<Review[]>("/admin/reviews")
+      .then((data) => {
+        if (active) setReviews(data || []);
+      })
+      .catch(() => {
+        if (active) setReviews([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const toggleVisibility = useCallback(async (reviewId: string) => {
     const updated = await apiFetch<Review>(

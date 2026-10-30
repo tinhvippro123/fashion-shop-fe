@@ -101,26 +101,45 @@ export function StockImportManager() {
   }, []);
 
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let active = true;
+    Promise.all([
+      apiFetch<StockImportResponseDto[]>("/admin/stock-imports"),
+      apiFetch<ImportVariantOption[]>("/admin/variants"),
+    ])
+      .then(([receiptsRes, variantsRes]) => {
+        if (!active) return;
+        const nextVariants = variantsRes || [];
+        setImports(receiptsRes || []);
+        setVariants(nextVariants);
 
-  useEffect(() => {
-    if (preselectedProductId && variants.length > 0) {
-      const matched = variants.filter(
-        (v) => String(v.productId) === preselectedProductId
-      );
-      if (matched.length > 0) {
-        setDraftItems(
-          matched.map((m) => ({
-            variantId: String(m.id),
-            quantity: 20,
-            unitCost: Number(m.costPrice || Math.round(m.price * 0.55)),
-          }))
-        );
-        setCreateOpen(true);
-      }
-    }
-  }, [preselectedProductId, variants]);
+        if (preselectedProductId && nextVariants.length > 0) {
+          const matched = nextVariants.filter(
+            (v) => String(v.productId) === preselectedProductId
+          );
+          if (matched.length > 0) {
+            setDraftItems(
+              matched.map((m) => ({
+                variantId: String(m.id),
+                quantity: 20,
+                unitCost: Number(m.costPrice || Math.round(m.price * 0.55)),
+              }))
+            );
+            setCreateOpen(true);
+          }
+        }
+      })
+      .catch(() => {
+        if (!active) return;
+        setImports([]);
+        setVariants([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [preselectedProductId]);
 
   const filteredImports = useMemo(() => {
     if (!searchQuery.trim()) return imports;

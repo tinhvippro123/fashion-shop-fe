@@ -13,14 +13,24 @@ export default function ProductDetailPage({
 }) {
   const { id } = use(params);
   const [product, setProduct] = useState<ProductDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loadedId, setLoadedId] = useState<string | null>(null);
+  const loading = loadedId !== id;
 
   useEffect(() => {
-    setLoading(true);
+    let active = true;
     apiFetch<ProductDetail>(`/catalog/products/${id}`)
-      .then((res) => setProduct(res))
-      .catch(() => setProduct(null))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (active) setProduct(res);
+      })
+      .catch(() => {
+        if (active) setProduct(null);
+      })
+      .finally(() => {
+        if (active) setLoadedId(id);
+      });
+    return () => {
+      active = false;
+    };
   }, [id]);
 
   if (loading) {

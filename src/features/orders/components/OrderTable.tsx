@@ -34,7 +34,7 @@ import { cn } from "@/shared/utils/utils";
 import { Order, OrderStatus } from "@/features/orders/types/order.admin";
 import { TableSkeleton } from "@/shared/ui/table-skeleton";
 import { EmptyState } from "@/shared/ui/empty-state";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -149,17 +149,18 @@ export function OrderTable({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const [searchQuery, setSearchQuery] = useState(
-    searchParams.get("search") || ""
-  );
+  const urlSearch = searchParams.get("search");
+  const [searchEdit, setSearchEdit] = useState<{
+    forUrlSearch: string | null;
+    value: string;
+  } | null>(null);
+  const searchQuery =
+    searchEdit && searchEdit.forUrlSearch === urlSearch
+      ? searchEdit.value
+      : urlSearch ?? "";
+  const setSearchQuery = (value: string) =>
+    setSearchEdit({ forUrlSearch: urlSearch, value });
   const [submitting, setSubmitting] = useState(false);
-
-  useEffect(() => {
-    const urlSearch = searchParams.get("search");
-    if (urlSearch !== null) {
-      setSearchQuery(urlSearch);
-    }
-  }, [searchParams]);
 
   const filteredOrders = orders.filter((o) => {
     if (viewStatus && (viewStatus as string) !== "ALL" && o.status !== viewStatus) {

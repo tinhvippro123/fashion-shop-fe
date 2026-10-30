@@ -41,35 +41,37 @@ export default function RegisterPage() {
     loadVnProvinces().then(setProvinces);
   }, []);
 
-  useEffect(() => {
-    if (selectedProvince) {
-      const province = provinces.find((p) => p.name === selectedProvince);
-      loadVnDistricts(province?.code, selectedProvince).then((d) => {
-        setDistricts(d);
-        setWards([]);
-        setSelectedDistrict("");
-        setSelectedWard("");
-      });
+  const handleProvinceChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const val = e.target.value;
+    setSelectedProvince(val);
+    setSelectedDistrict("");
+    setSelectedWard("");
+    setWards([]);
+    if (val) {
+      const province = provinces.find((p) => p.name === val);
+      const d = await loadVnDistricts(province?.code, val);
+      setDistricts(d);
     } else {
       setDistricts([]);
-      setWards([]);
-      setSelectedDistrict("");
-      setSelectedWard("");
     }
-  }, [selectedProvince, provinces]);
+  };
 
-  useEffect(() => {
-    if (selectedDistrict) {
-      const district = districts.find((d) => d.name === selectedDistrict);
-      loadVnWards(district?.code, selectedDistrict).then((w) => {
-        setWards(w);
-        setSelectedWard("");
-      });
+  const handleDistrictChange = async (
+    e: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const val = e.target.value;
+    setSelectedDistrict(val);
+    setSelectedWard("");
+    if (val) {
+      const district = districts.find((d) => d.name === val);
+      const w = await loadVnWards(district?.code, val);
+      setWards(w);
     } else {
       setWards([]);
-      setSelectedWard("");
     }
-  }, [selectedDistrict, districts]);
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,7 +222,7 @@ export default function RegisterPage() {
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] bg-white cursor-pointer"
                     required
                     value={selectedProvince}
-                    onChange={(e) => setSelectedProvince(e.target.value)}
+                    onChange={handleProvinceChange}
                   >
                     <option value="">Chọn Tỉnh/Tp</option>
                     {provinces.map((p) => (
@@ -238,7 +240,7 @@ export default function RegisterPage() {
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] bg-white cursor-pointer"
                     required
                     value={selectedDistrict}
-                    onChange={(e) => setSelectedDistrict(e.target.value)}
+                    onChange={handleDistrictChange}
                   >
                     <option value="">Chọn Quận/Huyện</option>
                     {districts.map((d) => (
