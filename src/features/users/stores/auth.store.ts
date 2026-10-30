@@ -8,6 +8,8 @@ export interface User {
   fullName?: string;
   email: string;
   phone: string;
+  gender?: string;
+  dateOfBirth?: string;
   role?: string;
   isAdmin: boolean;
   avatar?: string;
@@ -19,11 +21,14 @@ interface AuthResponsePayload {
   user: User;
 }
 
-interface RegisterPayload {
+export interface RegisterPayload {
   fullName: string;
   email: string;
   phone?: string;
+  gender?: string;
+  dateOfBirth?: string;
   password: string;
+  otpCode: string;
 }
 
 interface AuthState {

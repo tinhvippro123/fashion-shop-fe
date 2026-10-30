@@ -14,6 +14,8 @@ export default function ProfilePage() {
   const [fullName, setFullName] = useState(user?.fullName || user?.name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [email, setEmail] = useState(user?.email || "");
+  const [gender, setGender] = useState(user?.gender || "FEMALE");
+  const [dateOfBirth, setDateOfBirth] = useState(user?.dateOfBirth || "");
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -26,6 +28,8 @@ export default function ProfilePage() {
         setFullName(displayName);
         setPhone(profile.phone || "");
         setEmail(profile.email || "");
+        setGender(profile.gender || "FEMALE");
+        setDateOfBirth(profile.dateOfBirth || "");
         setUser({
           ...profile,
           name: displayName,
@@ -48,6 +52,8 @@ export default function ProfilePage() {
         body: JSON.stringify({
           fullName: fullName.trim(),
           phone: phone.trim(),
+          gender,
+          dateOfBirth: dateOfBirth || null,
         }),
       });
       setUser({
@@ -161,6 +167,61 @@ export default function ProfilePage() {
                   value={email}
                   readOnly
                   className="w-full bg-[#f8f9fa] border-0 rounded-[4px] p-[10px_15px] text-[14px] text-[#495057] outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-center mb-[24px]">
+              <label className="text-[#6c6d70] text-[14px] w-full md:w-[150px] shrink-0 mb-[8px] md:mb-0">
+                Giới tính
+              </label>
+              <div className="flex-1 w-full flex items-center gap-[24px] py-[8px]">
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="MALE"
+                    checked={gender === "MALE"}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="mr-[6px] w-[16px] h-[16px] accent-[#222]"
+                  />
+                  <span className="text-[14px] text-[#222]">Nam</span>
+                </label>
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="FEMALE"
+                    checked={gender === "FEMALE"}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="mr-[6px] w-[16px] h-[16px] accent-[#222]"
+                  />
+                  <span className="text-[14px] text-[#222]">Nữ</span>
+                </label>
+                <label className="inline-flex items-center cursor-pointer">
+                  <input
+                    type="radio"
+                    name="gender"
+                    value="OTHER"
+                    checked={gender === "OTHER"}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="mr-[6px] w-[16px] h-[16px] accent-[#222]"
+                  />
+                  <span className="text-[14px] text-[#222]">Khác</span>
+                </label>
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-center mb-[24px]">
+              <label className="text-[#6c6d70] text-[14px] w-full md:w-[150px] shrink-0 mb-[8px] md:mb-0">
+                Ngày sinh
+              </label>
+              <div className="flex-1 w-full">
+                <input
+                  type="date"
+                  value={dateOfBirth}
+                  onChange={(e) => setDateOfBirth(e.target.value)}
+                  className="w-full border border-[#e1e1e1] rounded-[4px] p-[10px_15px] text-[14px] text-[#222] outline-none focus:border-[#222] transition-colors"
                 />
               </div>
             </div>

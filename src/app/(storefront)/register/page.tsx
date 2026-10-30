@@ -15,6 +15,13 @@ import {
   VnWard,
 } from "@/shared/utils/vn-locations";
 
+interface SendOtpResponse {
+  email: string;
+  expiresInSeconds: number;
+  sentViaSmtp: boolean;
+  otpCode?: string;
+}
+
 export default function RegisterPage() {
   const router = useRouter();
   const register = useAuthStore((state) => state.register);
@@ -23,8 +30,14 @@ export default function RegisterPage() {
   const [firstName, setFirstName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gender, setGender] = useState("FEMALE");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [demoOtpHint, setDemoOtpHint] = useState("");
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
   const [street, setStreet] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -39,6 +52,43 @@ export default function RegisterPage() {
   useEffect(() => {
     loadVnProvinces().then(setProvinces);
   }, []);
+
+  useEffect(() => {
+    if (otpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setOtpCountdown((prev) => (prev > 0 ? prev - 1 : 0));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [otpCountdown]);
+
+  const handleSendOtp = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+      toast.warning("Vui lòng nhập địa chỉ Email hợp lệ trước khi lấy mã OTP!");
+      return;
+    }
+    setSendingOtp(true);
+    try {
+      const res = await apiFetch<SendOtpResponse>("/auth/send-otp", {
+        method: "POST",
+        body: JSON.stringify({ email: trimmedEmail }),
+      });
+      setOtpCountdown(60);
+      if (res.otpCode) {
+        setDemoOtpHint(res.otpCode);
+        toast.success(
+          `Đã gửi mã OTP tới ${res.email}! (Mã OTP xác thực: ${res.otpCode})`,
+          { autoClose: 8000 }
+        );
+      } else {
+        toast.success(`Đã gửi mã OTP tới ${res.email}!`);
+      }
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSendingOtp(false);
+    }
+  };
 
   const handleProvinceChange = async (
     e: React.ChangeEvent<HTMLSelectElement>
@@ -82,6 +132,10 @@ export default function RegisterPage() {
       toast.error("Mật khẩu nhập lại không khớp!");
       return;
     }
+    if (!otpCode.trim()) {
+      toast.error("Vui lòng nhập mã xác thực OTP gửi tới email!");
+      return;
+    }
 
     const fullName = `${lastName} ${firstName}`.trim();
     setLoading(true);
@@ -90,7 +144,10 @@ export default function RegisterPage() {
         fullName,
         email: email.trim(),
         phone: phone.trim(),
+        gender,
+        dateOfBirth: dateOfBirth || undefined,
         password,
+        otpCode: otpCode.trim(),
       });
 
       if (selectedProvince && street.trim()) {
@@ -187,6 +244,35 @@ export default function RegisterPage() {
                     placeholder="Điện thoại..."
                     required
                   />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-[20px] mb-[20px]">
+                <div className="w-full sm:w-1/2">
+                  <label className="block text-[14px] text-[#6c6d70] mb-[8px] font-['Montserrat',sans-serif]">
+                    Ngày sinh:<span className="text-[#ff0000]">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
+                    required
+                  />
+                </div>
+                <div className="w-full sm:w-1/2 relative">
+                  <label className="block text-[14px] text-[#6c6d70] mb-[8px] font-['Montserrat',sans-serif]">
+                    Giới tính:<span className="text-[#ff0000]">*</span>
+                  </label>
+                  <select
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] bg-white cursor-pointer"
+                  >
+                    <option value="FEMALE">Nữ</option>
+                    <option value="MALE">Nam</option>
+                    <option value="OTHER">Khác</option>
+                  </select>
                 </div>
               </div>
 
@@ -294,6 +380,50 @@ export default function RegisterPage() {
                   placeholder="Nhập lại mật khẩu..."
                   required
                 />
+              </div>
+
+              <div className="mb-[20px]">
+                <label className="block text-[14px] text-[#6c6d70] mb-[8px] font-['Montserrat',sans-serif]">
+                  Mã xác thực OTP Email:<span className="text-[#ff0000]">*</span>
+                </label>
+                <div className="flex gap-[12px]">
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                    className="flex-1 h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3] tracking-[2px] font-semibold"
+                    placeholder="Nhập mã OTP 6 số..."
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={sendingOtp || otpCountdown > 0}
+                    className="px-[18px] h-[50px] bg-[#f8f9fa] border border-[#221f20] rounded-[8px] text-[13px] font-semibold text-[#221f20] hover:bg-[#221f20] hover:text-white transition-colors whitespace-nowrap disabled:opacity-50"
+                  >
+                    {sendingOtp
+                      ? "Đang gửi..."
+                      : otpCountdown > 0
+                        ? `Gửi lại (${otpCountdown}s)`
+                        : "Lấy mã OTP"}
+                  </button>
+                </div>
+                {demoOtpHint && (
+                  <p className="mt-[8px] text-[12px] text-[#155724] bg-[#d4edda] px-[12px] py-[6px] rounded-[6px]">
+                    Mã xác thực OTP đã tạo cho <strong>{email}</strong>:{" "}
+                    <strong className="tracking-[2px] text-[14px] underline">
+                      {demoOtpHint}
+                    </strong>{" "}
+                    <button
+                      type="button"
+                      onClick={() => setOtpCode(demoOtpHint)}
+                      className="ml-[8px] text-[#0c5460] font-semibold underline"
+                    >
+                      [Điền nhanh]
+                    </button>
+                  </p>
+                )}
               </div>
 
               <div className="mb-[25px] flex items-center">
