@@ -94,7 +94,6 @@ interface CustomerTableProps {
     status: "ACTIVE" | "BANNED"
   ) => Promise<Customer>;
   isBannedView?: boolean;
-  isUnverifiedView?: boolean;
 }
 
 export function CustomerTable({
@@ -102,7 +101,6 @@ export function CustomerTable({
   isLoading,
   onUpdateStatus,
   isBannedView = false,
-  isUnverifiedView = false,
 }: CustomerTableProps) {
   const router = useRouter();
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
@@ -112,11 +110,7 @@ export function CustomerTable({
 
   const filteredCustomers = customers.filter((c) => {
     const statusMatch =
-      c.accountStatus === "BANNED"
-        ? isBannedView
-        : c.accountStatus === "UNVERIFIED"
-        ? isUnverifiedView
-        : !isBannedView && !isUnverifiedView;
+      c.accountStatus === "BANNED" ? isBannedView : !isBannedView;
 
     if (!statusMatch) return false;
 
@@ -317,18 +311,14 @@ export function CustomerTable({
                       {cus.totalSpent}
                     </TableCell>
                     <TableCell>
-                      {cus.accountStatus === "ACTIVE" && (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none">
-                          Hoạt động
-                        </Badge>
-                      )}
-                      {cus.accountStatus === "BANNED" && (
+                      {cus.accountStatus === "BANNED" ? (
                         <Badge variant="destructive" className="border-none">
                           Bị khóa
                         </Badge>
-                      )}
-                      {cus.accountStatus === "UNVERIFIED" && (
-                        <Badge variant="secondary">Chưa xác thực</Badge>
+                      ) : (
+                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none">
+                          Hoạt động
+                        </Badge>
                       )}
                     </TableCell>
                     <TableCell>

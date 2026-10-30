@@ -16,6 +16,7 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 import { Badge } from "@/shared/ui/badge";
+import { Button } from "@/shared/ui/button";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import {
   DollarSign,
@@ -23,6 +24,8 @@ import {
   Users,
   CreditCard,
   TrendingUp,
+  AlertTriangle,
+  PackagePlus,
 } from "lucide-react";
 import { OverviewChart } from "./OverviewChart";
 import { useDashboardStats } from "../hooks/useDashboardStats";
@@ -30,8 +33,14 @@ import { useRouter } from "next/navigation";
 
 export function DashboardOverview() {
   const router = useRouter();
-  const { stats, recentOrders, chartData, bestSellers, isLoading } =
-    useDashboardStats();
+  const {
+    stats,
+    recentOrders,
+    chartData,
+    bestSellers,
+    lowStockVariants,
+    isLoading,
+  } = useDashboardStats();
 
   if (isLoading || !stats) {
     return (
@@ -254,6 +263,78 @@ export function DashboardOverview() {
                     </TableCell>
                     <TableCell className="text-right font-bold text-foreground">
                       {item.revenue}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Low Stock Warning Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-amber-500" />
+            Cảnh báo Sắp hết hàng ({lowStockVariants.length})
+          </CardTitle>
+          <CardDescription>
+            Các biến thể có tồn kho từ 5 sản phẩm trở xuống cần lập phiếu nhập
+            kho bổ sung.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {lowStockVariants.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              Tất cả biến thể sản phẩm đều đang đủ tồn kho an toàn.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mã SKU</TableHead>
+                  <TableHead>Sản phẩm</TableHead>
+                  <TableHead>Phân loại</TableHead>
+                  <TableHead className="text-right">Tồn kho</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {lowStockVariants.slice(0, 8).map((v) => (
+                  <TableRow key={v.id}>
+                    <TableCell className="font-mono text-xs">{v.sku}</TableCell>
+                    <TableCell className="font-medium">
+                      {v.productName}
+                    </TableCell>
+                    <TableCell className="text-muted-foreground text-sm">
+                      {v.colorName} / {v.size?.name || "-"}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Badge
+                        variant={v.stock === 0 ? "destructive" : "outline"}
+                        className={
+                          v.stock > 0
+                            ? "text-amber-700 border-amber-300 bg-amber-50"
+                            : ""
+                        }
+                      >
+                        {v.stock === 0 ? "Hết hàng (0)" : `Còn ${v.stock}`}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          router.push(
+                            `/admin/stock-imports?productId=${v.productId}`
+                          )
+                        }
+                      >
+                        <PackagePlus className="mr-1.5 h-3.5 w-3.5" />
+                        Nhập kho
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

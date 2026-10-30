@@ -32,7 +32,7 @@ const PAGES = [
     slug: "he-thong-cua-hang",
     title: "Hệ thống cửa hàng",
     content:
-      "<h2>Hệ thống cửa hàng LUXE</h2><p>Hiện tại LUXE Fashion có hơn 50 cửa hàng trên toàn quốc. Để tìm cửa hàng gần nhất, vui lòng liên hệ hotline 1900 1234.</p>",
+      "<h2>Hệ thống cửa hàng LUXE Fashion</h2><p>Showroom Flagship của LUXE Fashion tọa lạc tại địa chỉ: <strong>68 Nguyễn Huệ, Phường Bến Nghé, Quận 1, TP. Hồ Chí Minh</strong>.</p><p>Giờ mở cửa: 08:30 – 22:00 tất cả các ngày trong tuần. Để được tư vấn trực tiếp hoặc kiểm tra tình trạng sản phẩm tại cửa hàng, quý khách vui lòng liên hệ Hotline <strong>0123 456 789</strong>.</p>",
   },
 ];
 

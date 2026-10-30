@@ -110,18 +110,14 @@ export function CustomerDetailView({ customerId }: { customerId: string }) {
                 <div className="flex items-center gap-2">
                   <Badge
                     className={
-                      customer.accountStatus === "ACTIVE"
-                        ? "bg-emerald-500 hover:bg-emerald-600 text-white"
-                        : customer.accountStatus === "BANNED"
+                      customer.accountStatus === "BANNED"
                         ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-slate-500 hover:bg-slate-600 text-white"
+                        : "bg-emerald-500 hover:bg-emerald-600 text-white"
                     }
                   >
-                    {customer.accountStatus === "ACTIVE"
-                      ? "Đang hoạt động"
-                      : customer.accountStatus === "BANNED"
+                    {customer.accountStatus === "BANNED"
                       ? "Bị khóa"
-                      : "Chưa xác thực"}
+                      : "Đang hoạt động"}
                   </Badge>
                   <Badge variant="secondary">{customer.tier}</Badge>
                 </div>

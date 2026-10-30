@@ -29,7 +29,7 @@ export function Header() {
     e.preventDefault();
     router.push(
       searchTerm.trim()
-        ? `/admin/orders?q=${encodeURIComponent(searchTerm.trim())}`
+        ? `/admin/orders?search=${encodeURIComponent(searchTerm.trim())}`
         : "/admin/orders"
     );
   };

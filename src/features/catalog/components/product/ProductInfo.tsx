@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProductDetail, ProductColor } from "@/features/catalog/types/product";
 import SizeGuideModal from "./SizeGuideModal";
@@ -34,6 +34,21 @@ export default function ProductInfo({
   const { addItem, showSuccessModal } = useCartStore();
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let active = true;
+    apiFetch<Array<{ id: number }>>("/account/wishlists")
+      .then((list) => {
+        if (active && Array.isArray(list)) {
+          setLiked(list.some((item) => Number(item.id) === Number(product.id)));
+        }
+      })
+      .catch(() => null);
+    return () => {
+      active = false;
+    };
+  }, [isAuthenticated, product.id]);
 
   const handleToggleLike = async (e: React.MouseEvent) => {
     e.preventDefault();

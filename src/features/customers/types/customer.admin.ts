@@ -24,7 +24,7 @@ export interface Customer {
   totalSpent: string;
   totalSpentRaw?: number;
   tier: string;
-  accountStatus: "ACTIVE" | "BANNED" | "UNVERIFIED" | string;
+  accountStatus: "ACTIVE" | "BANNED" | string;
   joinedDate?: string;
   addresses?: CustomerAddressItem[];
   orderHistory?: CustomerOrderHistoryItem[];

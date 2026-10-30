@@ -149,7 +149,7 @@ export function OrderTable({
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [cancelDialog, setCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState("");
-  const urlSearch = searchParams.get("search");
+  const urlSearch = searchParams.get("search") || searchParams.get("q");
   const [searchEdit, setSearchEdit] = useState<{
     forUrlSearch: string | null;
     value: string;

@@ -26,7 +26,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [street, setStreet] = useState("");
-  const [captchaInput, setCaptchaInput] = useState("");
   const [loading, setLoading] = useState(false);
 
   const [provinces, setProvinces] = useState<VnProvince[]>([]);
@@ -192,28 +191,6 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex flex-col sm:flex-row gap-[20px] mb-[20px]">
-                <div className="w-full sm:w-1/2">
-                  <label className="block text-[14px] text-[#6c6d70] mb-[8px] font-['Montserrat',sans-serif]">
-                    Ngày sinh:
-                  </label>
-                  <input
-                    type="date"
-                    className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] bg-white"
-                  />
-                </div>
-                <div className="w-full sm:w-1/2 relative">
-                  <label className="block text-[14px] text-[#6c6d70] mb-[8px] font-['Montserrat',sans-serif]">
-                    Giới tính:
-                  </label>
-                  <select className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] bg-white appearance-none cursor-pointer">
-                    <option value="nu">Nữ</option>
-                    <option value="nam">Nam</option>
-                    <option value="khac">Khác</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-[20px] mb-[20px]">
                 <div className="w-full sm:w-1/2 relative">
                   <label className="block text-[14px] text-[#6c6d70] mb-[8px] font-['Montserrat',sans-serif]">
                     Tỉnh/TP:<span className="text-[#ff0000]">*</span>
@@ -319,26 +296,7 @@ export default function RegisterPage() {
                 />
               </div>
 
-              <div className="mb-[20px]">
-                <label className="block text-[14px] text-[#6c6d70] mb-[8px] font-['Montserrat',sans-serif]">
-                  Mời nhập các ký tự trong hình vào ô sau:
-                </label>
-                <input
-                  type="text"
-                  value={captchaInput}
-                  onChange={(e) => setCaptchaInput(e.target.value)}
-                  className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222]"
-                  placeholder="Nhập ixk80..."
-                />
-              </div>
-
-              <div className="mb-[25px]">
-                <div className="inline-block px-[20px] py-[10px] bg-white border border-[#e1e1e1] text-[24px] tracking-[5px] font-serif italic text-[#221f20]">
-                  i x k 8 0
-                </div>
-              </div>
-
-              <div className="mb-[15px] flex items-center">
+              <div className="mb-[25px] flex items-center">
                 <input
                   type="checkbox"
                   id="termAgree"
@@ -358,20 +316,6 @@ export default function RegisterPage() {
                     điều khoản
                   </Link>{" "}
                   của LUXE
-                </label>
-              </div>
-
-              <div className="mb-[30px] flex items-center">
-                <input
-                  type="checkbox"
-                  id="newsAgree"
-                  className="w-[16px] h-[16px] mr-[10px] cursor-pointer border-[#e1e1e1] rounded-[4px]"
-                />
-                <label
-                  htmlFor="newsAgree"
-                  className="text-[14px] text-[#6c6d70] cursor-pointer font-['Montserrat',sans-serif]"
-                >
-                  Đăng ký nhận bản tin
                 </label>
               </div>
 

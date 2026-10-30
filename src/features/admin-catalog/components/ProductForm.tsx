@@ -67,8 +67,8 @@ const RichTextEditor = dynamic(
 const SAMPLE_UPLOADS = [
   "03321697-61dc-4f30-8da7-d25085a78741.webp",
   "121a23af-e7f7-4e5a-8e96-65f25b8a4a3f.webp",
-  "1a5d5e10-8bd7-4c72-bfef-c498b5b9dc2f.webp",
-  "2f64821f-d03e-4666-a169-27710a6ab2ca.webp",
+  "0b6e2df0-0401-4eb0-a440-1cbf06651b8d.webp",
+  "4c6dfad6-5fac-4bf0-a37e-11af96fb7191.webp",
 ];
 
 interface ProductFormProps {
