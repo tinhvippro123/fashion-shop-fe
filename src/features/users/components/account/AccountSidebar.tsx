@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/users/stores/auth.store";
 
 export default function AccountSidebar() {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const { user, logout } = useAuthStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDesktop, setIsDesktop] = useState(true);
 
@@ -94,7 +95,7 @@ export default function AccountSidebar() {
             return (
               <li
                 key={index}
-                className={index === menuItems.length - 1 ? "mb-0" : "mb-[32px]"}
+                className="mb-[32px]"
               >
                 <Link
                   href={item.path}
@@ -114,6 +115,19 @@ export default function AccountSidebar() {
               </li>
             );
           })}
+          <li className="mb-0">
+            <button
+              type="button"
+              onClick={() => {
+                logout();
+                router.push("/login");
+              }}
+              className="flex items-center transition-colors duration-300 whitespace-nowrap text-[#666] font-medium hover:text-[#dc3545] bg-transparent border-none p-0 cursor-pointer"
+            >
+              <i className="fas fa-sign-out-alt w-[13px] h-[14px] inline-flex justify-center items-center mr-[15px] text-[14px] text-[#a0a0a0]"></i>
+              Đăng xuất
+            </button>
+          </li>
         </ul>
       </div>
     </div>

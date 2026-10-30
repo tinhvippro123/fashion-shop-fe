@@ -132,6 +132,24 @@ export function CustomerDetailView({ customerId }: { customerId: string }) {
                   <Phone className="h-4 w-4 text-muted-foreground" />
                   <span>{customer.phone}</span>
                 </div>
+                {customer.gender && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-muted-foreground">Giới tính:</span>
+                    <span>
+                      {customer.gender === "FEMALE"
+                        ? "Nữ"
+                        : customer.gender === "MALE"
+                        ? "Nam"
+                        : "Khác"}
+                    </span>
+                  </div>
+                )}
+                {customer.dateOfBirth && (
+                  <div className="flex items-center gap-3 text-sm">
+                    <span className="text-muted-foreground">Ngày sinh:</span>
+                    <span>{customer.dateOfBirth}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-3 text-sm">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span>Tham gia: {customer.joinedDate || "N/A"}</span>
@@ -161,7 +179,7 @@ export function CustomerDetailView({ customerId }: { customerId: string }) {
                       </Badge>
                     )}
                     <p className="text-sm font-semibold mb-1">
-                      {customer.name} - {addr.phone}
+                      {addr.recipientName || customer.name} - {addr.phone}
                     </p>
                     <div className="flex items-start gap-2 text-sm text-muted-foreground mt-2">
                       <MapPin className="h-4 w-4 mt-0.5 shrink-0" />

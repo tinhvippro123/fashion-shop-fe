@@ -35,16 +35,18 @@ export const useCartStore = create<CartState>()(
         const existingItemIndex = items.findIndex((item) => item.id === itemId);
 
         const newItems = [...items];
+        const maxStock = Math.max(1, variant?.stock ?? 99);
         if (existingItemIndex >= 0) {
           const existingItem = newItems[existingItemIndex];
           newItems[existingItemIndex] = {
             ...existingItem,
-            quantity: existingItem.quantity + quantity,
+            variant,
+            quantity: Math.min(maxStock, existingItem.quantity + quantity),
           };
         } else {
           newItems.push({
             id: itemId,
-            quantity,
+            quantity: Math.min(maxStock, Math.max(1, quantity)),
             product,
             color,
             variant,
@@ -65,9 +67,11 @@ export const useCartStore = create<CartState>()(
       updateQuantity: (id, quantity) => {
         if (quantity < 1) return;
         const { items } = get();
-        const newItems = items.map((item) =>
-          item.id === id ? { ...item, quantity } : item
-        );
+        const newItems = items.map((item) => {
+          if (item.id !== id) return item;
+          const maxStock = Math.max(1, item.variant?.stock ?? 99);
+          return { ...item, quantity: Math.min(maxStock, quantity) };
+        });
         const { totalItems, totalPrice } = recalculateTotals(newItems);
         set({ items: newItems, totalItems, totalPrice });
       },

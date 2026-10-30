@@ -50,8 +50,12 @@ export default function CartDetail() {
             const hasDiscount =
               item.product.discountPercent && item.product.discountPercent > 0;
             const salePrice = getEffectiveUnitPrice(item);
-            const discountAmount = item.product.basePrice - salePrice;
+            const baseItemPrice = Number(
+              item.variant?.price || item.product.basePrice || 0
+            );
+            const discountAmount = Math.max(0, baseItemPrice - salePrice);
             const lineTotal = salePrice * item.quantity;
+            const maxStock = Math.max(1, item.variant?.stock ?? 99);
 
             return (
               <div
@@ -105,10 +109,11 @@ export default function CartDetail() {
                         className="flex-1 w-full h-full text-center text-[#333] font-normal text-[14px] bg-white outline-none border-none"
                       />
                       <button
+                        disabled={item.quantity >= maxStock}
                         onClick={() =>
                           updateQuantity(item.id, item.quantity + 1)
                         }
-                        className="w-[35px] h-full text-[#333] hover:bg-[#f9f9f9] flex justify-center items-center font-normal text-[16px] outline-none border-l border-[#e5e5e5]"
+                        className="w-[35px] h-full text-[#333] hover:bg-[#f9f9f9] flex justify-center items-center font-normal text-[16px] outline-none border-l border-[#e5e5e5] disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         +
                       </button>
@@ -146,8 +151,9 @@ export default function CartDetail() {
                       className="flex-1 w-full h-full text-center text-[#333] font-normal text-[14px] bg-white outline-none border-none"
                     />
                     <button
+                      disabled={item.quantity >= maxStock}
                       onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                      className="w-[40px] h-full text-[#333] hover:bg-[#f9f9f9] flex justify-center items-center font-normal text-[16px] outline-none border-l border-[#e5e5e5]"
+                      className="w-[40px] h-full text-[#333] hover:bg-[#f9f9f9] flex justify-center items-center font-normal text-[16px] outline-none border-l border-[#e5e5e5] disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       +
                     </button>

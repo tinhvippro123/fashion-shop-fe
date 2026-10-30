@@ -18,7 +18,7 @@ interface CategoryNode {
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user, logout, syncWishlist } = useAuthStore();
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
     {}
   );
@@ -36,6 +36,12 @@ export default function Header() {
         // Fallback silently if backend not started yet
       });
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      syncWishlist();
+    }
+  }, [isAuthenticated, syncWishlist]);
 
   const womenRoot = categories.find((c) => c.slug === "nu");
   const menRoot = categories.find((c) => c.slug === "nam");

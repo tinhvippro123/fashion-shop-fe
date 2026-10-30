@@ -98,6 +98,9 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       name: "",
       description: "",
       price: 450000,
+      discountPercent: 0,
+      isNew: true,
+      isBestSeller: false,
       sku: "",
       stock: 20,
       category: "",
@@ -138,6 +141,9 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           name: prod.name || "",
           description: prod.description || "",
           price: Number(prod.basePrice || 0),
+          discountPercent: prod.discountPercent ?? 0,
+          isNew: prod.isNew ?? true,
+          isBestSeller: prod.isBestSeller ?? false,
           sku: prod.sku || "",
           stock: prod.totalStock ?? 0,
           category: prod.category?.slug || "",
@@ -149,8 +155,11 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           status: prod.isActive ? "published" : "draft",
           options: prod.options || [],
           variants: (prod.adminVariants || []).map((v) => ({
+            id: v.id,
             sku: v.sku,
             price: Number(v.price || prod.basePrice || 0),
+            costPrice:
+              v.costPrice !== undefined ? Number(v.costPrice) : undefined,
             stock: v.stock ?? 0,
             options: v.options || {},
             image: v.image,
@@ -293,13 +302,26 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     const basePrice = form.getValues("price") || 0;
     const baseStock = form.getValues("stock") || 0;
     const baseSku = form.getValues("sku") || `LUXE-${Date.now() % 10000}`;
+    const existingVariants = form.getValues("variants") || [];
 
-    const newVariants: TProductVariant[] = combinations.map((combo, i) => ({
-      sku: `${baseSku}-${i + 1}`,
-      price: basePrice,
-      stock: baseStock,
-      options: combo,
-    }));
+    const newVariants: TProductVariant[] = combinations.map((combo, i) => {
+      const matched = existingVariants.find((ev) => {
+        const evOpts = ev.options || {};
+        return Object.entries(combo).every(
+          ([k, v]) =>
+            (evOpts[k] || "").toLowerCase() === (v || "").toLowerCase()
+        );
+      });
+      return {
+        id: matched?.id,
+        sku: matched?.sku || `${baseSku}-${i + 1}`,
+        price: matched?.price ?? basePrice,
+        costPrice: matched?.costPrice,
+        stock: matched?.stock ?? baseStock,
+        options: combo,
+        image: matched?.image,
+      };
+    });
 
     replaceVariants(newVariants);
     toast.success(`Đã tự động tạo ${newVariants.length} biến thể!`);
@@ -498,7 +520,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       control={form.control}
                       name="price"
                       render={({ field }) => (
-                        <FormItem className="sm:col-span-2">
+                        <FormItem>
                           <FormLabel>
                             Giá niêm yết (VNĐ){" "}
                             <span className="text-red-500">*</span>
@@ -510,6 +532,34 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               {...field}
                               onChange={(e) =>
                                 field.onChange(Number(e.target.value))
+                              }
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="discountPercent"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Khuyến mãi (% giảm giá)</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={100}
+                              placeholder="0"
+                              {...field}
+                              value={field.value ?? 0}
+                              onChange={(e) =>
+                                field.onChange(
+                                  Math.min(
+                                    100,
+                                    Math.max(0, Number(e.target.value) || 0)
+                                  )
+                                )
                               }
                             />
                           </FormControl>

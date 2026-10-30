@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
@@ -17,8 +18,10 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STEP_ORDER = ["PENDING", "PROCESSING", "SHIPPING", "COMPLETED"];
 
-export default function OrderTrackingPage() {
-  const [orderId, setOrderId] = useState("");
+function OrderTrackingContent() {
+  const searchParams = useSearchParams();
+  const initialCode = searchParams.get("code") || "";
+  const [orderId, setOrderId] = useState(initialCode);
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<OrderResponseDto | null>(null);
@@ -205,7 +208,9 @@ export default function OrderTrackingPage() {
                         {STATUS_LABELS[order.status] || order.status}
                       </span>
                       <span className="text-[14px] text-[#6c6d70]">
-                        {order.cancelReason || "Đã cập nhật hệ thống"}
+                        {order.status === "CANCELLED"
+                          ? order.cancelReason || "Đơn hàng đã bị hủy"
+                          : "Đã cập nhật trạng thái đơn hàng"}
                       </span>
                     </div>
                   </div>
@@ -323,6 +328,18 @@ export default function OrderTrackingPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function OrderTrackingPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="py-[80px] text-center text-[#666]">Đang tải...</div>
+      }
+    >
+      <OrderTrackingContent />
+    </Suspense>
   );
 }
 

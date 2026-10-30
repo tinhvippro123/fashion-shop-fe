@@ -29,26 +29,19 @@ export default function ProductInfo({
   const [quantity, setQuantity] = useState<number>(1);
   const [sizeError, setSizeError] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
-  const [liked, setLiked] = useState(false);
 
-  const { addItem, showSuccessModal } = useCartStore();
-  const { isAuthenticated } = useAuthStore();
+  const { items, addItem, showSuccessModal } = useCartStore();
+  const { isAuthenticated, wishlistIds, setWishlistProductState, syncWishlist } =
+    useAuthStore();
   const router = useRouter();
+  const liked =
+    isAuthenticated && (wishlistIds || []).includes(Number(product.id));
 
   useEffect(() => {
-    if (!isAuthenticated) return;
-    let active = true;
-    apiFetch<Array<{ id: number }>>("/account/wishlists")
-      .then((list) => {
-        if (active && Array.isArray(list)) {
-          setLiked(list.some((item) => Number(item.id) === Number(product.id)));
-        }
-      })
-      .catch(() => null);
-    return () => {
-      active = false;
-    };
-  }, [isAuthenticated, product.id]);
+    if (isAuthenticated && (!wishlistIds || wishlistIds.length === 0)) {
+      syncWishlist();
+    }
+  }, [isAuthenticated, wishlistIds, syncWishlist]);
 
   const handleToggleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -68,7 +61,7 @@ export default function ProductInfo({
         `/account/wishlists/${product.id}`,
         { method: "POST" }
       );
-      setLiked(res.favorited);
+      setWishlistProductState(Number(product.id), res.favorited);
       toast.success(
         res.favorited
           ? "Đã thêm vào danh sách yêu thích"
@@ -87,7 +80,7 @@ export default function ProductInfo({
     setQuantity((prev) => {
       const next = Math.max(1, prev + delta);
       if (selectedVariant && next > selectedVariant.stock) {
-        return selectedVariant.stock;
+        return Math.max(1, selectedVariant.stock);
       }
       return next;
     });
@@ -104,6 +97,16 @@ export default function ProductInfo({
       (v) => v.id === selectedVariantId
     );
     if (variant) {
+      const inCart =
+        items.find((i) => i.variant.id === variant.id)?.quantity || 0;
+      if (inCart + quantity > variant.stock) {
+        toast.warning(
+          inCart >= variant.stock
+            ? `Bạn đã có ${inCart} sản phẩm này trong giỏ (đạt tối đa tồn kho)`
+            : `Kho chỉ còn ${variant.stock} sản phẩm (trong giỏ đã có ${inCart})`
+        );
+        return;
+      }
       addItem(product, selectedColor, variant, quantity);
       showSuccessModal();
     }
@@ -120,16 +123,28 @@ export default function ProductInfo({
       (v) => v.id === selectedVariantId
     );
     if (variant) {
+      const inCart =
+        items.find((i) => i.variant.id === variant.id)?.quantity || 0;
+      if (inCart + quantity > variant.stock) {
+        if (inCart >= variant.stock) {
+          router.push("/cart");
+          return;
+        }
+        addItem(product, selectedColor, variant, variant.stock - inCart);
+        router.push("/cart");
+        return;
+      }
       addItem(product, selectedColor, variant, quantity);
       router.push("/cart");
     }
   };
 
+  const baseUnitPrice = Number(selectedVariant?.price || product.basePrice || 0);
   const hasDiscount =
     product.discountPercent !== undefined && product.discountPercent > 0;
   const effectivePrice = hasDiscount
-    ? Math.round((product.basePrice * (100 - product.discountPercent!)) / 100)
-    : product.basePrice;
+    ? Math.round((baseUnitPrice * (100 - product.discountPercent!)) / 100)
+    : baseUnitPrice;
 
   return (
     <div className="w-full">
@@ -165,7 +180,7 @@ export default function ProductInfo({
         {hasDiscount && (
           <>
             <div className="text-[16px] text-[#999] line-through">
-              {formatPrice(product.basePrice)}
+              {formatPrice(baseUnitPrice)}
             </div>
             <span className="bg-[#da251d] text-white text-[12px] font-bold px-[8px] py-[2px] rounded">
               -{product.discountPercent}%
@@ -190,6 +205,7 @@ export default function ProductInfo({
                 onClick={() => {
                   onColorChange(pc.id);
                   setSelectedVariantId(null);
+                  setQuantity(1);
                   setSizeError(false);
                 }}
                 className={`relative w-[22px] h-[22px] rounded-full border transition-transform duration-200 hover:scale-110 cursor-pointer ${
@@ -223,6 +239,7 @@ export default function ProductInfo({
                   disabled={isOutOfStock}
                   onClick={() => {
                     setSelectedVariantId(variant.id);
+                    setQuantity((q) => Math.min(q, Math.max(1, variant.stock)));
                     setSizeError(false);
                   }}
                   title={isOutOfStock ? "Hết hàng" : `Còn ${variant.stock} SP`}

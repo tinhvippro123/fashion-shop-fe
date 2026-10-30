@@ -51,6 +51,9 @@ export interface AdminProduct {
   categorySlug: string;
   price: string;
   basePrice: number;
+  discountPercent?: number;
+  isNew?: boolean;
+  isBestSeller?: boolean;
   stock: number;
   sold: number;
   rating: number;

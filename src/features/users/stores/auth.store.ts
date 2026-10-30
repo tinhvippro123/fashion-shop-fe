@@ -35,9 +35,12 @@ interface AuthState {
   isAuthenticated: boolean;
   token: string | null;
   user: User | null;
+  wishlistIds: number[];
   login: (email: string, password: string) => Promise<User>;
   register: (payload: RegisterPayload) => Promise<User>;
   refreshProfile: () => Promise<User | null>;
+  syncWishlist: () => Promise<void>;
+  setWishlistProductState: (productId: number, favorited: boolean) => void;
   setUser: (user: User) => void;
   logout: () => void;
 }
@@ -48,6 +51,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       token: null,
       user: null,
+      wishlistIds: [],
 
       login: async (email: string, password: string) => {
         const res = await apiFetch<AuthResponsePayload>("/auth/login", {
@@ -106,8 +110,46 @@ export const useAuthStore = create<AuthState>()(
         set({ user });
       },
 
+      syncWishlist: async () => {
+        if (!get().token) {
+          set({ wishlistIds: [] });
+          return;
+        }
+        try {
+          const list = await apiFetch<Array<{ id: number }>>(
+            "/account/wishlists"
+          );
+          if (Array.isArray(list)) {
+            set({
+              wishlistIds: list
+                .map((item) => Number(item.id))
+                .filter((id) => !Number.isNaN(id)),
+            });
+          }
+        } catch {
+          // ignore
+        }
+      },
+
+      setWishlistProductState: (productId: number, favorited: boolean) => {
+        const numId = Number(productId);
+        const current = get().wishlistIds || [];
+        if (favorited) {
+          if (!current.includes(numId)) {
+            set({ wishlistIds: [...current, numId] });
+          }
+        } else {
+          set({ wishlistIds: current.filter((id) => id !== numId) });
+        }
+      },
+
       logout: () => {
-        set({ isAuthenticated: false, token: null, user: null });
+        set({
+          isAuthenticated: false,
+          token: null,
+          user: null,
+          wishlistIds: [],
+        });
       },
     }),
     {

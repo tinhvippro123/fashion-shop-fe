@@ -58,6 +58,15 @@ export function DashboardOverview() {
             Chờ xử lý
           </Badge>
         );
+      case "processing":
+        return (
+          <Badge
+            variant="outline"
+            className="text-[10px] px-2 py-0 h-5 border-blue-500 text-blue-600"
+          >
+            Đang chuẩn bị
+          </Badge>
+        );
       case "completed":
         return (
           <Badge className="bg-emerald-500 hover:bg-emerald-600 text-[10px] px-2 py-0 h-5 text-white">

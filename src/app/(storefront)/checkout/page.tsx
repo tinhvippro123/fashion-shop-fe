@@ -313,7 +313,13 @@ export default function CheckoutPage() {
       setShowAddAddressModal(false);
       setModalName("");
       setModalPhone("");
+      setModalProvince("");
+      setModalDistrict("");
+      setModalWard("");
+      setModalDistricts([]);
+      setModalWards([]);
       setModalStreet("");
+      setModalDefault(false);
       toast.success("Thêm địa chỉ thành công");
     } catch (err) {
       toast.error((err as Error).message);

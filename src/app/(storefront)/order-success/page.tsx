@@ -166,6 +166,8 @@ function OrderSuccessContent() {
                   ? code
                     ? `/account/orders/${encodeURIComponent(code)}`
                     : "/account/orders"
+                  : code
+                  ? `/order/tracking?code=${encodeURIComponent(code)}`
                   : "/order/tracking"
               }
               className="inline-flex justify-center items-center py-[15px] px-[40px] text-center font-bold text-[14px] tracking-[1px] uppercase bg-[#222] text-white border border-[#222] rounded-tl-[20px] rounded-br-[20px] hover:bg-black transition-colors"

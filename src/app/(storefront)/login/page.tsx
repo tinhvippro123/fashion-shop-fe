@@ -72,21 +72,7 @@ export default function LoginPage() {
                 </div>
 
                 <div className="w-full max-w-[390px] mx-auto">
-                  <div className="flex justify-between items-center mb-[25px] text-[14px]">
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        id="rememberMe"
-                        defaultChecked
-                        className="w-[16px] h-[16px] mr-[10px] cursor-pointer border-[#e1e1e1] rounded-[4px]"
-                      />
-                      <label
-                        htmlFor="rememberMe"
-                        className="text-[#6c6d70] cursor-pointer text-[15px]"
-                      >
-                        Ghi nhớ đăng nhập
-                      </label>
-                    </div>
+                  <div className="flex justify-end items-center mb-[25px] text-[14px]">
                     <Link
                       href="/admin/login"
                       className="text-[#6c6d70] underline underline-offset-4 hover:text-[#222] transition-colors text-[14px]"

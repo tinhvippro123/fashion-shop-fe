@@ -1,5 +1,6 @@
 export interface CustomerAddressItem {
   id: number;
+  recipientName?: string;
   isDefault: boolean;
   address: string;
   phone: string;
@@ -19,6 +20,8 @@ export interface Customer {
   name: string;
   email: string;
   phone: string;
+  gender?: string;
+  dateOfBirth?: string;
   orders: number;
   totalOrders: number;
   totalSpent: string;

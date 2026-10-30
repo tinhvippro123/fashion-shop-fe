@@ -268,7 +268,7 @@ function AddressModal({
   const [district, setDistrict] = useState(initialData?.district || "");
   const [ward, setWard] = useState(initialData?.ward || "");
   const [streetAddress, setStreetAddress] = useState(
-    initialData?.streetAddress || initialData?.fullAddress || ""
+    initialData?.streetAddress || ""
   );
   const [isDefault, setIsDefault] = useState(initialData?.isDefault || false);
 

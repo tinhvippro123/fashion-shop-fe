@@ -52,9 +52,12 @@ export default function ProductCard({
       : null
   );
   const [isQuickSizeOpen, setIsQuickSizeOpen] = useState(false);
-  const [liked, setLiked] = useState(isLiked);
-  const { addItem, showSuccessModal } = useCartStore();
-  const { isAuthenticated } = useAuthStore();
+  const { items, addItem, showSuccessModal } = useCartStore();
+  const { isAuthenticated, wishlistIds, setWishlistProductState } =
+    useAuthStore();
+  const liked =
+    isLiked ||
+    (isAuthenticated && (wishlistIds || []).includes(Number(product.id)));
 
   const handleToggleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -74,7 +77,7 @@ export default function ProductCard({
         `/account/wishlists/${product.id}`,
         { method: "POST" }
       );
-      setLiked(res.favorited);
+      setWishlistProductState(Number(product.id), res.favorited);
       if (!res.favorited && onUnliked) {
         onUnliked(product.id);
       }
@@ -193,8 +196,11 @@ export default function ProductCard({
               <>
                 <span className="text-[16px] font-bold text-[#e10600]">
                   {formatPrice(
-                    product.basePrice *
-                      (1 - (product.discountPercent || 0) / 100)
+                    Math.round(
+                      (product.basePrice *
+                        (100 - (product.discountPercent || 0))) /
+                        100
+                    )
                   )}
                 </span>
                 <span className="text-[14px] text-[#999] line-through">
@@ -224,6 +230,15 @@ export default function ProductCard({
                       key={variant.id}
                       onClick={() => {
                         if (out || !activeColor) return;
+                        const inCart =
+                          items.find((i) => i.variant.id === variant.id)
+                            ?.quantity || 0;
+                        if (inCart + 1 > variant.stock) {
+                          toast.warning(
+                            `Sản phẩm chỉ còn ${variant.stock} sản phẩm trong kho`
+                          );
+                          return;
+                        }
                         addItem(
                           product as unknown as ProductDetail,
                           activeColor as unknown as FullProductColor,

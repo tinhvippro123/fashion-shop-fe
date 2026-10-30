@@ -29,14 +29,26 @@ export default function Footer() {
               />
             </div>
             <div className="flex gap-[29px] mb-[30px] items-center max-[768px]:flex-wrap">
-              <Link href="#" className="transition-opacity hover:opacity-80">
+              <a
+                href="https://facebook.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-opacity hover:opacity-80"
+              >
                 <i className="fab fa-facebook-f text-[24px] text-[#4267b2]"></i>
-              </Link>
-              <Link href="#" className="transition-opacity hover:opacity-80">
+              </a>
+              <a
+                href="https://google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-opacity hover:opacity-80"
+              >
                 <i className="fab fa-google text-[24px] text-[#ea4335]"></i>
-              </Link>
-              <Link
-                href="#"
+              </a>
+              <a
+                href="https://instagram.com"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="transition-opacity hover:opacity-80 flex items-center justify-center"
               >
                 <i
@@ -51,16 +63,23 @@ export default function Footer() {
                     display: "inline-block",
                   }}
                 ></i>
-              </Link>
-              <Link
-                href="#"
+              </a>
+              <a
+                href="https://zalo.me"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-[#0068ff] font-bold no-underline transition-opacity hover:opacity-80"
               >
                 Zalo
-              </Link>
-              <Link href="#" className="transition-opacity hover:opacity-80">
+              </a>
+              <a
+                href="https://youtube.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-opacity hover:opacity-80"
+              >
                 <i className="fab fa-youtube text-[24px] text-[#ff0000]"></i>
-              </Link>
+              </a>
             </div>
             <div className="bg-[#222] text-white inline-block px-[22px] py-[15px] rounded-tl-[15px] rounded-br-[15px] font-semibold text-[15px]">
               HOTLINE: 0123 456 789

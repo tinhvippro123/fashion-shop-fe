@@ -9,7 +9,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/shared/ui/select";
-import { Switch } from "@/shared/ui/switch";
 import { Button } from "@/shared/ui/button";
 import { Resolver, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -55,7 +54,10 @@ export function VoucherForm({
 
   const now = new Date();
   const nextMonth = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const fmt = (d: Date) => d.toISOString().slice(0, 16);
+  const fmt = (d: Date) => {
+    const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+    return local.toISOString().slice(0, 16);
+  };
 
   const form = useForm<TVoucherPayload>({
     resolver: zodResolver(VoucherSchema) as unknown as Resolver<TVoucherPayload>,
@@ -161,7 +163,12 @@ export function VoucherForm({
             <FormItem>
               <FormLabel>Loại giảm giá</FormLabel>
               <Select
-                onValueChange={field.onChange}
+                onValueChange={(val) => {
+                  field.onChange(val);
+                  if (val === "percent" && form.getValues("discount") > 100) {
+                    form.setValue("discount", 10);
+                  }
+                }}
                 value={field.value}
                 disabled={readOnly || status === "Đang diễn ra"}
               >
@@ -317,30 +324,6 @@ export function VoucherForm({
             )}
           />
         </div>
-
-        <FormField
-          control={form.control}
-          name="isPublic"
-          render={({ field }) => (
-            <FormItem className="flex items-center justify-between mt-2 space-y-0">
-              <div className="flex flex-col gap-1">
-                <FormLabel className="cursor-pointer text-foreground">
-                  Hiển thị công khai
-                </FormLabel>
-                <span className="text-xs text-muted-foreground">
-                  Khách hàng có thể thấy mã giảm giá tại trang thanh toán.
-                </span>
-              </div>
-              <FormControl>
-                <Switch
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                  disabled={readOnly}
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
 
         {!readOnly && (
           <Button

@@ -25,6 +25,18 @@ export const VoucherSchema = z
   })
   .refine(
     (data) => {
+      if (data.discountType === "percent" && data.discount > 100) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: "Mức giảm theo phần trăm không được vượt quá 100%",
+      path: ["discount"],
+    }
+  )
+  .refine(
+    (data) => {
       if (data.discountType === "percent" && !data.maxDiscount) {
         return false;
       }

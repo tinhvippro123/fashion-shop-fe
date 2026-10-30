@@ -106,10 +106,13 @@ export default function MiniCart() {
                         className="flex-1 w-full h-full text-center text-[#333] font-normal text-[14px] bg-white outline-none"
                       />
                       <button
+                        disabled={
+                          item.quantity >= Math.max(1, item.variant?.stock ?? 99)
+                        }
                         onClick={() =>
                           updateQuantity(item.id, item.quantity + 1)
                         }
-                        className="w-[28px] h-full bg-white text-[#6c6d70] hover:bg-[#f5f5f5] flex justify-center items-center text-[16px] outline-none border-l border-[#e5e5e5]"
+                        className="w-[28px] h-full bg-white text-[#6c6d70] hover:bg-[#f5f5f5] flex justify-center items-center text-[16px] outline-none border-l border-[#e5e5e5] disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         +
                       </button>

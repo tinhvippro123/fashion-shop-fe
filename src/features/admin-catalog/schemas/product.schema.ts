@@ -6,8 +6,10 @@ export const ProductOptionSchema = z.object({
 });
 
 export const ProductVariantSchema = z.object({
+  id: z.number().optional(),
   sku: z.string().min(1, "SKU không được trống"),
   price: z.number().min(0, "Giá không hợp lệ"),
+  costPrice: z.number().min(0).optional(),
   stock: z.number().min(0, "Tồn kho không hợp lệ"),
   options: z.record(z.string(), z.string()),
   image: z.string().optional(),
@@ -17,6 +19,13 @@ export const ProductSchema = z.object({
   name: z.string().min(1, "Tên sản phẩm không được để trống").max(255),
   description: z.string().optional(),
   price: z.number().min(0, "Giá không được âm"),
+  discountPercent: z
+    .number()
+    .min(0, "% giảm giá không hợp lệ")
+    .max(100, "% giảm giá tối đa 100%")
+    .optional(),
+  isNew: z.boolean().optional(),
+  isBestSeller: z.boolean().optional(),
   sku: z.string().optional(),
   stock: z.number().min(0, "Số lượng không hợp lệ"),
   category: z.string().min(1, "Vui lòng chọn danh mục"),
