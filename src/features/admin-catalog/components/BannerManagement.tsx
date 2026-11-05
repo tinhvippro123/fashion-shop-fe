@@ -278,7 +278,7 @@ export function BannerManagement() {
           <CardContent>
             <div className="text-2xl font-bold">{featuredCount}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Hiển thị 3 thẻ bộ sưu tập trọng tâm dưới phần Hàng mới về
+              Hiển thị tối đa 4 thẻ danh mục trọng tâm trên trang chủ (khuyên dùng 4 thẻ)
             </p>
           </CardContent>
         </Card>
@@ -503,7 +503,7 @@ export function BannerManagement() {
                 >
                   <div className="font-semibold text-sm">Danh Mục Nổi Bật (FEATURED)</div>
                   <div className="text-xs text-muted-foreground mt-1">
-                    3 thẻ danh mục trang chủ (~ 3:4, vd: 600x800px)
+                    Tối đa 4 thẻ danh mục trang chủ (~ 3:4, vd: 600x800px)
                   </div>
                 </button>
               </div>

@@ -62,12 +62,24 @@ export default function FeaturedCategories() {
     };
   }, []);
 
-  const gridColsClass =
-    categories.length === 4
-      ? "grid-cols-2 lg:grid-cols-4"
-      : categories.length === 3
-      ? "grid-cols-1 md:grid-cols-3"
-      : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+  // Giới hạn tối đa 4 danh mục nổi bật trên trang chủ để đảm bảo thẩm mỹ thị giác
+  const displayCategories = categories.slice(0, 4);
+
+  if (displayCategories.length === 0) {
+    return null;
+  }
+
+  // Tự động căn chỉnh layout linh hoạt theo số lượng danh mục thực tế
+  let containerClass = "grid gap-[20px] xl:gap-[24px]";
+  if (displayCategories.length === 4) {
+    containerClass += " grid-cols-2 lg:grid-cols-4";
+  } else if (displayCategories.length === 3) {
+    containerClass += " grid-cols-1 md:grid-cols-3";
+  } else if (displayCategories.length === 2) {
+    containerClass += " grid-cols-1 sm:grid-cols-2 max-w-[850px] mx-auto";
+  } else {
+    containerClass += " grid-cols-1 max-w-[420px] mx-auto";
+  }
 
   return (
     <section className="w-full min-[1200px]:px-[85px] px-[15px] mx-auto my-[40px] xl:my-[60px]">
@@ -77,8 +89,8 @@ export default function FeaturedCategories() {
         </h3>
       </div>
 
-      <div className={`grid gap-[20px] xl:gap-[24px] ${gridColsClass}`}>
-        {categories.map((cat) => {
+      <div className={containerClass}>
+        {displayCategories.map((cat) => {
           const isSale =
             cat.targetUrl?.includes("sale") ||
             cat.title?.toLowerCase().includes("ưu đãi") ||
