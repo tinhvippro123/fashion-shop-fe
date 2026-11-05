@@ -21,7 +21,7 @@ const SLUG_LABELS: Record<string, string> = {
   nam: "THỜI TRANG NAM",
   "hang-nu-moi-ve": "HÀNG NỮ MỚI VỀ",
   "hang-nam-moi-ve": "HÀNG NAM MỚI VỀ",
-  sale: "TẤT CẢ SẢN PHẨM GIẢM GIÁ",
+  sale: "SẢN PHẨM SALE",
   "sale-nu": "HÀNG NỮ GIẢM GIÁ",
   "sale-nam": "HÀNG NAM GIẢM GIÁ",
   "tat-ca": "TẤT CẢ SẢN PHẨM",

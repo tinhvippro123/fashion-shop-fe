@@ -49,12 +49,9 @@ export default function Home() {
       {/* 2. NEW ARRIVAL SECTION (Tối đa 10 sản phẩm) */}
       <section className="w-full min-[1200px]:px-[85px] px-[15px] mx-auto mt-[40px] mb-[60px]">
         <div className="text-center mb-[25px]">
-          <h3 className="text-[28px] md:text-[32px] font-bold uppercase tracking-[3px] text-[#000] mb-[8px]">
+          <h3 className="text-[28px] md:text-[32px] font-bold uppercase tracking-[3px] text-[#000] mb-[15px]">
             NEW ARRIVAL
           </h3>
-          <p className="text-[14px] text-[#6c757d] uppercase tracking-[1px] mb-[15px]">
-            Bộ sưu tập mới nhất tuần này
-          </p>
           <div className="flex justify-center">
             <button
               onClick={() => setActiveTab("women")}
@@ -117,15 +114,9 @@ export default function Home() {
       {saleProducts.length > 0 && (
         <section className="w-full min-[1200px]:px-[85px] px-[15px] mx-auto my-[60px]">
           <div className="text-center mb-[25px]">
-            <div className="inline-block px-[14px] py-[4px] bg-[#fff0f1] text-[#b5121b] text-[12px] font-bold uppercase tracking-[1.5px] rounded-full mb-[8px]">
-              ĐỪNG BỎ LỠ
-            </div>
-            <h3 className="text-[28px] md:text-[32px] font-bold uppercase tracking-[3px] text-[#000] mb-[8px]">
+            <h3 className="text-[28px] md:text-[32px] font-bold uppercase tracking-[3px] text-[#000]">
               BEST SELLER & HOT DEALS
             </h3>
-            <p className="text-[14px] text-[#6c757d] uppercase tracking-[1px]">
-              Những mẫu trang phục được yêu thích nhất với mức giá hấp dẫn
-            </p>
           </div>
 
           <ProductSlider products={saleProducts} sliderId="best-seller" />

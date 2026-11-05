@@ -15,22 +15,29 @@ interface FeaturedBanner {
 const DEFAULT_FEATURED: FeaturedBanner[] = [
   {
     id: 1,
-    title: "ĐẦM & CHÂN VÁY",
-    subtitle: "Đầm, sơ mi & chân váy thanh lịch",
+    title: "ĐẦM",
+    subtitle: "Đầm dáng xòe & đầm công sở thanh lịch",
     targetUrl: "/danh-muc/dam-nu",
     imageUrl: "/uploads/ivy/002eab5bd95091694139ae9e8f046007.webp",
   },
   {
     id: 2,
-    title: "ÁO POLO & SƠ MI NAM",
-    subtitle: "Polo, sơ mi & quần âu chuẩn phom",
+    title: "ÁO NỮ",
+    subtitle: "Áo sơ mi lụa & áo kiểu tinh tế",
+    targetUrl: "/danh-muc/ao-nu",
+    imageUrl: "/uploads/ivy/f4a49449c18a61d9d49c0f976bc56606.webp",
+  },
+  {
+    id: 3,
+    title: "ÁO NAM",
+    subtitle: "Áo polo & sơ mi chuẩn phom lịch lãm",
     targetUrl: "/danh-muc/ao-nam",
     imageUrl: "/uploads/ivy/9278e16772c52fe0c41b035b775a2f9c.jpg",
   },
   {
-    id: 3,
-    title: "ƯU ĐÃI ĐẶC BIỆT",
-    subtitle: "Ưu đãi hấp dẫn lên tới 50%",
+    id: 4,
+    title: "SẢN PHẨM SALE",
+    subtitle: "Ưu đãi hấp dẫn lên đến 50%",
     targetUrl: "/danh-muc/sale",
     imageUrl: "/uploads/ivy/0284007651a63e1aa34493daa2754ba1.webp",
   },
@@ -55,18 +62,22 @@ export default function FeaturedCategories() {
     };
   }, []);
 
+  const gridColsClass =
+    categories.length === 4
+      ? "grid-cols-2 lg:grid-cols-4"
+      : categories.length === 3
+      ? "grid-cols-1 md:grid-cols-3"
+      : "grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4";
+
   return (
-    <section className="w-full min-[1200px]:px-[85px] px-[15px] mx-auto my-[50px] xl:my-[70px]">
-      <div className="text-center mb-[30px]">
-        <h3 className="text-[28px] md:text-[32px] font-bold uppercase tracking-[3px] text-[#000] mb-[8px]">
+    <section className="w-full min-[1200px]:px-[85px] px-[15px] mx-auto my-[40px] xl:my-[60px]">
+      <div className="text-center mb-[25px]">
+        <h3 className="text-[28px] md:text-[32px] font-bold uppercase tracking-[3px] text-[#000]">
           DANH MỤC NỔI BẬT
         </h3>
-        <p className="text-[14px] text-[#6c757d] uppercase tracking-[1px]">
-          Khám phá phong cách thời trang ấn tượng cho mọi dịp
-        </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-[20px] xl:gap-[30px]">
+      <div className={`grid gap-[20px] xl:gap-[24px] ${gridColsClass}`}>
         {categories.map((cat) => {
           const isSale =
             cat.targetUrl?.includes("sale") ||
@@ -99,16 +110,16 @@ export default function FeaturedCategories() {
 
               {/* Content Bottom */}
               <div className="absolute bottom-[20px] left-[20px] right-[20px] text-white z-10">
-                <h4 className="text-[20px] md:text-[22px] font-bold tracking-[1.5px] uppercase mb-[4px] drop-shadow-sm">
+                <h4 className="text-[19px] md:text-[21px] font-bold tracking-[1.5px] uppercase mb-[4px] drop-shadow-sm">
                   {cat.title}
                 </h4>
                 {cat.subtitle && (
-                  <p className="text-[13px] text-gray-200 mb-[14px] font-light">
+                  <p className="text-[12px] text-gray-200 mb-[12px] font-light line-clamp-1">
                     {cat.subtitle}
                   </p>
                 )}
-                <span className="inline-flex items-center gap-2 text-[12px] uppercase tracking-[1.5px] font-medium text-white pb-[2px] border-b border-white group-hover:border-[#b5121b] group-hover:text-red-300 transition-colors">
-                  Khám phá ngay <i className="fas fa-arrow-right text-[10px]"></i>
+                <span className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[1.5px] font-medium text-white pb-[2px] border-b border-white group-hover:border-[#b5121b] group-hover:text-red-300 transition-colors">
+                  Khám phá ngay <i className="fas fa-arrow-right text-[9px]"></i>
                 </span>
               </div>
             </Link>

@@ -49,3 +49,4 @@ export async function deleteAdminBanner(id: number): Promise<void> {
     method: "DELETE",
   });
 }
+

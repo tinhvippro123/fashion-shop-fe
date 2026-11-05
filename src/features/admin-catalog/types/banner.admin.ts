@@ -32,3 +32,4 @@ export interface UpdateBannerPayload {
   sortOrder?: number;
   isActive?: boolean;
 }
+
