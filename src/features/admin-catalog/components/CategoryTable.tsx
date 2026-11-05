@@ -177,9 +177,15 @@ export function CategoryTable({
     }
   };
 
-  const handleBulkToggle = async () => {
+  const selectedCategories = categories.filter((c) => selectedIds.includes(c.id));
+  const hasActive = selectedCategories.some((c) => c.isActive);
+  const hasInactive = selectedCategories.some((c) => !c.isActive);
+
+  const handleBulkActivate = async () => {
     try {
-      const selected = categories.filter((c) => selectedIds.includes(c.id));
+      const selected = categories.filter(
+        (c) => selectedIds.includes(c.id) && !c.isActive
+      );
       await Promise.all(
         selected.map((cat) =>
           apiFetch(`/admin/categories/${cat.id}`, {
@@ -188,12 +194,40 @@ export function CategoryTable({
               name: cat.name,
               slug: cat.slug,
               parentId: cat.parentId || null,
-              isActive: !cat.isActive,
+              isActive: true,
             }),
           })
         )
       );
-      toast.success(`Đã đổi trạng thái ${selectedIds.length} danh mục!`);
+      toast.success(`Đã hiển thị lại ${selected.length} danh mục!`);
+      setSelectedIds([]);
+      onReload();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Cập nhật hàng loạt thất bại"
+      );
+    }
+  };
+
+  const handleBulkHide = async () => {
+    try {
+      const selected = categories.filter(
+        (c) => selectedIds.includes(c.id) && c.isActive
+      );
+      await Promise.all(
+        selected.map((cat) =>
+          apiFetch(`/admin/categories/${cat.id}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              name: cat.name,
+              slug: cat.slug,
+              parentId: cat.parentId || null,
+              isActive: false,
+            }),
+          })
+        )
+      );
+      toast.success(`Đã ẩn ${selected.length} danh mục!`);
       setSelectedIds([]);
       onReload();
     } catch (err) {
@@ -402,14 +436,26 @@ export function CategoryTable({
               <strong className="text-blue-400">{selectedIds.length}</strong>
             </span>
             <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBulkToggle}
-                className="text-amber-400 hover:text-amber-300 hover:bg-background/10"
-              >
-                <EyeOff className="h-4 w-4 mr-2" /> Đổi trạng thái
-              </Button>
+              {hasInactive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBulkActivate}
+                  className="text-emerald-400 hover:text-emerald-300 hover:bg-background/10"
+                >
+                  <Eye className="h-4 w-4 mr-2" /> Hiển thị lại
+                </Button>
+              )}
+              {hasActive && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBulkHide}
+                  className="text-amber-400 hover:text-amber-300 hover:bg-background/10"
+                >
+                  <EyeOff className="h-4 w-4 mr-2" /> Ẩn danh mục
+                </Button>
+              )}
             </div>
             <div className="pl-2 border-l border-background/20">
               <Button

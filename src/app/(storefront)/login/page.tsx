@@ -71,18 +71,7 @@ export default function LoginPage() {
                   />
                 </div>
 
-                <div className="w-full max-w-[390px] mx-auto">
-                  <div className="flex justify-end items-center mb-[25px] text-[14px]">
-                    <Link
-                      href="/admin/login"
-                      className="text-[#6c6d70] underline underline-offset-4 hover:text-[#222] transition-colors text-[14px]"
-                    >
-                      Cổng Quản trị
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="flex justify-center">
+                <div className="flex justify-center mt-[30px]">
                   <button
                     type="submit"
                     disabled={loading}

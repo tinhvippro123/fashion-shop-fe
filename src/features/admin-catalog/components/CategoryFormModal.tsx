@@ -33,7 +33,7 @@ import {
   FormMessage,
 } from "@/shared/ui/form";
 import { CategorySchema, TCategoryPayload } from "../schemas/category.schema";
-import { AdminCategory } from "../types/catalog.admin";
+import { AdminCategory, getCategoryFullPath } from "../types/catalog.admin";
 import { apiFetch } from "@/shared/lib/api";
 
 export interface CategoryFormModalProps {
@@ -129,9 +129,35 @@ export function CategoryFormModal({
     });
   }
 
-  const parentChoices = allCategories.filter(
-    (c) => String(c.id) !== String(initialData?.id || "") && !c.parentId
-  );
+  const isDescendant = (candidateId: string, ancestorId: string): boolean => {
+    let curr = allCategories.find(
+      (c) => String(c.id) === candidateId || String(c.numericId) === candidateId
+    );
+    const visited = new Set<string>();
+    while (curr?.parentId && !visited.has(String(curr.id))) {
+      visited.add(String(curr.id));
+      if (String(curr.parentId) === ancestorId) return true;
+      curr = allCategories.find(
+        (c) =>
+          String(c.id) === String(curr?.parentId) ||
+          String(c.numericId) === String(curr?.parentId)
+      );
+    }
+    return false;
+  };
+
+  const parentChoices = allCategories
+    .filter((c) => {
+      if (!initialData?.id) return true;
+      const curIdStr = String(initialData.id);
+      if (String(c.id) === curIdStr || String(c.numericId) === curIdStr) return false;
+      return !isDescendant(String(c.id), curIdStr);
+    })
+    .map((c) => ({
+      ...c,
+      fullPath: getCategoryFullPath(c, allCategories),
+    }))
+    .sort((a, b) => a.fullPath.localeCompare(b.fullPath, "vi"));
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -213,19 +239,21 @@ export function CategoryFormModal({
                         <SelectValue placeholder="Chọn danh mục cha...">
                           {field.value && field.value !== "none"
                             ? parentChoices.find(
-                                (p) => String(p.id) === String(field.value)
-                              )?.name || "Danh mục gốc"
+                                (p) =>
+                                  String(p.id) === String(field.value) ||
+                                  String(p.numericId) === String(field.value)
+                              )?.fullPath || "Danh mục gốc"
                             : "Không có (Danh mục gốc)"}
                         </SelectValue>
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="max-h-64">
                       <SelectItem value="none">
                         Không có (Danh mục gốc)
                       </SelectItem>
                       {parentChoices.map((parent) => (
                         <SelectItem key={parent.id} value={String(parent.id)}>
-                          {parent.name}
+                          {parent.fullPath}
                         </SelectItem>
                       ))}
                     </SelectContent>

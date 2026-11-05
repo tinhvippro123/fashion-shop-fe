@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ProductColor } from "@/features/catalog/types/product";
 import { resolveImageUrl } from "@/shared/utils/format";
 
@@ -9,6 +9,7 @@ interface ProductGalleryProps {
 }
 
 export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
   const images = selectedColor?.images || [];
   const colorKey = selectedColor?.id;
   const [selection, setSelection] = useState<{
@@ -28,6 +29,17 @@ export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
     });
   };
 
+  useEffect(() => {
+    const activeThumb = document.getElementById(`thumb-item-${activeIndex}`);
+    if (activeThumb && scrollerRef.current) {
+      activeThumb.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+        inline: "nearest",
+      });
+    }
+  }, [activeIndex]);
+
   if (images.length === 0) {
     return (
       <div className="w-full aspect-[2/3] bg-gray-100 flex items-center justify-center">
@@ -45,10 +57,9 @@ export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
   };
 
   const scrollThumbs = (direction: "up" | "down") => {
-    const scroller = document.getElementById("thumbnail-scroller");
-    if (scroller) {
-      const scrollAmount = 145;
-      scroller.scrollBy({
+    if (scrollerRef.current) {
+      const scrollAmount = 150;
+      scrollerRef.current.scrollBy({
         top: direction === "down" ? scrollAmount : -scrollAmount,
         behavior: "smooth",
       });
@@ -58,8 +69,8 @@ export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
   const safeImg = images[activeIndex] || images[0];
 
   return (
-    <div className="flex flex-col lg:flex-row w-full lg:h-auto min-[1200px]:h-[750px]">
-      <div className="relative w-full lg:w-[calc(100%-90px)] min-[1200px]:w-[500px] lg:flex-shrink-0 aspect-[2/3] min-[1200px]:aspect-auto h-auto min-[1200px]:h-full group mb-[15px] lg:mb-0 px-0 lg:px-[15px]">
+    <div className="product-gallery_slide flex flex-col xl:flex-row items-start justify-between w-full max-w-[675px] px-0 xl:px-[15px] gap-[15px] xl:gap-[20px]">
+      <div className="relative w-full xl:flex-1 min-w-0 xl:max-w-[530px] aspect-[2/3] lg:max-h-[795px] shrink-0 group overflow-hidden mb-[15px] xl:mb-0">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={resolveImageUrl(safeImg.imageUrl)}
@@ -70,14 +81,16 @@ export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
         {images.length > 1 && (
           <>
             <button
+              type="button"
               onClick={prevImage}
-              className="absolute left-[5px] lg:left-[30px] top-1/2 -translate-y-1/2 w-[40px] h-[40px] flex items-center justify-center opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity z-10 lg:bg-white/80 lg:rounded-full hover:lg:bg-white"
+              className="absolute left-[5px] lg:left-[20px] top-1/2 -translate-y-1/2 w-[40px] h-[40px] flex items-center justify-center opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity z-10 lg:bg-white/80 lg:rounded-full hover:lg:bg-white cursor-pointer"
             >
               <i className="fas fa-angle-left text-[40px] text-[#999] lg:text-[#333] lg:text-[24px]"></i>
             </button>
             <button
+              type="button"
               onClick={nextImage}
-              className="absolute right-[5px] lg:right-[30px] top-1/2 -translate-y-1/2 w-[40px] h-[40px] flex items-center justify-center opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity z-10 lg:bg-white/80 lg:rounded-full hover:lg:bg-white"
+              className="absolute right-[5px] lg:right-[20px] top-1/2 -translate-y-1/2 w-[40px] h-[40px] flex items-center justify-center opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity z-10 lg:bg-white/80 lg:rounded-full hover:lg:bg-white cursor-pointer"
             >
               <i className="fas fa-angle-right text-[40px] text-[#999] lg:text-[#333] lg:text-[24px]"></i>
             </button>
@@ -86,31 +99,39 @@ export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
       </div>
 
       {images.length > 1 && (
-        <div className="w-full lg:w-[90px] lg:h-full flex lg:flex-col items-center justify-center lg:py-[30px] px-0 overflow-visible relative mt-[15px] lg:mt-0">
-          {images.length > 4 && (
+        <div className="w-full xl:w-[95px] shrink-0 flex xl:flex-col items-center justify-start overflow-visible relative mt-0">
+          {images.length > 4 ? (
             <button
+              type="button"
               onClick={() => scrollThumbs("up")}
-              className="hidden lg:flex w-full h-[30px] items-center justify-center text-[#999] hover:text-[#000] mb-[20px] transition-colors"
+              className="hidden xl:flex w-full h-[30px] items-center justify-center text-[#999] hover:text-[#000] mb-[15px] transition-colors cursor-pointer"
+              title="Ảnh trước"
+              aria-label="Ảnh trước"
             >
-              <i className="fas fa-angle-up text-[24px]"></i>
+              <i className="fas fa-angle-up text-[20px]"></i>
             </button>
+          ) : (
+            <div className="hidden xl:block h-[45px] w-full shrink-0" />
           )}
 
           <div
+            ref={scrollerRef}
             id="thumbnail-scroller"
-            className="flex lg:flex-col items-center overflow-x-auto lg:overflow-y-hidden no-scrollbar gap-[5px] lg:gap-[15px] w-full"
+            className="flex xl:flex-col items-center overflow-x-auto xl:overflow-y-auto no-scrollbar scroll-smooth gap-[10px] xl:gap-[15px] w-full"
             style={{
-              maxHeight: images.length > 4 ? "585px" : "none",
+              maxHeight: "585px",
             }}
           >
             {images.map((img, idx) => (
               <button
                 key={idx}
+                id={`thumb-item-${idx}`}
+                type="button"
                 onClick={() => setActiveIndex(idx)}
-                className={`flex-shrink-0 relative w-[calc((100%-15px)/4)] lg:w-[90px] aspect-[2/3] lg:aspect-auto lg:h-[135px] transition-all border-b-2 lg:border-b-0 lg:border-l-2 ${
+                className={`flex-shrink-0 relative w-[60px] sm:w-[75px] xl:w-[95px] aspect-[2/3] xl:h-[135px] transition-all border-b-2 xl:border-b-0 xl:border-l-2 cursor-pointer opacity-100 ${
                   activeIndex === idx
-                    ? "border-[#000] opacity-100"
-                    : "border-transparent opacity-50 hover:opacity-100"
+                    ? "border-[#000]"
+                    : "border-transparent hover:border-[#bbb]"
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -125,10 +146,13 @@ export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
 
           {images.length > 4 && (
             <button
+              type="button"
               onClick={() => scrollThumbs("down")}
-              className="hidden lg:flex w-full h-[30px] items-center justify-center text-[#999] hover:text-[#000] mt-[20px] transition-colors"
+              className="hidden xl:flex w-full h-[30px] items-center justify-center text-[#999] hover:text-[#000] mt-[15px] transition-colors cursor-pointer"
+              title="Ảnh tiếp theo"
+              aria-label="Ảnh tiếp theo"
             >
-              <i className="fas fa-angle-down text-[24px]"></i>
+              <i className="fas fa-angle-down text-[20px]"></i>
             </button>
           )}
         </div>
@@ -136,4 +160,3 @@ export default function ProductGallery({ selectedColor }: ProductGalleryProps) {
     </div>
   );
 }
-

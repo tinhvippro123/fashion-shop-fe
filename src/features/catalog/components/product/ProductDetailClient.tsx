@@ -35,12 +35,12 @@ export default function ProductDetailClient({
     product.productColors[0];
 
   return (
-    <div className="flex flex-col md:flex-row -mx-[15px]">
-      <div className="w-full md:w-[50%] min-[1200px]:w-[610px] px-[15px] mb-[30px] md:mb-0 lg:flex-shrink-0">
+    <div className="product-detail-layout flex flex-col md:flex-row items-start gap-[24px] md:gap-[30px] lg:gap-[45px] xl:gap-[105px] w-full">
+      <div className="w-full md:w-[48%] lg:w-[52%] xl:w-[55%] max-w-[675px] shrink-0 mb-[30px] md:mb-0">
         <ProductGallery selectedColor={selectedColor} />
       </div>
 
-      <div className="w-full md:w-[50%] min-[1200px]:flex-1 px-[15px] md:pl-[30px] lg:pl-[40px] min-[1200px]:pl-[120px]">
+      <div className="w-full flex-1 min-w-0">
         <ProductInfo
           product={product}
           selectedColor={selectedColor}

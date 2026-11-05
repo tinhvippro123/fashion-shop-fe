@@ -181,3 +181,13 @@
   scrollbar-width: none;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
+@media (min-width: 1200px) {
+  .product-detail-layout {
+    gap: 105px !important;
+  }
+}
+

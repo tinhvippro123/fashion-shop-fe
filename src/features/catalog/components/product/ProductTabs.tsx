@@ -15,6 +15,69 @@ interface ProductTabsProps {
   onReviewAdded: (review: ProductReviewItem) => void;
 }
 
+function formatRawDescription(desc?: string): string {
+  if (!desc) return "<p>Đang cập nhật thông tin sản phẩm...</p>";
+
+  // If already clean multi-paragraph HTML from IVY with model specs, use it
+  if (desc.includes("<p>") && (desc.includes("<strong>Chiều cao") || desc.includes("<strong>Thông tin mẫu"))) {
+    return desc
+      .replace(/<ul[^>]*>/gi, "")
+      .replace(/<\/ul>/gi, "")
+      .replace(/<li[^>]*>/gi, "<p class='mb-3 text-[#333] leading-relaxed'>- ")
+      .replace(/<\/li>/gi, "</p>");
+  }
+
+  let text = desc.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+  let noteInfo = "";
+  let modelInfo = "";
+
+  const noteIdx = text.search(/Lưu ý\s*:/i);
+  if (noteIdx !== -1) {
+    noteInfo = text.substring(noteIdx).replace(/^Lưu ý\s*:\s*/i, "").trim();
+    text = text.substring(0, noteIdx).trim();
+  }
+
+  const modelIdx = text.search(/Thông tin (?:người )?mẫu\s*:/i);
+  if (modelIdx !== -1) {
+    modelInfo = text.substring(modelIdx).replace(/^Thông tin (?:người )?mẫu\s*:\s*/i, "").trim();
+    text = text.substring(0, modelIdx).trim();
+  }
+
+  // Split description paragraphs by ' - ' or '- '
+  const bullets = text
+    .split(/\s*-\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  let html = "";
+  for (const b of bullets) {
+    html += `<p class="mb-3 text-[#333] leading-relaxed">- ${b}</p>\n`;
+  }
+
+  if (modelInfo) {
+    html += `<p class="font-bold text-[#111] mt-5 mb-2.5 text-[14px]">Thông tin mẫu:</p>\n`;
+    const height = (modelInfo.match(/Chiều cao[^:]*:\s*([0-9\s]+(?:cm|m)?)/i) || [])[1];
+    const weight = (modelInfo.match(/Cân nặng[^:]*:\s*([0-9\s]+(?:kg)?)/i) || [])[1];
+    const measurements = (modelInfo.match(/Số đo[^:]*:\s*([0-9\s\-]+(?:cm)?)/i) || [])[1];
+    const size = (modelInfo.match(/Mẫu mặc[^:]*:\s*([^\n\r,]+)/i) || [])[1];
+
+    if (height) html += `<p class="mb-2 text-[#333]"><strong>Chiều cao: </strong>${height.trim()}</p>\n`;
+    if (weight) html += `<p class="mb-2 text-[#333]"><strong>Cân nặng: </strong>${weight.trim()}</p>\n`;
+    if (measurements) html += `<p class="mb-2 text-[#333]"><strong>Số đo 3 vòng: </strong>${measurements.trim()}</p>\n`;
+    if (size) html += `<p class="mb-2 text-[#333]"><strong>Mẫu mặc size: </strong>${size.trim()}</p>\n`;
+
+    if (!height && !weight && !measurements && !size) {
+      html += `<p class="mb-2 text-[#333]">${modelInfo}</p>\n`;
+    }
+  }
+
+  if (noteInfo) {
+    html += `<p class="mt-4 text-[#555] leading-relaxed text-[13px]">Lưu ý: ${noteInfo}</p>\n`;
+  }
+
+  return html || `<p>${desc}</p>`;
+}
+
 export default function ProductTabs({
   product,
   reviews,
@@ -118,9 +181,12 @@ export default function ProductTabs({
                 isDescExpanded ? "max-h-[1000px]" : "max-h-[150px]"
               }`}
             >
-              <div className="text-[#6c757d] text-[14px] leading-[1.8] whitespace-pre-line">
-                {product.description}
-              </div>
+              <div
+                className="text-[#333] text-[14px] leading-[1.8] font-normal [&>p]:mb-3.5 [&>p>strong]:font-bold [&>p>strong]:text-[#111]"
+                dangerouslySetInnerHTML={{
+                  __html: formatRawDescription(product.description),
+                }}
+              />
             </div>
 
             <div className="text-center mt-[16px] relative">
@@ -141,6 +207,11 @@ export default function ProductTabs({
 
         {activeTab === "detail" && (
           <div className="text-[#6c757d] text-[14px] leading-[1.8] animate-fadeIn space-y-2">
+            {product.material && (
+              <p>
+                <strong>Chất liệu:</strong> {product.material}
+              </p>
+            )}
             <p>
               <strong>Dòng sản phẩm:</strong> {product.category?.name || "LUXE Fashion"}
             </p>
@@ -159,15 +230,30 @@ export default function ProductTabs({
 
         {activeTab === "preserve" && (
           <div className="text-[#6c757d] text-[14px] leading-[1.8] animate-fadeIn space-y-2">
-            <p>
-              - Khuyến khích giặt tay với nước lạnh hoặc giặt máy ở chế độ nhẹ để
-              giữ phom dáng chuẩn.
-            </p>
-            <p>
-              - Không sử dụng chất tẩy rửa mạnh; phơi ở nơi thoáng mát, tránh ánh
-              nắng trực tiếp.
-            </p>
-            <p>- Ủi ở nhiệt độ thấp dưới 110 độ C.</p>
+            {product.careInstructions ? (
+              product.careInstructions.includes("<") ? (
+                <div
+                  className="prose prose-sm max-w-none text-[#6c757d]"
+                  dangerouslySetInnerHTML={{ __html: product.careInstructions }}
+                />
+              ) : (
+                <div className="whitespace-pre-line">
+                  {product.careInstructions}
+                </div>
+              )
+            ) : (
+              <>
+                <p>
+                  - Khuyến khích giặt tay với nước lạnh hoặc giặt máy ở chế độ nhẹ để
+                  giữ phom dáng chuẩn.
+                </p>
+                <p>
+                  - Không sử dụng chất tẩy rửa mạnh; phơi ở nơi thoáng mát, tránh ánh
+                  nắng trực tiếp.
+                </p>
+                <p>- Ủi ở nhiệt độ thấp dưới 110 độ C.</p>
+              </>
+            )}
           </div>
         )}
 

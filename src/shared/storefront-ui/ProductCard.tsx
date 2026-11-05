@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { useCartStore } from "@/features/cart-and-order/stores/cart.store";
 import { useAuthStore } from "@/features/users/stores/auth.store";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
+import { IvyBagIcon, IvyHeartIcon } from "@/shared/icons/IvyIcons";
 import {
   ProductDetail,
   ProductColor as FullProductColor,
@@ -52,6 +53,24 @@ export default function ProductCard({
       : null
   );
   const [isQuickSizeOpen, setIsQuickSizeOpen] = useState(false);
+  const quickSizeRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isQuickSizeOpen) return;
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        quickSizeRef.current &&
+        !quickSizeRef.current.contains(event.target as Node)
+      ) {
+        setIsQuickSizeOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isQuickSizeOpen]);
+
   const { items, addItem, showSuccessModal } = useCartStore();
   const { isAuthenticated, wishlistIds, setWishlistProductState } =
     useAuthStore();
@@ -108,7 +127,7 @@ export default function ProductCard({
   const availableVariants = activeColor?.variants || [];
 
   return (
-    <div className="group mb-[30px] relative transition-all duration-300">
+    <div className="mb-[30px] relative transition-all duration-300">
       {product.isNew && (
         <div className="absolute top-[0px] -left-[5px] z-[10] bg-[#f7941d] text-white text-[11px] font-bold px-[12px] py-[4px] rounded-tr-[15px] shadow-[2px_2px_5px_rgba(0,0,0,0.2)] before:content-[''] before:absolute before:top-full before:left-0 before:w-0 before:h-0 before:border-t-[5px] before:border-t-[#961c1c] before:border-l-[5px] before:border-l-transparent uppercase tracking-wider">
           NEW
@@ -130,7 +149,8 @@ export default function ProductCard({
         </div>
       ) : null}
 
-      <div className="relative overflow-hidden aspect-[2/3] bg-[#f8f9fa]">
+      {/* Image container: Scoped hover so only hovering the image swaps it */}
+      <div className="group relative overflow-hidden aspect-[2/3] bg-[#f8f9fa]">
         <Link href={`/product/${product.id}`} className="block w-full h-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -171,13 +191,15 @@ export default function ProductCard({
           </div>
           <button
             onClick={handleToggleLike}
-            className={`transition-colors bg-transparent border-none cursor-pointer ${
+            className={`transition-colors bg-transparent border-none cursor-pointer p-0 flex items-center justify-center ${
               liked
                 ? "text-[#dc3545] hover:text-[#c82333]"
-                : "text-[#999] hover:text-[#ff0000]"
+                : "text-[#6c757d] hover:text-[#dc3545]"
             }`}
+            aria-label="Yêu thích"
+            title={liked ? "Bỏ yêu thích" : "Yêu thích"}
           >
-            <i className={liked ? "fas fa-heart" : "far fa-heart"}></i>
+            <IvyHeartIcon className="w-[18px] h-[18px]" filled={liked} />
           </button>
         </div>
 
@@ -190,7 +212,7 @@ export default function ProductCard({
           </Link>
         </div>
 
-        <div className="relative flex justify-between items-center mb-[8px]">
+        <div className="flex justify-between items-center mb-[8px]">
           <div className="flex items-center gap-[10px]">
             {product.discountPercent && product.discountPercent > 0 ? (
               <>
@@ -213,54 +235,63 @@ export default function ProductCard({
               </span>
             )}
           </div>
-          <button
-            onClick={() => setIsQuickSizeOpen(!isQuickSizeOpen)}
-            className="bg-[#222] text-white w-[35px] h-[35px] flex items-center justify-center rounded-[4px] transition-colors duration-200 hover:bg-[#000] border-none cursor-pointer"
-          >
-            <i className="fas fa-shopping-bag"></i>
-          </button>
 
-          {isQuickSizeOpen && availableVariants.length > 0 && (
-            <div className="absolute bottom-[45px] right-0 bg-white w-[70px] shadow-[0_5px_15px_rgba(0,0,0,0.15)] border border-[#eee] z-[100] rounded-[4px] animate-fadeInUp">
-              <ul className="list-none p-0 m-0">
-                {availableVariants.map((variant) => {
-                  const out = variant.stock <= 0;
-                  return (
-                    <li
-                      key={variant.id}
-                      onClick={() => {
-                        if (out || !activeColor) return;
-                        const inCart =
-                          items.find((i) => i.variant.id === variant.id)
-                            ?.quantity || 0;
-                        if (inCart + 1 > variant.stock) {
-                          toast.warning(
-                            `Sản phẩm chỉ còn ${variant.stock} sản phẩm trong kho`
+          <div className="relative" ref={quickSizeRef}>
+            <button
+              onClick={() => setIsQuickSizeOpen(!isQuickSizeOpen)}
+              className={`w-[32px] h-[32px] flex items-center justify-center cursor-pointer transition-colors duration-200 rounded-tl-[8px] rounded-br-[8px] rounded-tr-0 rounded-bl-0 ${
+                isQuickSizeOpen
+                  ? "bg-white text-[#221F20] border border-[#221F20]"
+                  : "bg-[#221F20] text-white border border-transparent hover:bg-white hover:text-[#221F20] hover:border-[#221F20]"
+              }`}
+              aria-label="Thêm vào giỏ"
+              title="Thêm vào giỏ"
+            >
+              <IvyBagIcon className="w-[17px] h-[17px]" />
+            </button>
+
+            {isQuickSizeOpen && availableVariants.length > 0 && (
+              <div className="absolute bottom-[38px] right-0 bg-white w-[64px] shadow-[0_4px_16px_rgba(0,0,0,0.12)] border border-[#E7E8E9] z-[100] animate-fadeInUp">
+                <ul className="list-none p-0 m-0">
+                  {availableVariants.map((variant) => {
+                    const out = variant.stock <= 0;
+                    return (
+                      <li
+                        key={variant.id}
+                        onClick={() => {
+                          if (out || !activeColor) return;
+                          const inCart =
+                            items.find((i) => i.variant.id === variant.id)
+                              ?.quantity || 0;
+                          if (inCart + 1 > variant.stock) {
+                            toast.warning(
+                              `Sản phẩm chỉ còn ${variant.stock} sản phẩm trong kho`
+                            );
+                            return;
+                          }
+                          addItem(
+                            product as unknown as ProductDetail,
+                            activeColor as unknown as FullProductColor,
+                            variant,
+                            1
                           );
-                          return;
-                        }
-                        addItem(
-                          product as unknown as ProductDetail,
-                          activeColor as unknown as FullProductColor,
-                          variant,
-                          1
-                        );
-                        setIsQuickSizeOpen(false);
-                        showSuccessModal();
-                      }}
-                      className={`py-[8px] text-center text-[14px] font-semibold border-b border-[#f5f5f5] last:border-none transition-colors ${
-                        out
-                          ? "text-[#ccc] line-through cursor-not-allowed"
-                          : "cursor-pointer hover:bg-black hover:text-white"
-                      }`}
-                    >
-                      {variant.size.name}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          )}
+                          setIsQuickSizeOpen(false);
+                          showSuccessModal();
+                        }}
+                        className={`py-[8px] text-center text-[13px] font-semibold border-b border-[#f5f5f5] last:border-none transition-colors ${
+                          out
+                            ? "text-[#ccc] line-through cursor-not-allowed"
+                            : "text-[#221F20] cursor-pointer hover:bg-[#221F20] hover:text-white"
+                        }`}
+                      >
+                        {variant.size.name}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

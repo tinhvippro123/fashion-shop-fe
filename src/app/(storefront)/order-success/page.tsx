@@ -3,6 +3,7 @@
 import React, { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
 import { useAuthStore } from "@/features/users/stores/auth.store";
@@ -34,8 +35,10 @@ function OrderSuccessContent() {
     });
 
   const paymentDisplay =
-    order?.paymentMethod === "BANK_TRANSFER"
-      ? "Chuyển khoản ngân hàng"
+    order?.paymentMethod === "VNPAY"
+      ? "Cổng thanh toán điện tử VNPay"
+      : order?.paymentMethod === "BANK_TRANSFER"
+      ? "Chuyển khoản ngân hàng (VietQR)"
       : "Thanh toán khi nhận hàng (COD)";
 
   return (
@@ -137,8 +140,13 @@ function OrderSuccessContent() {
               <div className="w-full md:w-[200px] text-[15px] text-[#6c6d70] mb-[5px] md:mb-0">
                 Phương thức thanh toán:
               </div>
-              <div className="flex-1 font-normal text-[#222] text-[15px]">
-                {paymentDisplay}
+              <div className="flex-1 font-normal text-[#222] text-[15px] flex items-center gap-2">
+                <span>{paymentDisplay}</span>
+                {order?.paymentStatus === "PAID" && (
+                  <span className="text-[11px] font-bold bg-[#137333] text-white px-2 py-0.5 rounded uppercase tracking-wider">
+                    ĐÃ THANH TOÁN (PAID)
+                  </span>
+                )}
               </div>
             </div>
 
@@ -151,6 +159,107 @@ function OrderSuccessContent() {
               </div>
             </div>
           </div>
+
+          {/* Bank Transfer QR & Details if BANK_TRANSFER */}
+          {order?.paymentMethod === "BANK_TRANSFER" && (
+            <div className="bg-white border-2 border-[#222] rounded-[16px] p-[24px] md:p-[30px] mb-[40px] shadow-sm">
+              <div className="flex items-center gap-3 mb-[20px] pb-[15px] border-b border-[#eee]">
+                <div className="w-[40px] h-[40px] rounded-full bg-[#222] text-white flex items-center justify-center font-bold">
+                  <svg className="w-[20px] h-[20px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-[17px] font-bold text-[#222] uppercase tracking-[0.5px]">
+                    Thông tin thanh toán chuyển khoản
+                  </h3>
+                  <p className="text-[13px] text-[#6c6d70]">
+                    Quét mã VietQR hoặc chuyển khoản theo thông tin dưới đây để xác nhận đơn hàng
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-col md:flex-row items-center gap-[30px]">
+                {/* VietQR Code Image */}
+                <div className="shrink-0 flex flex-col items-center p-3 bg-[#f8f9fa] border border-[#e1e1e1] rounded-[12px]">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`https://img.vietqr.io/image/VCB-0123456789-compact2.png?amount=${order.totalAmount || 0}&addInfo=${encodeURIComponent(order.orderCode)}&accountName=CONG%20TY%20THOI%20TRANG%20LUXE`}
+                    alt="VietQR Chuyển khoản"
+                    className="w-[200px] h-[200px] object-contain rounded-[8px]"
+                  />
+                  <span className="text-[11px] text-[#888] mt-2 font-medium">
+                    Quét qua App ngân hàng bất kỳ
+                  </span>
+                </div>
+
+                {/* Account Details */}
+                <div className="flex-1 w-full space-y-3 text-[14px]">
+                  <div className="flex justify-between items-center py-2 border-b border-[#f0f0f0]">
+                    <span className="text-[#6c6d70]">Ngân hàng:</span>
+                    <span className="font-bold text-[#222]">Vietcombank (VCB)</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-[#f0f0f0]">
+                    <span className="text-[#6c6d70]">Số tài khoản:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#222] text-[15px] tracking-wide">0123 456 789</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText("0123456789");
+                          toast.success("Đã sao chép số tài khoản!");
+                        }}
+                        className="text-[12px] bg-[#f0f0f0] hover:bg-[#222] hover:text-white px-2 py-1 rounded transition-colors"
+                      >
+                        Sao chép
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-[#f0f0f0]">
+                    <span className="text-[#6c6d70]">Chủ tài khoản:</span>
+                    <span className="font-bold text-[#222]">CONG TY THOI TRANG LUXE</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-[#f0f0f0]">
+                    <span className="text-[#6c6d70]">Số tiền:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#b5121b] text-[16px]">{order.total}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(String(order.totalAmount || 0));
+                          toast.success("Đã sao chép số tiền!");
+                        }}
+                        className="text-[12px] bg-[#f0f0f0] hover:bg-[#222] hover:text-white px-2 py-1 rounded transition-colors"
+                      >
+                        Sao chép
+                      </button>
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center py-2 border-b border-[#f0f0f0]">
+                    <span className="text-[#6c6d70]">Nội dung CK:</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-[#222] bg-[#f8f9fa] px-2 py-1 border border-[#e1e1e1] rounded font-mono">
+                        {order.orderCode}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(order.orderCode);
+                          toast.success("Đã sao chép mã đơn hàng!");
+                        }}
+                        className="text-[12px] bg-[#f0f0f0] hover:bg-[#222] hover:text-white px-2 py-1 rounded transition-colors"
+                      >
+                        Sao chép
+                      </button>
+                    </div>
+                  </div>
+                  <p className="text-[12px] text-[#888] italic pt-1">
+                    * Đơn hàng sẽ được nhân viên xác nhận và duyệt giao ngay khi nhận được thanh toán. Bạn có thể theo dõi tiến độ đơn hàng trong mục &quot;Xem đơn hàng&quot;.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="flex flex-col sm:flex-row justify-center gap-[15px] sm:gap-[20px]">

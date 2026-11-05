@@ -24,6 +24,8 @@ export interface RawProductResponseDto {
   formattedPrice: string;
   discountPercent: number;
   description?: string;
+  material?: string;
+  careInstructions?: string;
   isNew: boolean;
   isBestSeller: boolean;
   isActive: boolean;
@@ -36,7 +38,22 @@ export interface RawProductResponseDto {
     name: string;
     slug: string;
   };
+  productColors?: Array<{
+    id?: number;
+    isActive?: boolean;
+    color?: {
+      id?: number;
+      name?: string;
+      hexCode?: string;
+    };
+    images?: Array<{
+      id?: number;
+      imageUrl: string;
+      displayOrder?: number;
+    }>;
+  }>;
   images: string[];
+  colorImages?: Record<string, string[]>;
   options: AdminOptionDto[];
   adminVariants: AdminVariantPayloadDto[];
 }
@@ -120,5 +137,26 @@ export interface StockImportResponseDto {
   totalQuantity: number;
   itemCount: number;
   items: StockImportItemDto[];
+}
+
+export function getCategoryFullPath(
+  cat: AdminCategory,
+  allCategories: AdminCategory[]
+): string {
+  const parts: string[] = [cat.name];
+  let curr = cat;
+  const visited = new Set<string>();
+
+  while (curr.parentId && !visited.has(String(curr.id))) {
+    visited.add(String(curr.id));
+    const parent = allCategories.find(
+      (c) => String(c.id) === String(curr.parentId) || String(c.numericId) === String(curr.parentId)
+    );
+    if (!parent) break;
+    parts.unshift(parent.name);
+    curr = parent;
+  }
+
+  return parts.join(" › ");
 }
 

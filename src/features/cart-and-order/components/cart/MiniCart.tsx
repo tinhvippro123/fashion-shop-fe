@@ -144,14 +144,14 @@ export default function MiniCart() {
                   <Link
                     href="/cart"
                     onClick={() => toggleMiniCart(false)}
-                    className="w-full text-center bg-white text-[#222] border border-[#222] py-[12px] font-bold text-[14px] rounded-tl-[4px] rounded-br-[4px] hover:bg-[#f9f9f9] transition-colors uppercase"
+                    className="w-full text-center bg-[#0a0a0b] text-white border border-[#0a0a0b] py-[12px] font-bold text-[14px] rounded-tl-[4px] rounded-br-[4px] hover:bg-white hover:text-[#0a0a0b] transition-colors uppercase"
                   >
                     Xem giỏ hàng
                   </Link>
                   <Link
                     href="/checkout"
                     onClick={() => toggleMiniCart(false)}
-                    className="w-full text-center bg-[#222] text-white py-[12px] font-bold text-[14px] rounded-tl-[4px] rounded-br-[4px] hover:bg-black transition-colors uppercase"
+                    className="w-full text-center bg-white text-[#0a0a0b] border border-[#0a0a0b] py-[12px] font-bold text-[14px] rounded-tl-[4px] rounded-br-[4px] hover:bg-[#0a0a0b] hover:text-white transition-colors uppercase"
                   >
                     Thanh toán
                   </Link>
@@ -161,14 +161,14 @@ export default function MiniCart() {
                   <Link
                     href="/cart"
                     onClick={() => toggleMiniCart(false)}
-                    className="w-full text-center bg-[#222] text-white py-[12px] font-bold text-[14px] rounded-tl-[4px] rounded-br-[4px] hover:bg-black transition-colors uppercase"
+                    className="w-full text-center bg-[#0a0a0b] text-white border border-[#0a0a0b] py-[12px] font-bold text-[14px] rounded-tl-[4px] rounded-br-[4px] hover:bg-white hover:text-[#0a0a0b] transition-colors uppercase"
                   >
                     Xem giỏ hàng
                   </Link>
                   <Link
                     href="/login"
                     onClick={() => toggleMiniCart(false)}
-                    className="w-full text-center bg-white text-[#222] border border-[#222] py-[12px] font-bold text-[14px] rounded-tl-[4px] rounded-br-[4px] hover:bg-[#f9f9f9] transition-colors uppercase"
+                    className="w-full text-center bg-white text-[#0a0a0b] border border-[#0a0a0b] py-[12px] font-bold text-[14px] rounded-tl-[4px] rounded-br-[4px] hover:bg-[#0a0a0b] hover:text-white transition-colors uppercase"
                   >
                     Đăng nhập
                   </Link>

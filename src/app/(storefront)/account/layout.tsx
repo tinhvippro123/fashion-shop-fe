@@ -43,15 +43,15 @@ export default function AccountLayout({
   return (
     <div className="container-luxe w-full px-[15px] min-[1200px]:px-[85px] mx-auto mb-[50px]">
       {/* Breadcrumb */}
-      <div className="text-[14px] font-bold uppercase border-b border-[#e1e1e1] pt-[20px] pb-[21px] mb-[40px]">
+      <div className="text-[13px] font-normal text-[#6c757d] pt-[16px] pb-[16px] mb-[20px] flex items-center">
         <Link
           href="/"
-          className="text-[#333] hover:text-[#000] transition-colors"
+          className="text-[#6c757d] hover:text-[#000] transition-colors"
         >
           Trang chủ
         </Link>
-        <span className="mx-[8px]">-</span>
-        <span>{getBreadcrumbTitle()}</span>
+        <span className="mx-[8px] text-[#999]">-</span>
+        <span className="text-[#333]">{getBreadcrumbTitle()}</span>
       </div>
 
       <div className="flex flex-col lg:flex-row">

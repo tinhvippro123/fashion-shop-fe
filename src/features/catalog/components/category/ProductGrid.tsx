@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { PackageOpen } from "lucide-react";
 import ProductCard, { Product } from "@/shared/storefront-ui/ProductCard";
 import Pagination from "@/shared/storefront-ui/Pagination";
 import { apiFetch } from "@/shared/lib/api";
@@ -48,6 +50,12 @@ export default function ProductGrid({
       } else if (categorySlug === "hang-nam-moi-ve") {
         params.set("categorySlug", "nam");
         params.set("isNew", "true");
+      } else if (categorySlug === "sale-nu") {
+        params.set("categorySlug", "nu");
+        params.set("onSale", "true");
+      } else if (categorySlug === "sale-nam") {
+        params.set("categorySlug", "nam");
+        params.set("onSale", "true");
       } else if (categorySlug === "sale") {
         params.set("onSale", "true");
       } else if (categorySlug !== "tat-ca") {
@@ -93,8 +101,19 @@ export default function ProductGrid({
     safePage * ITEMS_PER_PAGE
   );
 
+  useEffect(() => {
+    if (currentPage > 1 && typeof window !== "undefined") {
+      const el = document.getElementById("product-grid-top");
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        window.scrollTo({ top: 120, behavior: "smooth" });
+      }
+    }
+  }, [currentPage]);
+
   return (
-    <div>
+    <div id="product-grid-top" className="scroll-mt-[100px]">
       {/* Top Bar */}
       <div className="flex flex-col lg:flex-row justify-between lg:items-center mb-[24px]">
         <h2 className="font-bold m-0 mb-[16px] lg:mb-0 uppercase text-[24px]">
@@ -143,8 +162,22 @@ export default function ProductGrid({
           Đang tải danh sách sản phẩm...
         </div>
       ) : paginatedProducts.length === 0 ? (
-        <div className="py-16 text-center text-[#6c6d70]">
-          Không tìm thấy sản phẩm phù hợp với bộ lọc hiện tại.
+        <div className="py-20 flex flex-col items-center justify-center text-center px-4">
+          <div className="w-16 h-16 rounded-full bg-stone-100 flex items-center justify-center text-stone-400 mb-4">
+            <PackageOpen className="w-8 h-8 stroke-[1.5]" />
+          </div>
+          <h3 className="text-base font-bold text-[#222] mb-1.5 uppercase tracking-wide">
+            Chưa có sản phẩm trong danh mục này
+          </h3>
+          <p className="text-sm text-[#6c6d70] max-w-md mb-6 leading-relaxed">
+            Các sản phẩm mới đang được cập nhật và sẽ sớm ra mắt. Bạn vui lòng quay lại sau hoặc khám phá các bộ sưu tập khác của LUXE nhé!
+          </p>
+          <Link
+            href="/danh-muc/tat-ca"
+            className="inline-flex items-center justify-center px-6 py-2.5 bg-[#0a0a0b] text-white text-xs font-semibold tracking-wider uppercase rounded hover:bg-black/80 transition-colors shadow-sm"
+          >
+            Khám phá tất cả sản phẩm
+          </Link>
         </div>
       ) : (
         <div className="flex flex-wrap -mx-[15px]">

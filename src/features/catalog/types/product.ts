@@ -39,6 +39,8 @@ export interface ProductDetail {
   effectivePrice?: number;
   discountPercent?: number;
   description: string;
+  material?: string;
+  careInstructions?: string;
   isNew?: boolean;
   isBestSeller?: boolean;
   isActive?: boolean;

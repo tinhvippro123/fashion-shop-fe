@@ -21,11 +21,13 @@ import {
   CardTitle,
   CardDescription,
 } from "@/shared/ui/card";
-import { UploadCloud, Plus, Trash2, Save, X } from "lucide-react";
+import { UploadCloud, Plus, Trash2, Save, X, Check, Settings } from "lucide-react";
 import { BackButton } from "@/shared/ui/back-button";
 import { cn } from "@/shared/utils/utils";
+import { formatPrice } from "@/shared/utils/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Badge } from "@/shared/ui/badge";
+import { Switch } from "@/shared/ui/switch";
 import dynamic from "next/dynamic";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,11 +45,19 @@ import {
   TProductPayload,
   TProductVariant,
 } from "../schemas/product.schema";
+import { getFashionColorHex, isColorAttribute } from "@/shared/utils/color";
 import {
   AdminCategory,
   IOptionSuggestions,
   RawProductResponseDto,
+  getCategoryFullPath,
 } from "../types/catalog.admin";
+import {
+  getAdminColors,
+  deleteAdminColor,
+  getAdminSizes,
+  deleteAdminSize,
+} from "../api/attributes.api";
 import { apiFetch } from "@/shared/lib/api";
 import { resolveImageUrl } from "@/shared/utils/format";
 
@@ -63,13 +73,6 @@ const RichTextEditor = dynamic(
     ),
   }
 );
-
-const SAMPLE_UPLOADS = [
-  "03321697-61dc-4f30-8da7-d25085a78741.webp",
-  "121a23af-e7f7-4e5a-8e96-65f25b8a4a3f.webp",
-  "0b6e2df0-0401-4eb0-a440-1cbf06651b8d.webp",
-  "4c6dfad6-5fac-4bf0-a37e-11af96fb7191.webp",
-];
 
 interface ProductFormProps {
   productId?: string;
@@ -90,7 +93,6 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       "Kích thước": ["S", "M", "L", "XL"],
     },
   });
-  const [imageInput, setImageInput] = useState("");
 
   const form = useForm<TProductPayload>({
     resolver: zodResolver(ProductSchema),
@@ -105,7 +107,10 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       stock: 20,
       category: "",
       brand: "LUXE",
-      images: [SAMPLE_UPLOADS[0]],
+      material: "",
+      careInstructions: "",
+      images: [],
+      colorImages: {},
       status: "published",
       options: [],
       variants: [],
@@ -137,6 +142,34 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     apiFetch<RawProductResponseDto>(`/admin/products/${productId}`)
       .then((prod) => {
         if (!active) return;
+
+        // Trích xuất bộ sưu tập ảnh cho từng màu: ưu tiên prod.colorImages, fallback sang prod.productColors
+        const resolvedColorImages: Record<string, string[]> = {};
+        if (prod.colorImages && Object.keys(prod.colorImages).length > 0) {
+          Object.assign(resolvedColorImages, prod.colorImages);
+        }
+        if (prod.productColors && Array.isArray(prod.productColors)) {
+          prod.productColors.forEach((pc) => {
+            const cName = pc.color?.name;
+            if (cName && pc.images && pc.images.length > 0) {
+              if (
+                !resolvedColorImages[cName] ||
+                resolvedColorImages[cName].length === 0
+              ) {
+                resolvedColorImages[cName] = pc.images.map(
+                  (img) => img.imageUrl
+                );
+              }
+            }
+          });
+        }
+
+        // Chỉ chọn 1 ảnh làm ảnh bìa đại diện duy nhất (Primary Cover Photo), không gom tất cả ảnh vào bìa
+        const primaryCover =
+          prod.images?.[0] ||
+          Object.values(resolvedColorImages)[0]?.[0] ||
+          "";
+
         form.reset({
           name: prod.name || "",
           description: prod.description || "",
@@ -148,10 +181,10 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           stock: prod.totalStock ?? 0,
           category: prod.category?.slug || "",
           brand: prod.brand || "LUXE",
-          images:
-            prod.images && prod.images.length > 0
-              ? prod.images
-              : [SAMPLE_UPLOADS[0]],
+          material: prod.material || "",
+          careInstructions: prod.careInstructions || "",
+          images: primaryCover ? [primaryCover] : [],
+          colorImages: resolvedColorImages,
           status: prod.isActive ? "published" : "draft",
           options: prod.options || [],
           variants: (prod.adminVariants || []).map((v) => ({
@@ -212,23 +245,212 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     control: form.control,
     name: "variants",
   });
+  const watchedPrice =
+    useWatch({
+      control: form.control,
+      name: "price",
+    }) || 0;
+  const watchedDiscount =
+    useWatch({
+      control: form.control,
+      name: "discountPercent",
+    }) || 0;
 
-  const handleAddImage = (imgUrl: string) => {
-    const trimmed = imgUrl.trim();
+  const [generalUrlInput, setGeneralUrlInput] = useState("");
+
+  const handleAddGeneralImage = (url: string) => {
+    const trimmed = url.trim();
     if (!trimmed) return;
     const prev = form.getValues("images") || [];
     if (!prev.includes(trimmed)) {
       form.setValue("images", [...prev, trimmed]);
+      toast.success("Đã thêm ảnh sản phẩm!");
     }
-    setImageInput("");
+    setGeneralUrlInput("");
   };
 
-  const handleRemoveImage = (imgUrl: string) => {
+  const handleRemoveGeneralImage = (url: string) => {
     const prev = form.getValues("images") || [];
     form.setValue(
       "images",
-      prev.filter((i) => i !== imgUrl)
+      prev.filter((i) => i !== url)
     );
+  };
+
+  const handleGeneralFileUpload = async (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append("file", files[i]);
+      }
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Không thể tải ảnh lên");
+      }
+
+      const newUrls: string[] = data.urls || (data.url ? [data.url] : []);
+      if (newUrls.length > 0) {
+        const prev = form.getValues("images") || [];
+        form.setValue(
+          "images",
+          Array.from(new Set([...prev, ...newUrls]))
+        );
+        toast.success(`Đã thêm ${newUrls.length} ảnh!`);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Tải ảnh thất bại";
+      toast.error(message);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const watchedColorImages =
+    (useWatch({
+      control: form.control,
+      name: "colorImages",
+    }) as Record<string, string[]>) || {};
+
+  const [colorUrlInputs, setColorUrlInputs] = useState<Record<string, string>>({});
+
+  const handleAddColorImage = (colorName: string, imgUrl: string) => {
+    const trimmed = imgUrl.trim();
+    if (!trimmed) return;
+    const currentMap = form.getValues("colorImages") || {};
+    const prevImgs = currentMap[colorName] || [];
+    if (!prevImgs.includes(trimmed)) {
+      form.setValue("colorImages", {
+        ...currentMap,
+        [colorName]: [...prevImgs, trimmed],
+      });
+      toast.success(`Đã thêm ảnh cho màu ${colorName}!`);
+    }
+    setColorUrlInputs((prev) => ({ ...prev, [colorName]: "" }));
+  };
+
+  const handleRemoveColorImage = (colorName: string, imgUrl: string) => {
+    const currentMap = form.getValues("colorImages") || {};
+    const prevImgs = currentMap[colorName] || [];
+    form.setValue("colorImages", {
+      ...currentMap,
+      [colorName]: prevImgs.filter((i) => i !== imgUrl),
+    });
+  };
+
+  const handleColorFileUpload = async (
+    colorName: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    try {
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append("file", files[i]);
+      }
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Không thể tải ảnh lên");
+      }
+
+      const newUrls: string[] = data.urls || (data.url ? [data.url] : []);
+      if (newUrls.length > 0) {
+        const currentMap = form.getValues("colorImages") || {};
+        const prevImgs = currentMap[colorName] || [];
+        const combined = Array.from(new Set([...prevImgs, ...newUrls]));
+        form.setValue("colorImages", {
+          ...currentMap,
+          [colorName]: combined,
+        });
+        toast.success(`Đã thêm ${newUrls.length} ảnh cho màu ${colorName}!`);
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Tải ảnh thất bại";
+      toast.error(message);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const [batchPrice, setBatchPrice] = useState("");
+  const [batchStock, setBatchStock] = useState("");
+
+  const applyBatchPrice = () => {
+    const p = Number(batchPrice);
+    if (isNaN(p) || p < 0) {
+      toast.error("Vui lòng nhập giá hợp lệ");
+      return;
+    }
+    const current = form.getValues("variants") || [];
+    if (current.length === 0) {
+      toast.error("Chưa có biến thể nào để áp dụng");
+      return;
+    }
+    const updated = current.map((v) => ({ ...v, price: p }));
+    replaceVariants(updated);
+    toast.success(
+      `Đã áp dụng giá ${formatPrice(p)} cho tất cả ${current.length} biến thể!`
+    );
+    setBatchPrice("");
+  };
+
+  const applyBatchStock = () => {
+    const s = Number(batchStock);
+    if (isNaN(s) || s < 0) {
+      toast.error("Vui lòng nhập số lượng kho hợp lệ");
+      return;
+    }
+    const current = form.getValues("variants") || [];
+    if (current.length === 0) {
+      toast.error("Chưa có biến thể nào để áp dụng");
+      return;
+    }
+    const updated = current.map((v) => ({ ...v, stock: s }));
+    replaceVariants(updated);
+    toast.success(
+      `Đã gán tồn kho ${s} SP cho tất cả ${current.length} biến thể!`
+    );
+    setBatchStock("");
+  };
+
+  const setDefaultColor = (colorName: string) => {
+    const currentOpts = form.getValues("options") || [];
+    const colorOptIndex = currentOpts.findIndex((opt) =>
+      isColorAttribute(opt.name)
+    );
+    if (colorOptIndex !== -1) {
+      const vals = currentOpts[colorOptIndex].values || [];
+      if (vals.includes(colorName)) {
+        const reordered = [colorName, ...vals.filter((v) => v !== colorName)];
+        const updatedOpts = [...currentOpts];
+        updatedOpts[colorOptIndex] = {
+          ...updatedOpts[colorOptIndex],
+          values: reordered,
+        };
+        replaceOptions(updatedOpts);
+        toast.success(
+          `Đã chọn "${colorName}" làm màu mặc định (hiển thị có dấu tick đầu tiên)!`
+        );
+      }
+    }
   };
 
   function onSubmit(
@@ -237,7 +459,22 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   ) {
     startTransition(async () => {
       try {
-        const payload = { ...values, status };
+        let finalImages = values.images || [];
+        if (values.colorImages && Object.keys(values.colorImages).length > 0) {
+          const colorOpt = (values.options || []).find((opt) =>
+            isColorAttribute(opt.name)
+          );
+          const firstColor =
+            colorOpt?.values?.[0] || Object.keys(values.colorImages)[0];
+          const firstColorImgs = values.colorImages[firstColor] || [];
+          if (firstColorImgs.length > 0) {
+            finalImages = [firstColorImgs[0]];
+          } else {
+            const anyImg = Object.values(values.colorImages).flat()[0];
+            if (anyImg) finalImages = [anyImg];
+          }
+        }
+        const payload = { ...values, images: finalImages, status };
         if (mode === "create") {
           await apiFetch("/admin/products", {
             method: "POST",
@@ -312,9 +549,20 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
             (evOpts[k] || "").toLowerCase() === (v || "").toLowerCase()
         );
       });
+      const skuSuffix = Object.values(combo)
+        .map((val) =>
+          val.length <= 3
+            ? val.toUpperCase()
+            : val
+              .split(/\s+/)
+              .map((w) => w[0]?.toUpperCase() || "")
+              .join("")
+        )
+        .join("-");
+
       return {
         id: matched?.id,
-        sku: matched?.sku || `${baseSku}-${i + 1}`,
+        sku: matched?.sku || `${baseSku}-${skuSuffix || i + 1}`,
         price: matched?.price ?? basePrice,
         costPrice: matched?.costPrice,
         stock: matched?.stock ?? baseStock,
@@ -376,15 +624,97 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     }
   };
 
+  const handleDeleteSuggestion = async (
+    attrName: string,
+    valToRemove: string
+  ) => {
+    try {
+      if (isColorAttribute(attrName)) {
+        const allColors = await getAdminColors();
+        const match = allColors.find(
+          (c) => c.name.toLowerCase() === valToRemove.toLowerCase()
+        );
+        if (match) {
+          await deleteAdminColor(match.id);
+          toast.success(`Đã xóa màu "${valToRemove}" khỏi danh mục hệ thống`);
+        }
+      } else {
+        const allSizes = await getAdminSizes();
+        const match = allSizes.find(
+          (s) => s.name.toUpperCase() === valToRemove.toUpperCase()
+        );
+        if (match) {
+          await deleteAdminSize(match.id);
+          toast.success(`Đã xóa kích thước "${valToRemove}" khỏi danh mục hệ thống`);
+        }
+      }
+      setSuggestions((prev) => ({
+        ...prev,
+        values: {
+          ...prev.values,
+          [attrName]: (prev.values[attrName] || []).filter(
+            (v) => v !== valToRemove
+          ),
+        },
+      }));
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : `Không thể xóa "${valToRemove}"`;
+      toast.error(msg);
+    }
+  };
+
   const handleRemoveOptionValue = (optIndex: number, valToRemove: string) => {
     const currentOpt = form.getValues(`options.${optIndex}`);
     if (!currentOpt) return;
     const currentValues = currentOpt.values || [];
+    const optName = currentOpt.name || "";
 
     updateOption(optIndex, {
-      name: currentOpt.name || "",
+      name: optName,
       values: currentValues.filter((v) => v !== valToRemove),
     });
+
+    // Tự động dọn dẹp các biến thể đang chứa giá trị vừa xóa
+    if (optName) {
+      const currentVars = form.getValues("variants") || [];
+      const updatedVars = currentVars.filter((v) => {
+        return v.options?.[optName] !== valToRemove;
+      });
+      if (updatedVars.length !== currentVars.length) {
+        replaceVariants(updatedVars);
+      }
+    }
+
+    // Nếu xóa giá trị màu sắc, xóa luôn bộ ảnh của màu đó trong colorImages
+    if (isColorAttribute(optName)) {
+      const currentMap = form.getValues("colorImages") || {};
+      if (currentMap[valToRemove]) {
+        const nextMap = { ...currentMap };
+        delete nextMap[valToRemove];
+        form.setValue("colorImages", nextMap);
+      }
+    }
+  };
+
+  const handleRemoveOption = (index: number) => {
+    const opt = form.getValues(`options.${index}`);
+    const optName = opt?.name || "";
+    removeOption(index);
+
+    if (optName) {
+      const currentVars = form.getValues("variants") || [];
+      const updatedVars = currentVars.map((v) => {
+        const newOpts = { ...v.options };
+        delete newOpts[optName];
+        return { ...v, options: newOpts };
+      });
+      replaceVariants(updatedVars);
+
+      if (isColorAttribute(optName)) {
+        form.setValue("colorImages", {});
+      }
+    }
   };
 
   if (loadingInitial) {
@@ -493,7 +823,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Mô tả chi tiết</FormLabel>
+                          <FormLabel>Mô tả chi tiết (Tab Giới thiệu)</FormLabel>
                           <FormControl>
                             <div className="rounded-md border flex flex-col bg-card">
                               <RichTextEditor
@@ -504,6 +834,29 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               />
                             </div>
                           </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="careInstructions"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Hướng dẫn bảo quản (Tab Bảo quản)</FormLabel>
+                          <FormControl>
+                            <div className="rounded-md border flex flex-col bg-card">
+                              <RichTextEditor
+                                value={field.value || ""}
+                                onChange={field.onChange}
+                                placeholder="Nhập lưu ý giặt ủi, in đậm, gạch đầu dòng..."
+                                editorClassName="min-h-[160px] border-none"
+                              />
+                            </div>
+                          </FormControl>
+                          <p className="text-xs text-muted-foreground">
+                            Nếu để trống, hệ thống sẽ tự động hiển thị hướng dẫn bảo quản trang phục tiêu chuẩn của thương hiệu.
+                          </p>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -567,6 +920,30 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                         </FormItem>
                       )}
                     />
+
+                    {(() => {
+                      if (watchedDiscount <= 0 || watchedPrice <= 0) return null;
+                      const effective = Math.round(
+                        (watchedPrice * (100 - watchedDiscount)) / 100
+                      );
+                      return (
+                        <div className="col-span-full p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-md text-xs text-emerald-800 dark:text-emerald-200 flex flex-wrap items-center justify-between gap-2">
+                          <div>
+                            <span>
+                              Giá bán sau giảm <b>{watchedDiscount}%</b>:{" "}
+                            </span>
+                            <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                              {formatPrice(effective)}
+                            </span>
+                          </div>
+                          <span>
+                            Tiết kiệm:{" "}
+                            <b>{formatPrice(watchedPrice - effective)}</b>
+                          </span>
+                        </div>
+                      );
+                    })()}
+
                     <FormField
                       control={form.control}
                       name="sku"
@@ -587,152 +964,115 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                     <FormField
                       control={form.control}
                       name="stock"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Số lượng kho mặc định{" "}
-                            <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="20"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const totalVarStock = (watchedVariants || []).reduce(
+                          (acc, v) => acc + (Number(v.stock) || 0),
+                          0
+                        );
+                        return (
+                          <FormItem>
+                            <FormLabel className="flex items-center justify-between">
+                              <span>
+                                Số lượng kho cơ bản{" "}
+                                <span className="text-red-500">*</span>
+                              </span>
+                              {variantFields.length > 0 && (
+                                <span className="text-[11px] font-normal text-muted-foreground">
+                                  Tổng kho biến thể: <b>{totalVarStock} SP</b>
+                                </span>
+                              )}
+                            </FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                placeholder="20"
+                                {...field}
+                                onChange={(e) =>
+                                  field.onChange(Number(e.target.value))
+                                }
+                              />
+                            </FormControl>
+                            <p className="text-[11px] text-muted-foreground">
+                              {variantFields.length > 0
+                                ? "Khi đã tạo biến thể, số lượng tồn kho từng size/màu sẽ được quản lý tại tab Phân loại & Biến thể."
+                                : "Số lượng tồn kho ban đầu khi chưa tạo biến thể."}
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Cột phải: Ảnh và Phân loại */}
+              {/* Cột phải: Phân loại */}
               <div className="flex flex-col gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle>Hình ảnh</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {currentImages.length > 0 && (
-                      <div className="grid grid-cols-3 gap-2">
-                        {currentImages.map((img, idx) => (
-                          <div
-                            key={idx}
-                            className="relative aspect-2/3 rounded-md overflow-hidden border bg-muted group"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={resolveImageUrl(img)}
-                              alt="Preview"
-                              className="w-full h-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveImage(img)}
-                              className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                            >
-                              <X className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    <div
-                      onClick={() => {
-                        const nextSample =
-                          SAMPLE_UPLOADS.find(
-                            (s) => !currentImages.includes(s)
-                          ) || SAMPLE_UPLOADS[0];
-                        handleAddImage(nextSample);
-                      }}
-                      className="border-2 border-dashed border-border rounded-lg p-5 flex flex-col items-center justify-center text-center hover:bg-muted/50 transition-colors cursor-pointer"
-                    >
-                      <UploadCloud className="h-7 w-7 text-muted-foreground mb-2" />
-                      <p className="text-sm font-medium">
-                        Nhấn để thêm ảnh mẫu nhanh
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Hoặc dán đường dẫn URL hình ảnh bên dưới
-                      </p>
-                    </div>
-
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="URL ảnh (https://...)"
-                        value={imageInput}
-                        onChange={(e) => setImageInput(e.target.value)}
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleAddImage(imageInput)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Phân loại</CardTitle>
+                    <CardTitle>Phân loại & Thuộc tính</CardTitle>
+                    <CardDescription>
+                      Thiết lập danh mục, nhãn hiệu và các nhãn ưu tiên hiển thị cho sản phẩm.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="grid gap-6">
                     <FormField
                       control={form.control}
                       name="category"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Danh mục chính{" "}
-                            <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Chọn danh mục">
-                                  {categories.find((c) => c.slug === field.value)
-                                    ?.name || field.value || "Chọn danh mục"}
-                                </SelectValue>
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {categories.length > 0 ? (
-                                categories.map((cat) => (
-                                  <SelectItem key={cat.id} value={cat.slug}>
-                                    {cat.parentName
-                                      ? `${cat.parentName} › ${cat.name}`
-                                      : cat.name}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <>
-                                  <SelectItem value="ao-so-mi-nu">
-                                    Áo sơ mi nữ
-                                  </SelectItem>
-                                  <SelectItem value="dam-cong-so">
-                                    Đầm công sở
-                                  </SelectItem>
-                                  <SelectItem value="ao-vest-blazer">
-                                    Áo Vest & Blazer
-                                  </SelectItem>
-                                </>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
+                      render={({ field }) => {
+                        const selectedCat = categories.find((c) => c.slug === field.value);
+                        const formattedCategories = categories
+                          .map((c) => ({
+                            ...c,
+                            fullPath: getCategoryFullPath(c, categories),
+                          }))
+                          .sort((a, b) => a.fullPath.localeCompare(b.fullPath, "vi"));
+
+                        return (
+                          <FormItem>
+                            <FormLabel>
+                              Danh mục chính{" "}
+                              <span className="text-red-500">*</span>
+                            </FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              value={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Chọn danh mục">
+                                    {selectedCat
+                                      ? getCategoryFullPath(selectedCat, categories)
+                                      : field.value || "Chọn danh mục"}
+                                  </SelectValue>
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent className="max-h-72">
+                                {formattedCategories.length > 0 ? (
+                                  formattedCategories.map((cat) => (
+                                    <SelectItem key={cat.id} value={cat.slug}>
+                                      {cat.fullPath}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <>
+                                    <SelectItem value="ao-so-mi-nu">
+                                      Áo sơ mi nữ
+                                    </SelectItem>
+                                    <SelectItem value="dam-cong-so">
+                                      Đầm công sở
+                                    </SelectItem>
+                                    <SelectItem value="ao-vest-blazer">
+                                      Áo Vest & Blazer
+                                    </SelectItem>
+                                  </>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        );
+                      }}
                     />
                     <FormField
                       control={form.control}
@@ -748,6 +1088,67 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                             />
                           </FormControl>
                           <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="material"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Chất liệu vải (Tab Chi tiết)</FormLabel>
+                          <FormControl>
+                            <Input
+                              placeholder="VD: Vải Tuytsi, Lụa tơ tằm, Cotton..."
+                              {...field}
+                              value={field.value || ""}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="isNew"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-md border p-3 space-y-0">
+                          <div className="space-y-0.5">
+                            <FormLabel className="cursor-pointer">
+                              Nhãn NEW (Hàng mới)
+                            </FormLabel>
+                            <p className="text-xs text-muted-foreground">
+                              Hiển thị huy hiệu NEW màu cam trên ảnh sản phẩm
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={Boolean(field.value)}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="isBestSeller"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center justify-between rounded-md border p-3 space-y-0">
+                          <div className="space-y-0.5">
+                            <FormLabel className="cursor-pointer">
+                              Nhãn BEST SELLER
+                            </FormLabel>
+                            <p className="text-xs text-muted-foreground">
+                              Hiển thị huy hiệu BEST SELLER (khi tắt nhãn NEW)
+                            </p>
+                          </div>
+                          <FormControl>
+                            <Switch
+                              checked={Boolean(field.value)}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
                         </FormItem>
                       )}
                     />
@@ -803,12 +1204,14 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                           >
                             <Button
                               variant="ghost"
-                              size="icon"
-                              className="absolute top-2 right-2 h-7 w-7 text-muted-foreground hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                              onClick={() => removeOption(index)}
+                              size="sm"
+                              className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs px-2.5 py-1 h-7 flex items-center gap-1 border border-transparent hover:border-destructive/20 transition-all"
+                              onClick={() => handleRemoveOption(index)}
                               type="button"
+                              title="Xóa toàn bộ nhóm thuộc tính này"
                             >
-                              <X className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                              <span className="text-xs text-destructive font-medium">Xóa nhóm</span>
                             </Button>
 
                             <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
@@ -844,7 +1247,18 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               />
 
                               <div className="space-y-2">
-                                <Label>Giá trị (Nhấn Enter để thêm)</Label>
+                                <div className="flex items-center justify-between">
+                                  <Label>Giá trị (Nhấn Enter để thêm)</Label>
+                                  <Link
+                                    href="/admin/attributes"
+                                    target="_blank"
+                                    className="text-[11px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
+                                    title="Mở trang Quản lý bảng màu & kích thước trong tab mới"
+                                  >
+                                    <Settings className="h-3 w-3" />
+                                    Quản lý bảng thuộc tính
+                                  </Link>
+                                </div>
                                 <Input
                                   placeholder="VD: Đỏ, Xanh... rồi ấn Enter"
                                   onKeyDown={(e) =>
@@ -860,6 +1274,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                     !suggestions.values[currentName]
                                   )
                                     return null;
+                                  const isColor = isColorAttribute(currentName);
                                   return (
                                     <div className="flex gap-1.5 mt-1.5 flex-wrap">
                                       {suggestions.values[currentName].map(
@@ -867,12 +1282,40 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                           <Badge
                                             key={sugg}
                                             variant="outline"
-                                            className="cursor-pointer text-[10px] py-0 px-1.5 hover:bg-muted font-normal text-muted-foreground"
-                                            onClick={() =>
-                                              handleQuickAddValue(index, sugg)
-                                            }
+                                            className="group/sugg text-[10px] py-0 pl-1.5 pr-1 hover:bg-muted font-normal text-muted-foreground flex items-center gap-1 transition-all"
                                           >
-                                            + {sugg}
+                                            <span
+                                              className="cursor-pointer flex items-center gap-1 py-0.5"
+                                              onClick={() =>
+                                                handleQuickAddValue(index, sugg)
+                                              }
+                                              title={`Thêm ${sugg}`}
+                                            >
+                                              {isColor && (
+                                                <span
+                                                  className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
+                                                  style={{
+                                                    backgroundColor:
+                                                      getFashionColorHex(sugg),
+                                                  }}
+                                                />
+                                              )}
+                                              + {sugg}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              className="opacity-0 group-hover/sugg:opacity-100 hover:text-destructive hover:bg-destructive/15 rounded-full p-0.5 transition-all ml-0.5"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDeleteSuggestion(
+                                                  currentName,
+                                                  sugg
+                                                );
+                                              }}
+                                              title={`Xóa vĩnh viễn "${sugg}" khỏi danh mục gợi ý`}
+                                            >
+                                              <X className="h-2.5 w-2.5" />
+                                            </button>
                                           </Badge>
                                         )
                                       )}
@@ -882,26 +1325,51 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
 
                                 {(watchedOptions?.[index]?.values || [])
                                   .length > 0 && (
-                                  <div className="flex flex-wrap gap-2 mt-3 p-2 bg-muted/50 rounded-md border min-h-[42px]">
-                                    {(
-                                      watchedOptions?.[index]?.values || []
-                                    ).map((val, vIdx) => (
-                                      <Badge
-                                        key={vIdx}
-                                        variant="secondary"
-                                        className="pl-3 pr-1 py-1 flex items-center gap-1 font-medium"
-                                      >
-                                        {val}
-                                        <div
-                                          className="h-4 w-4 rounded-full hover:bg-muted flex items-center justify-center cursor-pointer ml-1"
-                                          onClick={() =>
-                                            handleRemoveOptionValue(index, val)
-                                          }
-                                        >
-                                          <X className="h-3 w-3" />
-                                        </div>
-                                      </Badge>
-                                    ))}
+                                  <div className="space-y-1 mt-3">
+                                    <div className="flex flex-wrap gap-2 p-2 bg-muted/50 rounded-md border min-h-[42px]">
+                                      {(
+                                        watchedOptions?.[index]?.values || []
+                                      ).map((val, vIdx) => {
+                                        const isColor = isColorAttribute(
+                                          watchedOptions?.[index]?.name
+                                        );
+                                        const colorHex = isColor
+                                          ? getFashionColorHex(val)
+                                          : null;
+                                        return (
+                                          <Badge
+                                            key={vIdx}
+                                            variant="secondary"
+                                            className="pl-2.5 pr-1 py-1 flex items-center gap-1.5 font-medium border bg-muted/60"
+                                          >
+                                            {isColor && (
+                                              <span
+                                                className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0 inline-block shadow-xs"
+                                                style={{
+                                                  backgroundColor:
+                                                    colorHex || "#333",
+                                                }}
+                                                title={`Màu: ${val} (${colorHex})`}
+                                              />
+                                            )}
+                                            <span>{val}</span>
+                                            <button
+                                              type="button"
+                                              className="h-4 w-4 rounded-full hover:bg-destructive hover:text-destructive-foreground text-muted-foreground flex items-center justify-center cursor-pointer ml-1 transition-colors"
+                                              onClick={() =>
+                                                handleRemoveOptionValue(index, val)
+                                              }
+                                              title={`Xóa giá trị "${val}"`}
+                                            >
+                                              <X className="h-3 w-3" />
+                                            </button>
+                                          </Badge>
+                                        );
+                                      })}
+                                    </div>
+                                    <p className="text-[11px] text-muted-foreground italic pt-1">
+                                      💡 Bấm vào dấu <span className="font-semibold text-destructive">×</span> trên từng ô để xóa kích cỡ hoặc màu sắc.
+                                    </p>
                                   </div>
                                 )}
                               </div>
@@ -912,6 +1380,261 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                     )}
                   </CardContent>
                 </Card>
+
+                {/* Color Image Gallery Card */}
+                {(() => {
+                  const colorOption = (watchedOptions || []).find((opt) =>
+                    isColorAttribute(opt.name)
+                  );
+                  const activeColorValues = colorOption?.values || [];
+
+                  if (activeColorValues.length === 0) {
+                    return (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="flex items-center gap-2">
+                            <UploadCloud className="h-5 w-5" /> Bộ sưu tập ảnh sản phẩm
+                          </CardTitle>
+                          <CardDescription>
+                            Sản phẩm chưa có thuộc tính &quot;Màu sắc&quot;. Bạn có thể thêm thuộc tính Màu sắc ở trên để tải ảnh riêng cho từng màu, hoặc tải ảnh chung tại đây. Ảnh đầu tiên sẽ tự động làm ảnh đại diện.
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {currentImages.length > 0 ? (
+                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                              {currentImages.map((imgUrl, imgIdx) => (
+                                <div
+                                  key={imgIdx}
+                                  className="relative aspect-2/3 rounded-md overflow-hidden border bg-muted group"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={resolveImageUrl(imgUrl)}
+                                    alt={`Ảnh ${imgIdx + 1}`}
+                                    className="w-full h-full object-cover"
+                                  />
+                                  {imgIdx === 0 && (
+                                    <Badge className="absolute bottom-1 left-1 bg-black/85 text-white text-[9px] px-1.5 py-0 border border-white/20 shadow-xs pointer-events-none">
+                                      Ảnh đại diện
+                                    </Badge>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => handleRemoveGeneralImage(imgUrl)}
+                                    className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    title="Xóa ảnh này"
+                                  >
+                                    <X className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-xs text-muted-foreground italic">
+                              Chưa có hình ảnh nào cho sản phẩm.
+                            </p>
+                          )}
+
+                          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                            <label
+                              htmlFor="general-image-file-input"
+                              className="flex-1 border border-dashed rounded-md px-3 py-2 flex items-center justify-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground"
+                            >
+                              <input
+                                id="general-image-file-input"
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                                onChange={handleGeneralFileUpload}
+                              />
+                              <UploadCloud className="h-4 w-4" />
+                              <span>Chọn ảnh từ máy tính (kéo thả)</span>
+                            </label>
+
+                            <div className="flex gap-1.5 sm:w-80">
+                              <Input
+                                placeholder="Dán liên kết ảnh (https://...)"
+                                className="h-9 text-xs"
+                                value={generalUrlInput}
+                                onChange={(e) => setGeneralUrlInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddGeneralImage(generalUrlInput);
+                                  }
+                                }}
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                className="h-9 px-3"
+                                onClick={() => handleAddGeneralImage(generalUrlInput)}
+                              >
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  }
+
+                  return (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                          <UploadCloud className="h-5 w-5" /> Bộ sưu tập ảnh theo Màu sắc
+                        </CardTitle>
+                        <CardDescription>
+                          Tải ảnh riêng cho từng màu sắc. Ảnh đầu tiên của màu mặc định sẽ tự động được sử dụng làm ảnh đại diện sản phẩm ngoài danh mục.
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {activeColorValues.map((colorName, colorIdx) => {
+                          const colorHex = getFashionColorHex(colorName);
+                          const colorImgs =
+                            watchedColorImages?.[colorName] || [];
+
+                          return (
+                            <div
+                              key={colorName}
+                              className="p-4 border rounded-lg bg-card/60 space-y-3"
+                            >
+                              <div className="flex items-center justify-between flex-wrap gap-2">
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="w-4 h-4 rounded-full border border-black/20 shadow-xs inline-block shrink-0"
+                                    style={{ backgroundColor: colorHex }}
+                                  />
+                                  <span className="font-semibold text-sm">
+                                    Màu sắc: {colorName}
+                                  </span>
+                                  {colorIdx === 0 ? (
+                                    <Badge className="bg-black text-white text-[10px] flex items-center gap-1 font-normal py-0.5">
+                                      <Check className="h-2.5 w-2.5" /> Màu mặc định (Ảnh đại diện & Hiển thị đầu tiên)
+                                    </Badge>
+                                  ) : (
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2"
+                                      onClick={() => setDefaultColor(colorName)}
+                                      title="Đặt màu này làm màu được chọn đầu tiên khi khách mở trang"
+                                    >
+                                      Đặt làm mặc định
+                                    </Button>
+                                  )}
+                                  <Badge variant="secondary" className="text-xs">
+                                    {colorImgs.length} ảnh
+                                  </Badge>
+                                </div>
+                              </div>
+
+                              {/* Images Grid */}
+                              {colorImgs.length > 0 ? (
+                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                                  {colorImgs.map((imgUrl, imgIdx) => (
+                                    <div
+                                      key={imgIdx}
+                                      className="relative aspect-2/3 rounded-md overflow-hidden border bg-muted group"
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={resolveImageUrl(imgUrl)}
+                                        alt={`${colorName} ${imgIdx + 1}`}
+                                        className="w-full h-full object-cover"
+                                      />
+                                      {colorIdx === 0 && imgIdx === 0 && (
+                                        <Badge className="absolute bottom-1 left-1 bg-black/85 text-white text-[9px] px-1.5 py-0 border border-white/20 shadow-xs pointer-events-none">
+                                          Ảnh đại diện
+                                        </Badge>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          handleRemoveColorImage(colorName, imgUrl)
+                                        }
+                                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        title="Xóa ảnh này"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-xs text-muted-foreground italic">
+                                  Chưa có ảnh riêng cho màu {colorName} (sẽ sử dụng ảnh chung của sản phẩm).
+                                </p>
+                              )}
+
+                              {/* Upload / URL controls */}
+                              <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                                <label
+                                  htmlFor={`color-upload-${colorName}`}
+                                  className="flex-1 border border-dashed rounded-md px-3 py-2 flex items-center justify-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground"
+                                >
+                                  <input
+                                    id={`color-upload-${colorName}`}
+                                    type="file"
+                                    accept="image/*"
+                                    multiple
+                                    className="hidden"
+                                    onChange={(e) =>
+                                      handleColorFileUpload(colorName, e)
+                                    }
+                                  />
+                                  <UploadCloud className="h-4 w-4" />
+                                  <span>Chọn ảnh từ máy cho màu {colorName}</span>
+                                </label>
+
+                                <div className="flex gap-1.5 sm:w-80">
+                                  <Input
+                                    placeholder={`Dán URL ảnh cho màu ${colorName}...`}
+                                    className="h-9 text-xs"
+                                    value={colorUrlInputs[colorName] || ""}
+                                    onChange={(e) =>
+                                      setColorUrlInputs((prev) => ({
+                                        ...prev,
+                                        [colorName]: e.target.value,
+                                      }))
+                                    }
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        e.preventDefault();
+                                        handleAddColorImage(
+                                          colorName,
+                                          colorUrlInputs[colorName] || ""
+                                        );
+                                      }
+                                    }}
+                                  />
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-9 px-2.5"
+                                    onClick={() =>
+                                      handleAddColorImage(
+                                        colorName,
+                                        colorUrlInputs[colorName] || ""
+                                      )
+                                    }
+                                  >
+                                    <Plus className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
 
                 {/* Variants List */}
                 <Card>
@@ -938,34 +1661,88 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                         thể&quot;.
                       </div>
                     ) : (
-                      <div className="border rounded-md divide-y overflow-hidden">
-                        <div className="bg-muted/50 p-4 hidden sm:flex items-center gap-4 text-sm font-semibold">
-                          <div className="flex-1">Phân loại</div>
-                          <div className="w-28">Giá bán</div>
-                          <div className="w-20">Kho</div>
-                          <div className="w-32">SKU</div>
-                          <div className="w-9"></div>
+                      <div className="space-y-3">
+                        <div className="flex flex-wrap items-center gap-2.5 p-2.5 bg-muted/40 rounded-lg border text-xs">
+                          <span className="font-semibold text-muted-foreground">
+                            Thiết lập hàng loạt:
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              placeholder="Giá chung..."
+                              className="h-8 w-28 text-xs bg-card"
+                              value={batchPrice}
+                              onChange={(e) => setBatchPrice(e.target.value)}
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 text-xs px-2.5"
+                              onClick={applyBatchPrice}
+                            >
+                              Áp dụng giá
+                            </Button>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Input
+                              type="number"
+                              placeholder="Tồn kho..."
+                              className="h-8 w-28 text-xs bg-card"
+                              value={batchStock}
+                              onChange={(e) => setBatchStock(e.target.value)}
+                              title="Nhập số lượng tồn kho áp dụng cho tất cả các biến thể"
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 text-xs px-2.5"
+                              onClick={applyBatchStock}
+                            >
+                              Áp dụng kho
+                            </Button>
+                          </div>
                         </div>
 
-                        {variantFields.map((v, i) => (
-                          <div
-                            key={v.id}
-                            className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-muted/30 transition-colors"
-                          >
-                            <div className="flex flex-1 items-center gap-3">
-                              <div className="h-10 w-10 bg-muted rounded-md flex items-center justify-center border text-xs font-medium text-muted-foreground">
-                                SKU
-                              </div>
-                              <div>
-                                <p className="font-semibold text-sm">
-                                  {Object.values(
-                                    watchedVariants?.[i]?.options ||
-                                      v.options ||
-                                      {}
-                                  ).join(" / ")}
+                        <div className="border rounded-md divide-y overflow-hidden">
+                          <div className="bg-muted/50 p-4 hidden sm:flex items-center gap-4 text-sm font-semibold">
+                            <div className="flex-1">Phân loại</div>
+                            <div className="w-28">Giá bán</div>
+                            <div className="w-20">Kho</div>
+                            <div className="w-32">SKU</div>
+                            <div className="w-9"></div>
+                          </div>
+
+                        {variantFields.map((v, i) => {
+                          const currentOpts =
+                            watchedVariants?.[i]?.options || v.options || {};
+                          const colorEntry = Object.entries(currentOpts).find(
+                            ([k]) => isColorAttribute(k)
+                          );
+                          const colorVal = colorEntry ? colorEntry[1] : null;
+                          const colorHex = colorVal
+                            ? getFashionColorHex(colorVal)
+                            : null;
+
+                          return (
+                            <div
+                              key={v.id}
+                              className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-muted/30 transition-colors"
+                            >
+                              <div className="flex flex-1 items-center gap-2.5">
+                                <p className="font-semibold text-sm flex items-center gap-2">
+                                  {colorHex && (
+                                    <span
+                                      className="w-4 h-4 rounded-full border border-black/25 shrink-0 inline-block shadow-2xs"
+                                      style={{ backgroundColor: colorHex }}
+                                    />
+                                  )}
+                                  <span>
+                                    {Object.values(currentOpts).join(" / ")}
+                                  </span>
                                 </p>
                               </div>
-                            </div>
                             <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                               <FormField
                                 control={form.control}
@@ -1008,15 +1785,18 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-9 w-9 text-muted-foreground hover:text-red-600 self-end sm:self-auto"
+                                className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 self-end sm:self-auto transition-colors"
                                 type="button"
                                 onClick={() => removeVariant(i)}
+                                title="Xóa riêng biến thể này khỏi sản phẩm"
                               >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
-                        ))}
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </CardContent>

@@ -26,6 +26,7 @@ import {
   Eye,
   PackagePlus,
   AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -60,6 +61,19 @@ function ProductTableActions({
         }
       >
         Chỉnh sửa
+      </DropdownMenuItem>
+
+      <DropdownMenuItem
+        render={
+          <a
+            href={`/product/${product.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full h-full cursor-pointer flex items-center"
+          />
+        }
+      >
+        <ExternalLink className="mr-2 h-4 w-4" /> Xem ngoài website
       </DropdownMenuItem>
 
       {product.isActive ? (

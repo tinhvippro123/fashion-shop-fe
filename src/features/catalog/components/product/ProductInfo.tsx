@@ -9,6 +9,7 @@ import { useAuthStore } from "@/features/users/stores/auth.store";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice } from "@/shared/utils/format";
+import { Ruler } from "lucide-react";
 
 interface ProductInfoProps {
   product: ProductDetail;
@@ -148,7 +149,7 @@ export default function ProductInfo({
 
   return (
     <div className="w-full">
-      <h2 className="font-bold uppercase mb-[16px] text-[28px] text-[#222]">
+      <h2 className="font-bold uppercase mb-[16px] text-[22px] md:text-[24px] xl:text-[28px] text-[#222] leading-tight md:leading-none mt-0 pt-0">
         {product.name}
       </h2>
 
@@ -277,12 +278,14 @@ export default function ProductInfo({
           )}
         </div>
 
-        <span
-          className="text-[#222] font-bold text-[13px] underline cursor-pointer hover:text-gray-600 transition-colors"
+        <button
+          type="button"
+          className="mt-[12px] inline-flex items-center gap-[7px] text-[#555] hover:text-[#111] text-[13px] font-normal transition-colors cursor-pointer bg-transparent border-0 p-0"
           onClick={() => setIsSizeGuideOpen(true)}
         >
-          <i className="fas fa-ruler mr-[4px]"></i> Kiểm tra size của bạn
-        </span>
+          <Ruler className="w-4 h-4 text-[#777]" />
+          <span>Kiểm tra size của bạn</span>
+        </button>
       </div>
 
       {/* Quantity */}
@@ -313,25 +316,25 @@ export default function ProductInfo({
       </div>
 
       {/* Action Buttons */}
-      <div className="flex gap-[10px] mb-[24px]">
+      <div className="flex items-center gap-[8px] sm:gap-[10px] mb-[24px] w-full max-w-[420px]">
         <button
           onClick={handleAddToCart}
-          className="w-[160px] h-[50px] bg-[#222] text-white font-bold text-[13px] rounded-tl-[16px] rounded-br-[16px] transition-all hover:bg-black uppercase border border-transparent whitespace-nowrap cursor-pointer"
+          className="flex-1 min-w-[120px] max-w-[170px] h-[50px] bg-[#0a0a0b] text-white border border-[#0a0a0b] font-bold text-[12px] sm:text-[13px] rounded-tl-[16px] rounded-br-[16px] transition-colors hover:bg-white hover:text-[#0a0a0b] uppercase whitespace-nowrap cursor-pointer px-2"
         >
           THÊM VÀO GIỎ
         </button>
         <button
           onClick={handleBuyNow}
-          className="w-[140px] h-[50px] bg-white text-[#222] font-bold text-[13px] rounded-tl-[16px] rounded-br-[16px] transition-all hover:bg-[#f9f9f9] uppercase border border-[#222] whitespace-nowrap cursor-pointer"
+          className="flex-1 min-w-[100px] max-w-[150px] h-[50px] bg-white text-[#0a0a0b] border border-[#0a0a0b] font-bold text-[12px] sm:text-[13px] rounded-tl-[16px] rounded-br-[16px] transition-colors hover:bg-[#0a0a0b] hover:text-white uppercase whitespace-nowrap cursor-pointer px-2"
         >
           MUA HÀNG
         </button>
         <button
           onClick={handleToggleLike}
-          className={`w-[50px] h-[50px] flex-shrink-0 bg-white border border-[#222] rounded-tl-[16px] rounded-br-[16px] flex items-center justify-center transition-all cursor-pointer ${
+          className={`w-[50px] h-[50px] flex-shrink-0 bg-white border border-[#0a0a0b] rounded-tl-[16px] rounded-br-[16px] flex items-center justify-center transition-all cursor-pointer ${
             liked
               ? "text-[#dc3545] border-[#dc3545] hover:bg-[#ffe6e6]"
-              : "text-[#222] hover:bg-[#f9f9f9]"
+              : "text-[#0a0a0b] hover:bg-[#f9f9f9]"
           }`}
         >
           <i

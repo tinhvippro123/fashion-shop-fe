@@ -48,6 +48,7 @@ export interface OrderResponseDto {
   paymentMethod: string;
   payment: string;
   paymentBg: string;
+  paymentUrl?: string | null;
   total: string;
   subtotal: number;
   shippingFee: number;

@@ -12,6 +12,7 @@ import {
   Gift,
   Star,
   PackageOpen,
+  Palette,
   ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
@@ -33,6 +34,7 @@ const navGroups = [
     items: [
       { name: "Mã giảm giá", href: "/admin/vouchers", icon: Gift },
       { name: "Danh mục", href: "/admin/categories", icon: Tag },
+      { name: "Màu & Kích cỡ", href: "/admin/attributes", icon: Palette },
     ],
   },
 ];

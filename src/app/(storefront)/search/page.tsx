@@ -24,23 +24,23 @@ function SearchPageContent() {
 
   return (
     <div className="w-full min-[1200px]:px-[85px] px-[15px] mx-auto mb-[80px]">
-      <div className="text-[14px] font-bold uppercase border-b border-[#e1e1e1] pt-[20px] pb-[21px] mb-[40px]">
+      <div className="text-[13px] font-normal text-[#6c757d] pt-[16px] pb-[16px] mb-[20px] flex items-center">
         <Link
           href="/"
-          className="text-[#333] hover:text-[#000] transition-colors"
+          className="text-[#6c757d] hover:text-[#000] transition-colors"
         >
           Trang chủ
         </Link>
-        <span className="mx-[8px]">-</span>
-        <span>Tìm kiếm</span>
+        <span className="mx-[8px] text-[#999]">-</span>
+        <span className="text-[#333]">Tìm kiếm</span>
       </div>
 
-      <div className="flex flex-wrap relative">
-        <div className="hidden lg:block w-full lg:w-[25%] px-[15px] mb-[30px] lg:mb-0">
+      <div className="flex flex-col lg:flex-row gap-[36px] relative">
+        <div className="hidden lg:block w-[240px] shrink-0">
           <FilterSidebar onApply={setFilters} />
         </div>
 
-        <div className="w-full lg:w-[75%]">
+        <div className="flex-1 min-w-0">
           <ProductGrid
             title={title}
             currentPage={currentPage}
