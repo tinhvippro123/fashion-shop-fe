@@ -62,23 +62,33 @@ export default function FeaturedCategories() {
     };
   }, []);
 
-  // Giới hạn tối đa 4 danh mục nổi bật trên trang chủ để đảm bảo thẩm mỹ thị giác
+  // Giới hạn tối đa 4 danh mục nổi bật trên trang chủ
   const displayCategories = categories.slice(0, 4);
 
   if (displayCategories.length === 0) {
     return null;
   }
 
-  // Tự động căn chỉnh layout linh hoạt theo số lượng danh mục thực tế
-  let containerClass = "grid gap-[20px] xl:gap-[24px]";
+  // Tự động căn chỉnh layout và tỉ lệ ảnh lấp đầy toàn bộ hàng ngang:
+  // - 4 thẻ: 4 cột đều nhau (25% mỗi thẻ)
+  // - 3 thẻ: 3 cột đều nhau (33.3% mỗi thẻ)
+  // - 2 thẻ: 2 cột đều nhau (50% mỗi thẻ dàn đều 2 bên, không bị trống phải)
+  // - 1 thẻ: Căn giữa trung tâm
+  let containerClass = "grid gap-[20px] xl:gap-[24px] w-full";
+  let aspectClass = "aspect-[3/4]";
+
   if (displayCategories.length === 4) {
     containerClass += " grid-cols-2 lg:grid-cols-4";
+    aspectClass = "aspect-[3/4]";
   } else if (displayCategories.length === 3) {
     containerClass += " grid-cols-1 md:grid-cols-3";
+    aspectClass = "aspect-[3/4]";
   } else if (displayCategories.length === 2) {
-    containerClass += " grid-cols-1 sm:grid-cols-2 max-w-[850px] mx-auto";
+    containerClass += " grid-cols-1 sm:grid-cols-2";
+    aspectClass = "aspect-[16/10] sm:aspect-[4/3] lg:aspect-[16/11]";
   } else {
-    containerClass += " grid-cols-1 max-w-[420px] mx-auto";
+    containerClass += " grid-cols-1 max-w-[800px] mx-auto";
+    aspectClass = "aspect-[16/9]";
   }
 
   return (
@@ -100,7 +110,7 @@ export default function FeaturedCategories() {
             <Link
               key={cat.id}
               href={cat.targetUrl || "/"}
-              className="group relative block aspect-[3/4] overflow-hidden rounded-[8px] bg-[#f8f8f8] shadow-sm hover:shadow-md transition-shadow"
+              className={`group relative block ${aspectClass} overflow-hidden rounded-[8px] bg-[#f8f8f8] shadow-sm hover:shadow-md transition-shadow`}
             >
               {/* Background Image */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
