@@ -88,7 +88,7 @@ export default function Home() {
                   href="/danh-muc/nu"
                   className="inline-block px-[40px] py-[12px] bg-white border border-[#333] text-[#333] font-normal text-[14px] uppercase tracking-[1px] no-underline rounded-tl-[20px] rounded-br-[20px] transition-all duration-300 hover:bg-[#000] hover:border-[#000] hover:text-white"
                 >
-                  Xem tất cả ({womenProducts.length > 0 ? "Nữ" : "0"})
+                  Xem tất cả
                 </Link>
               </div>
             </div>
@@ -102,7 +102,7 @@ export default function Home() {
                   href="/danh-muc/nam"
                   className="inline-block px-[40px] py-[12px] bg-white border border-[#333] text-[#333] font-normal text-[14px] uppercase tracking-[1px] no-underline rounded-tl-[20px] rounded-br-[20px] transition-all duration-300 hover:bg-[#000] hover:border-[#000] hover:text-white"
                 >
-                  Xem tất cả ({menProducts.length > 0 ? "Nam" : "0"})
+                  Xem tất cả
                 </Link>
               </div>
             </div>
@@ -133,7 +133,7 @@ export default function Home() {
           <div className="text-center mt-[24px]">
             <Link
               href="/danh-muc/sale"
-              className="inline-block px-[40px] py-[12px] bg-[#b5121b] border border-[#b5121b] text-white font-medium text-[14px] uppercase tracking-[1px] no-underline rounded-tl-[20px] rounded-br-[20px] transition-all duration-300 hover:bg-[#8e0c13] hover:border-[#8e0c13]"
+              className="inline-block px-[40px] py-[12px] bg-white border border-[#333] text-[#333] font-normal text-[14px] uppercase tracking-[1px] no-underline rounded-tl-[20px] rounded-br-[20px] transition-all duration-300 hover:bg-[#000] hover:border-[#000] hover:text-white"
             >
               Xem tất cả sản phẩm ưu đãi
             </Link>

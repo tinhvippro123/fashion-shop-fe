@@ -13,6 +13,7 @@ import {
   Star,
   PackageOpen,
   Palette,
+  ImageIcon,
   ExternalLink,
 } from "lucide-react";
 import Image from "next/image";
@@ -30,11 +31,12 @@ const navGroups = [
     ],
   },
   {
-    title: "Khuyến mãi & Thuộc tính",
+    title: "Khuyến mãi & Nội dung",
     items: [
       { name: "Mã giảm giá", href: "/admin/vouchers", icon: Gift },
       { name: "Danh mục", href: "/admin/categories", icon: Tag },
       { name: "Màu & Kích cỡ", href: "/admin/attributes", icon: Palette },
+      { name: "Banner & Trang chủ", href: "/admin/banners", icon: ImageIcon },
     ],
   },
 ];

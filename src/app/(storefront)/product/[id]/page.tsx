@@ -58,19 +58,19 @@ export default function ProductDetailPage({
   return (
     <div className="w-full">
       <div className="container-luxe px-[15px] min-[1200px]:px-[85px] mx-auto">
-        <div className="text-[14px] font-bold uppercase border-b border-[#e1e1e1] pt-[20px] pb-[21px] mb-[40px]">
+        <div className="text-[13px] font-normal text-[#6c757d] border-b border-[#f0f0f0] pt-[16px] pb-[16px] mb-[30px] flex flex-wrap items-center">
           <Link
             href="/"
-            className="text-[#333] hover:text-[#000] transition-colors"
+            className="text-[#6c757d] hover:text-[#000] transition-colors"
           >
             Trang chủ
           </Link>
           {product.category?.parent && (
             <>
-              <span className="mx-[8px]">-</span>
+              <span className="mx-[8px] text-[#999]">-</span>
               <Link
                 href={`/danh-muc/${product.category.parent.slug}`}
-                className="text-[#333] hover:text-[#000] transition-colors"
+                className="text-[#6c757d] hover:text-[#000] transition-colors uppercase"
               >
                 {product.category.parent.name}
               </Link>
@@ -78,17 +78,17 @@ export default function ProductDetailPage({
           )}
           {product.category && (
             <>
-              <span className="mx-[8px]">-</span>
+              <span className="mx-[8px] text-[#999]">-</span>
               <Link
                 href={`/danh-muc/${product.category.slug}`}
-                className="text-[#333] hover:text-[#000] transition-colors"
+                className="text-[#6c757d] hover:text-[#000] transition-colors uppercase"
               >
                 {product.category.name}
               </Link>
             </>
           )}
-          <span className="mx-[8px]">-</span>
-          <span className="truncate max-w-[200px] sm:max-w-[400px] inline-block align-bottom">
+          <span className="mx-[8px] text-[#999]">-</span>
+          <span className="text-[#333] uppercase truncate max-w-[200px] sm:max-w-[400px] inline-block align-bottom">
             {product.name}
           </span>
         </div>

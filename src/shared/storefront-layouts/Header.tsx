@@ -314,6 +314,14 @@ export default function Header() {
                 </div>
               </div>
 
+              {/* SALE Item */}
+              <Link
+                href="/danh-muc/sale"
+                className="text-[12px] font-bold text-[#e10600] hover:text-[#b5121b] py-[10px] mr-[16px] uppercase tracking-[0.5px] transition-colors whitespace-nowrap flex items-center"
+              >
+                SALE
+              </Link>
+
               <Link
                 href="/order/tracking"
                 className="text-[12px] font-semibold text-[#333] hover:text-[#000] py-[10px] mr-[16px] uppercase tracking-[0.5px] transition-colors whitespace-nowrap"
@@ -625,6 +633,17 @@ export default function Header() {
                   ))}
                 </div>
               </div>
+            </li>
+
+            <li className="border-b border-[#f0f0f0] pb-3 mb-3">
+              <Link
+                href="/danh-muc/sale"
+                onClick={toggleMobileMenu}
+                className="text-[#e10600] font-bold block w-full text-[14px] no-underline uppercase flex items-center justify-between"
+              >
+                <span>SẢN PHẨM SALE</span>
+                <span className="text-[11px] bg-[#e10600] text-white px-2 py-0.5 rounded-full font-semibold">HOT</span>
+              </Link>
             </li>
 
             <li>

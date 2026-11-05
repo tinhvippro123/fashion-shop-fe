@@ -1,26 +1,55 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, Navigation } from "swiper/modules";
 import Link from "next/link";
+import { apiFetch } from "@/shared/lib/api";
 
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
 
+interface HeroBanner {
+  id: number;
+  imageUrl: string;
+  targetUrl?: string | null;
+  title?: string;
+}
+
+const DEFAULT_HERO_BANNERS: HeroBanner[] = [
+  {
+    id: 1,
+    imageUrl: "/client/img/banner-1.jpg",
+    targetUrl: "/danh-muc/nu",
+    title: "Bộ sưu tập Thời trang Nữ",
+  },
+  {
+    id: 2,
+    imageUrl: "/client/img/banner-2.jpg",
+    targetUrl: "/danh-muc/nam",
+    title: "Bộ sưu tập Thời trang Nam",
+  },
+];
+
 export default function HomeSlider() {
-  const banners = [
-    {
-      id: 1,
-      image: "/client/img/banner-1.jpg",
-      url: "/danh-muc/hang-nu-moi-ve",
-    },
-    {
-      id: 2,
-      image: "/client/img/banner-2.jpg",
-      url: "/danh-muc/hang-nam-moi-ve",
-    },
-  ];
+  const [banners, setBanners] = useState<HeroBanner[]>(DEFAULT_HERO_BANNERS);
+
+  useEffect(() => {
+    let active = true;
+    apiFetch<HeroBanner[]>("/banners?position=HERO")
+      .then((data) => {
+        if (active && Array.isArray(data) && data.length > 0) {
+          setBanners(data);
+        }
+      })
+      .catch(() => {
+        // keep default fallback banners
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="w-full min-[1200px]:px-[85px] px-[15px] mx-auto mb-[3rem]">
@@ -29,7 +58,7 @@ export default function HomeSlider() {
           spaceBetween={0}
           centeredSlides={true}
           autoplay={{
-            delay: 3000,
+            delay: 3500,
             disableOnInteraction: false,
           }}
           pagination={{
@@ -44,11 +73,14 @@ export default function HomeSlider() {
         >
           {banners.map((banner) => (
             <SwiperSlide key={banner.id}>
-              <Link href={banner.url} className="block w-full h-full">
+              <Link
+                href={banner.targetUrl || "/"}
+                className="block w-full h-full"
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={banner.image}
-                  alt={`Banner ${banner.id}`}
+                  src={banner.imageUrl}
+                  alt={banner.title || `Banner ${banner.id}`}
                   className="block w-full h-full object-cover object-center"
                 />
               </Link>
@@ -81,4 +113,3 @@ export default function HomeSlider() {
     </div>
   );
 }
-

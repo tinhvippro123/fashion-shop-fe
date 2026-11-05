@@ -49,15 +49,15 @@ export default function StaticPage({
   return (
     <div className="container-luxe px-[15px] min-[1200px]:px-[85px] mx-auto mt-[30px] mb-[50px] font-['Montserrat',sans-serif]">
       {/* Breadcrumb */}
-      <div className="mb-[30px] text-[14px] font-medium flex items-center gap-[8px]">
+      <div className="text-[13px] font-normal text-[#6c757d] border-b border-[#f0f0f0] pt-[16px] pb-[16px] mb-[25px] flex items-center">
         <Link
           href="/"
-          className="text-[#666] hover:text-[#222] transition-colors"
+          className="text-[#6c757d] hover:text-[#000] transition-colors"
         >
           Trang chủ
         </Link>
-        <span className="text-[#999]">-</span>
-        <span className="text-[#333]">{currentPage.title}</span>
+        <span className="mx-[8px] text-[#999]">-</span>
+        <span className="text-[#333] uppercase">{currentPage.title}</span>
       </div>
 
       <div className="flex flex-col md:flex-row gap-[30px]">
