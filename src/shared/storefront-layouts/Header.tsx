@@ -639,7 +639,7 @@ export default function Header() {
               <Link
                 href="/danh-muc/sale"
                 onClick={toggleMobileMenu}
-                className="text-[#e10600] font-bold block w-full text-[14px] no-underline uppercase flex items-center justify-between"
+                className="text-[#e10600] font-bold w-full text-[14px] no-underline uppercase flex items-center justify-between"
               >
                 <span>SẢN PHẨM SALE</span>
                 <span className="text-[11px] bg-[#e10600] text-white px-2 py-0.5 rounded-full font-semibold">HOT</span>
