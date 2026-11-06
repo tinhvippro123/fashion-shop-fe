@@ -100,7 +100,6 @@ export function LoginForm() {
                   name="email"
                   type="email"
                   placeholder="admin@luxe.vn"
-                  defaultValue="admin@luxe.vn"
                   required
                   className="h-11"
                   disabled={isLoading}
@@ -125,7 +124,7 @@ export function LoginForm() {
                   id="password"
                   name="password"
                   type="password"
-                  defaultValue="admin123"
+                  placeholder="••••••••"
                   required
                   className="h-11"
                   disabled={isLoading}
