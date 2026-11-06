@@ -28,6 +28,8 @@ export interface CartState {
   toggleMiniCart: (isOpen?: boolean) => void;
   showSuccessModal: () => void;
   clearCart: () => void;
+  syncWithServer: () => Promise<void>;
+  fetchServerCart: () => Promise<void>;
   isSuccessModalOpen?: boolean;
 }
 

@@ -140,7 +140,7 @@ function VnPayReturnContent() {
                 </h1>
                 <p className="text-[15px] text-[#6c6d70] leading-[1.6]">
                   Giao dịch của bạn đã được xác nhận thành công qua{" "}
-                  <strong>Cổng thanh toán VNPay Sandbox</strong>.
+                  <strong>Cổng thanh toán điện tử VNPay</strong>.
                   <br />
                   Đơn hàng đã được thanh toán và chuyển sang bộ phận kho để chuẩn bị sản phẩm.
                 </p>

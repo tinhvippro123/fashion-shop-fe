@@ -180,10 +180,10 @@ export default function VnPayInAppModal({
             </div>
           </div>
 
-          {/* Sandbox hint */}
-          <div className="bg-amber-50 border border-amber-200 rounded-[6px] px-2.5 py-1.5 text-[11px] text-amber-800 flex items-center gap-1.5">
-            <span className="font-bold text-amber-900">ℹ</span>
-            <span>Môi trường Sandbox (0đ) • Bấm xác nhận để thanh toán ngay</span>
+          {/* Payment hint */}
+          <div className="bg-sky-50 border border-sky-200 rounded-[6px] px-2.5 py-1.5 text-[11px] text-sky-800 flex items-center gap-1.5">
+            <span className="font-bold text-sky-900">ℹ</span>
+            <span>Hệ thống thanh toán bảo mật • Bấm xác nhận để hoàn tất đơn hàng</span>
           </div>
 
           {/* Submit Button */}

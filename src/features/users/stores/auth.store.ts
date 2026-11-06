@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { apiFetch } from "@/shared/lib/api";
+import { useCartStore } from "@/features/cart-and-order/stores/cart.store";
 
 export interface User {
   id: string;
@@ -69,6 +70,7 @@ export const useAuthStore = create<AuthState>()(
           token: res.token,
           user: normalizedUser,
         });
+        useCartStore.getState().syncWithServer().catch(() => {});
         return normalizedUser;
       },
 
@@ -87,6 +89,7 @@ export const useAuthStore = create<AuthState>()(
           token: res.token,
           user: normalizedUser,
         });
+        useCartStore.getState().syncWithServer().catch(() => {});
         return normalizedUser;
       },
 
@@ -105,6 +108,7 @@ export const useAuthStore = create<AuthState>()(
           token: res.token,
           user: normalizedUser,
         });
+        useCartStore.getState().syncWithServer().catch(() => {});
         return normalizedUser;
       },
 
