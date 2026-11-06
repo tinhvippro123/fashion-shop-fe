@@ -12,6 +12,7 @@ export default function LoginPage() {
   const login = useAuthStore((state) => state.login);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -62,14 +63,25 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="mb-[14px] flex justify-center">
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full max-w-[390px] h-[48px] px-[15px] border border-[#e7e8e9] rounded-[4px] text-[14px] outline-none focus:border-[#222] transition-colors placeholder-[#a3a3a3] font-['Montserrat',sans-serif]"
-                    placeholder="Mật khẩu"
-                    required
-                  />
+                  <div className="relative w-full max-w-[390px]">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="w-full h-[48px] pl-[15px] pr-[42px] border border-[#e7e8e9] rounded-[4px] text-[14px] outline-none focus:border-[#222] transition-colors placeholder-[#a3a3a3] font-['Montserrat',sans-serif]"
+                      placeholder="Mật khẩu"
+                      required
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      tabIndex={-1}
+                      className="absolute right-[12px] top-1/2 -translate-y-1/2 text-[#888] hover:text-[#222] bg-transparent border-none cursor-pointer p-1"
+                      aria-label={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"}
+                    >
+                      <i className={`fa-regular ${showPassword ? "fa-eye-slash" : "fa-eye"}`}></i>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="w-full max-w-[390px] mx-auto flex justify-end mb-[20px]">
