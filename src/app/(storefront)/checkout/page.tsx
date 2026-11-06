@@ -749,7 +749,7 @@ export default function CheckoutPage() {
                     </label>
                   </div>
 
-                  <div className="flex items-start">
+                  <div className="mb-[22px] flex items-start">
                     <div className="relative w-[18px] h-[18px] mr-[12px] flex-shrink-0 mt-[2px]">
                       <input
                         type="radio"
