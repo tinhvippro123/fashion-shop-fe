@@ -66,7 +66,7 @@ function ProductTableActions({
       <DropdownMenuItem
         render={
           <a
-            href={`/product/${product.id}`}
+            href={`/product/${product.slug || product.id}`}
             target="_blank"
             rel="noreferrer"
             className="w-full h-full cursor-pointer flex items-center"

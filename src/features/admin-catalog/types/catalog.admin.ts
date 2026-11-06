@@ -62,6 +62,7 @@ export interface AdminProduct {
   id: string;
   numericId: number;
   name: string;
+  slug?: string;
   sku: string;
   brand: string;
   category: string;

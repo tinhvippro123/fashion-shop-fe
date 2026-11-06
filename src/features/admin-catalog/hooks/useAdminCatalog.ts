@@ -13,6 +13,7 @@ function mapRawToAdminProduct(p: RawProductResponseDto): AdminProduct {
     id: String(p.id),
     numericId: p.id,
     name: p.name,
+    slug: p.slug,
     sku: p.sku || `SP-${p.id}`,
     brand: p.brand || "LUXE",
     category: p.category?.name || "Chưa phân loại",

@@ -81,7 +81,7 @@ export default function CartDetail() {
 
                   <div className="pr-[30px] xl:pr-0">
                     <Link
-                      href={`/product/${item.product.id}`}
+                      href={`/product/${(item.product as any).slug || item.product.id}`}
                       className="block font-normal text-[#373737] text-[14px] xl:text-[16px] leading-[22px] xl:leading-[24px] hover:text-[#000] mb-[5px]"
                     >
                       {item.product.name}

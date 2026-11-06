@@ -29,6 +29,7 @@ interface ProductColor {
 export interface Product {
   id: number;
   name: string;
+  slug?: string;
   basePrice: number;
   isNew?: boolean;
   isBestSeller?: boolean;
@@ -151,7 +152,7 @@ export default function ProductCard({
 
       {/* Image container: Scoped hover so only hovering the image swaps it */}
       <div className="group relative overflow-hidden aspect-[2/3] bg-[#f8f9fa]">
-        <Link href={`/product/${product.id}`} className="block w-full h-full">
+        <Link href={`/product/${product.slug || product.id}`} className="block w-full h-full">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={mainImage}
@@ -205,7 +206,7 @@ export default function ProductCard({
 
         <div className="mb-[5px]">
           <Link
-            href={`/product/${product.id}`}
+            href={`/product/${product.slug || product.id}`}
             className="text-[#333] text-[14px] font-normal no-underline uppercase block hover:text-[#000] whitespace-nowrap overflow-hidden text-ellipsis"
           >
             {product.name}
