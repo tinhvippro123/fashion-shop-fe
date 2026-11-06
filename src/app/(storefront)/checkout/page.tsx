@@ -91,9 +91,9 @@ export default function CheckoutPage() {
   const [modalStreet, setModalStreet] = useState("");
   const [modalDefault, setModalDefault] = useState(false);
 
-  // Payment Method (COD, BANK_TRANSFER, VNPAY)
+  // Payment Method (COD, VNPAY)
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-    "COD" | "BANK_TRANSFER" | "VNPAY"
+    "COD" | "VNPAY"
   >("COD");
 
   const fetchUserAddresses = useCallback(async () => {
@@ -723,7 +723,7 @@ export default function CheckoutPage() {
                 </h5>
 
                 <div className="bg-white border border-[#eaeaea] rounded-tl-[30px] rounded-br-[30px] p-[30px]">
-                  <div className="mb-[22px] flex items-start">
+                  <div className="mb-[24px] flex items-start">
                     <div className="relative w-[18px] h-[18px] mr-[12px] flex-shrink-0 mt-[2px]">
                       <input
                         type="radio"
@@ -746,53 +746,6 @@ export default function CheckoutPage() {
                         Quý khách kiểm tra và thanh toán tiền mặt trực tiếp cho
                         nhân viên giao hàng.
                       </span>
-                    </label>
-                  </div>
-
-                  <div className="mb-[22px] flex items-start">
-                    <div className="relative w-[18px] h-[18px] mr-[12px] flex-shrink-0 mt-[2px]">
-                      <input
-                        type="radio"
-                        id="pay-bank"
-                        name="paymentMethod"
-                        value="BANK_TRANSFER"
-                        checked={selectedPaymentMethod === "BANK_TRANSFER"}
-                        onChange={() =>
-                          setSelectedPaymentMethod("BANK_TRANSFER")
-                        }
-                        className="peer appearance-none w-full h-full border border-[#ccc] rounded-full checked:bg-[#222] checked:border-[5px] cursor-pointer transition-all m-0"
-                      />
-                    </div>
-                    <label
-                      htmlFor="pay-bank"
-                      className="cursor-pointer text-[#333] text-[15px] flex flex-col items-start w-full"
-                    >
-                      <span className="font-medium">
-                        Chuyển khoản ngân hàng
-                      </span>
-                      <span className="text-[13px] text-[#888] mt-1">
-                        Chuyển khoản theo thông tin tài khoản cửa hàng sau khi
-                        tạo đơn.
-                      </span>
-
-                      {selectedPaymentMethod === "BANK_TRANSFER" && (
-                        <div className="mt-3 w-full bg-[#f8f9fa] border border-[#e1e1e1] rounded-[6px] p-[16px] text-[13.5px] text-[#333] space-y-1">
-                          <div>
-                            Ngân hàng: <strong>Vietcombank (VCB)</strong>
-                          </div>
-                          <div>
-                            Số tài khoản: <strong>0123 456 789</strong>
-                          </div>
-                          <div>
-                            Chủ tài khoản:{" "}
-                            <strong>CONG TY THOI TRANG LUXE</strong>
-                          </div>
-                          <div className="text-[#6c6d70]">
-                            Nội dung chuyển khoản:{" "}
-                            <strong>Mã đơn hàng + Số điện thoại nhận hàng</strong>
-                          </div>
-                        </div>
-                      )}
                     </label>
                   </div>
 
@@ -821,7 +774,7 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                       <span className="text-[13px] text-[#888] mt-1">
-                        Hỗ trợ thẻ ATM nội địa (NCB), Mobile Banking, Quét mã VNPAY-QR, Thẻ quốc tế.
+                        Thanh toán trực tuyến bảo mật: Quét mã VNPAY-QR, Thẻ ATM nội địa (NCB), Thẻ quốc tế Visa/MasterCard.
                       </span>
 
                       {selectedPaymentMethod === "VNPAY" && (
@@ -831,7 +784,7 @@ export default function CheckoutPage() {
                             Cổng thanh toán VNPay Sandbox
                           </div>
                           <div>
-                            Sau khi bấm &quot;HOÀN THÀNH&quot;, hệ thống sẽ chuyển hướng sang cổng VNPay. Bạn có thể sử dụng thẻ test <strong>NCB</strong> (OTP: <code>123456</code>) để hoàn tất thanh toán.
+                            Sau khi bấm &quot;HOÀN THÀNH ĐẶT HÀNG&quot;, hệ thống sẽ mở cổng VNPay. Bạn có thể quét mã VNPAY-QR qua App ngân hàng hoặc sử dụng thẻ test <strong>NCB</strong> (OTP: <code>123456</code>) để hoàn tất thanh toán tự động.
                           </div>
                         </div>
                       )}
