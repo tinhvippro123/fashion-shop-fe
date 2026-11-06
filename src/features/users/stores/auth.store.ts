@@ -37,6 +37,7 @@ interface AuthState {
   user: User | null;
   wishlistIds: number[];
   login: (email: string, password: string) => Promise<User>;
+  loginWithGoogle: (credential: string) => Promise<User>;
   register: (payload: RegisterPayload) => Promise<User>;
   refreshProfile: () => Promise<User | null>;
   syncWishlist: () => Promise<void>;
@@ -61,6 +62,24 @@ export const useAuthStore = create<AuthState>()(
         const normalizedUser: User = {
           ...res.user,
           name: res.user.name || res.user.fullName || email.split("@")[0],
+          isAdmin: Boolean(res.user.isAdmin || res.user.role === "ADMIN"),
+        };
+        set({
+          isAuthenticated: true,
+          token: res.token,
+          user: normalizedUser,
+        });
+        return normalizedUser;
+      },
+
+      loginWithGoogle: async (credential: string) => {
+        const res = await apiFetch<AuthResponsePayload>("/auth/google", {
+          method: "POST",
+          body: JSON.stringify({ credential }),
+        });
+        const normalizedUser: User = {
+          ...res.user,
+          name: res.user.name || res.user.fullName || res.user.email.split("@")[0],
           isAdmin: Boolean(res.user.isAdmin || res.user.role === "ADMIN"),
         };
         set({

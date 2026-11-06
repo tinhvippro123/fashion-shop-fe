@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useAuthStore } from "@/features/users/stores/auth.store";
+import { GoogleSignInButton } from "@/features/auth";
 import { apiFetch } from "@/shared/lib/api";
 import {
   loadVnProvinces,
@@ -452,10 +453,18 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-[#222] text-white py-[15px] font-semibold text-[15px] uppercase border border-[#222] rounded-tl-[24px] rounded-br-[24px] hover:bg-white hover:text-[#222] transition-colors text-center font-['Montserrat',sans-serif] disabled:opacity-60"
+                className="w-full bg-[#222] text-white py-[15px] font-semibold text-[15px] uppercase border border-[#222] rounded-tl-[24px] rounded-br-[24px] hover:bg-white hover:text-[#222] transition-colors text-center font-['Montserrat',sans-serif] disabled:opacity-60 cursor-pointer"
               >
                 {loading ? "ĐANG ĐĂNG KÝ..." : "ĐĂNG KÝ"}
               </button>
+
+              <div className="w-full my-[22px] flex items-center gap-3">
+                <div className="flex-1 h-[1px] bg-[#e1e1e1]"></div>
+                <span className="text-[11px] uppercase text-[#888] font-semibold tracking-[1px]">HOẶC</span>
+                <div className="flex-1 h-[1px] bg-[#e1e1e1]"></div>
+              </div>
+
+              <GoogleSignInButton mode="register" />
             </div>
           </div>
         </form>

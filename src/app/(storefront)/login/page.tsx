@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useAuthStore } from "@/features/users/stores/auth.store";
+import { GoogleSignInButton } from "@/features/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -60,7 +61,7 @@ export default function LoginPage() {
                     required
                   />
                 </div>
-                <div className="mb-[20px] flex justify-center">
+                <div className="mb-[14px] flex justify-center">
                   <input
                     type="password"
                     value={password}
@@ -71,15 +72,32 @@ export default function LoginPage() {
                   />
                 </div>
 
-                <div className="flex justify-center mt-[30px]">
+                <div className="w-full max-w-[390px] mx-auto flex justify-end mb-[20px]">
+                  <Link
+                    href="/forgot-password"
+                    className="text-[13px] text-[#6c6d70] hover:text-[#000] hover:underline transition-colors font-['Montserrat',sans-serif]"
+                  >
+                    Quên mật khẩu?
+                  </Link>
+                </div>
+
+                <div className="flex justify-center mt-[10px]">
                   <button
                     type="submit"
                     disabled={loading}
-                    className="block w-full max-w-[390px] bg-[#222] text-white py-[15px] font-semibold text-[15px] uppercase border border-[#222] rounded-tl-[24px] rounded-br-[24px] hover:bg-white hover:text-[#222] transition-colors text-center disabled:opacity-60"
+                    className="block w-full max-w-[390px] bg-[#222] text-white py-[15px] font-semibold text-[15px] uppercase border border-[#222] rounded-tl-[24px] rounded-br-[24px] hover:bg-white hover:text-[#222] transition-colors text-center disabled:opacity-60 cursor-pointer"
                   >
                     {loading ? "ĐANG ĐĂNG NHẬP..." : "ĐĂNG NHẬP"}
                   </button>
                 </div>
+
+                <div className="w-full max-w-[390px] mx-auto my-[22px] flex items-center gap-3">
+                  <div className="flex-1 h-[1px] bg-[#e1e1e1]"></div>
+                  <span className="text-[11px] uppercase text-[#888] font-semibold tracking-[1px]">HOẶC</span>
+                  <div className="flex-1 h-[1px] bg-[#e1e1e1]"></div>
+                </div>
+
+                <GoogleSignInButton mode="login" />
               </form>
             </div>
           </div>
