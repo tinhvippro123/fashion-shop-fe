@@ -112,7 +112,7 @@ export default function VnPayInAppModal({
                 NCB
               </div>
               <span className="font-semibold text-[12.5px] text-[#222]">
-                Thẻ ATM NCB (Mô phỏng Sandbox)
+                Thẻ ATM Quốc dân (NCB)
               </span>
             </div>
             <span className="text-[10px] bg-green-100 text-green-800 font-bold px-1.5 py-0.5 rounded uppercase">

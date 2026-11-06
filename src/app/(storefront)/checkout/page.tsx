@@ -769,9 +769,6 @@ export default function CheckoutPage() {
                         <span className="font-medium">
                           Cổng thanh toán điện tử VNPay
                         </span>
-                        <span className="text-[10px] font-bold bg-[#005baa] text-white px-2 py-0.5 rounded">
-                          SANDBOX
-                        </span>
                       </div>
                       <span className="text-[13px] text-[#888] mt-1">
                         Thanh toán trực tuyến bảo mật: Quét mã VNPAY-QR, Thẻ ATM nội địa (NCB), Thẻ quốc tế Visa/MasterCard.
@@ -781,10 +778,10 @@ export default function CheckoutPage() {
                         <div className="mt-3 w-full bg-[#f0f7ff] border border-[#b9d9eb] rounded-[6px] p-[14px] text-[13px] text-[#004085]">
                           <div className="font-semibold mb-1 flex items-center gap-1.5">
                             <i className="fas fa-shield-alt text-[#005baa]"></i>
-                            Cổng thanh toán VNPay Sandbox
+                            Cổng thanh toán điện tử VNPay
                           </div>
                           <div>
-                            Sau khi bấm &quot;HOÀN THÀNH ĐẶT HÀNG&quot;, hệ thống sẽ mở cổng VNPay. Bạn có thể quét mã VNPAY-QR qua App ngân hàng hoặc sử dụng thẻ test <strong>NCB</strong> (OTP: <code>123456</code>) để hoàn tất thanh toán tự động.
+                            Sau khi bấm &quot;HOÀN THÀNH ĐẶT HÀNG&quot;, hệ thống sẽ chuyển sang cổng bảo mật VNPay để bạn quét mã VNPAY-QR bằng App ngân hàng hoặc thanh toán qua thẻ ATM / Visa / MasterCard.
                           </div>
                         </div>
                       )}
