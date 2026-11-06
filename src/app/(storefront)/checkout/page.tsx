@@ -37,7 +37,7 @@ const emptySubscribe = () => () => { };
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, totalPrice, clearCart } = useCartStore();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, setUser } = useAuthStore();
   const isMounted = useSyncExternalStore(
     emptySubscribe,
     () => true,
@@ -137,6 +137,28 @@ export default function CheckoutPage() {
     };
   }, [isAuthenticated]);
 
+  useEffect(() => {
+    if (user) {
+      if (!receiverName && (user.fullName || user.name)) {
+        setReceiverName(user.fullName || user.name || "");
+      }
+      if (!receiverPhone && user.phone) {
+        setReceiverPhone(user.phone);
+      }
+    }
+  }, [user, receiverName, receiverPhone]);
+
+  useEffect(() => {
+    if (showAddAddressModal && user) {
+      if (!modalName && (user.fullName || user.name)) {
+        setModalName(user.fullName || user.name || "");
+      }
+      if (!modalPhone && user.phone) {
+        setModalPhone(user.phone);
+      }
+    }
+  }, [showAddAddressModal, user, modalName, modalPhone]);
+
   const submitFinalOrder = useCallback(async () => {
     if (submitting) return;
     if (items.length === 0) {
@@ -199,6 +221,9 @@ export default function CheckoutPage() {
         }),
       });
       clearCart();
+      if (isAuthenticated && user && !user.phone && finalPhone) {
+        setUser({ ...user, phone: finalPhone });
+      }
       if (selectedPaymentMethod === "VNPAY") {
         setVnPayModalData({
           orderCode: created.orderCode || "",
@@ -328,6 +353,9 @@ export default function CheckoutPage() {
       });
       await fetchUserAddresses();
       setSelectedAddress(created);
+      if (user && !user.phone && modalPhone.trim()) {
+        setUser({ ...user, phone: modalPhone.trim() });
+      }
       setShowAddAddressModal(false);
       setModalName("");
       setModalPhone("");
