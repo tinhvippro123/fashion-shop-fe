@@ -240,9 +240,9 @@ function OrderTrackingContent() {
                           <p>SKU: ({item.sku})</p>
                         </div>
                       </div>
-                      {item.productId && (
+                      {(item.productSlug || item.productId) && (
                         <Link
-                          href={`/product/${item.productId}`}
+                          href={`/product/${item.productSlug || item.productId}`}
                           className="border border-[#222] text-[#222] bg-white px-[24px] py-[8px] text-[13px] uppercase hover:bg-[#222] hover:text-white transition-colors w-fit mt-2"
                           style={{ borderRadius: "20px 0 20px 0" }}
                         >

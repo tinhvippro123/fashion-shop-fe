@@ -2,6 +2,7 @@ export interface OrderItemDto {
   id: string;
   variantId?: number | null;
   productId?: number | null;
+  productSlug?: string | null;
   name: string;
   image: string;
   variantInfo: string;

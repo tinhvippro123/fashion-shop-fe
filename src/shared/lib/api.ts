@@ -3,8 +3,22 @@ export const API_BASE_URL =
 
 export interface ApiEnvelope<T> {
   success: boolean;
+  code?: string;
+  errorCode?: string;
   message?: string;
   data: T;
+}
+
+export class ApiError extends Error {
+  code?: string;
+  status?: number;
+
+  constructor(message: string, code?: string, status?: number) {
+    super(message);
+    this.name = "ApiError";
+    this.code = code;
+    this.status = status;
+  }
 }
 
 function getAuthToken(): string | null {
@@ -49,7 +63,8 @@ export async function apiRequestWithMeta<T>(
   if (!res.ok || (payload && payload.success === false)) {
     const errorMsg =
       payload?.message || `Yêu cầu thất bại (HTTP ${res.status})`;
-    throw new Error(errorMsg);
+    const errorCode = payload?.code || payload?.errorCode;
+    throw new ApiError(errorMsg, errorCode, res.status);
   }
 
   return {

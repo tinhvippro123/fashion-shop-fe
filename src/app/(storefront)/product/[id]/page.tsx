@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ProductDetail } from "@/features/catalog/types/product";
 import ProductDetailClient from "@/features/catalog/components/product/ProductDetailClient";
 import { apiFetch } from "@/shared/lib/api";
@@ -11,6 +12,7 @@ export default function ProductDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const router = useRouter();
   const { id } = use(params);
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [loadedId, setLoadedId] = useState<string | null>(null);
@@ -20,7 +22,12 @@ export default function ProductDetailPage({
     let active = true;
     apiFetch<ProductDetail>(`/catalog/products/${id}`)
       .then((res) => {
-        if (active) setProduct(res);
+        if (active) {
+          setProduct(res);
+          if (res?.slug && res.slug !== id) {
+            router.replace(`/product/${res.slug}`);
+          }
+        }
       })
       .catch(() => {
         if (active) setProduct(null);
@@ -31,7 +38,7 @@ export default function ProductDetailPage({
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, router]);
 
   if (loading) {
     return (

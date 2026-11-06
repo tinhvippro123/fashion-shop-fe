@@ -230,10 +230,10 @@ export default function OrderDetailPage({
                   </div>
                 </div>
 
-                {item.productId && (
+                {(item.productSlug || item.productId) && (
                   <div className="mt-auto">
                     <Link
-                      href={`/product/${item.productId}`}
+                      href={`/product/${item.productSlug || item.productId}`}
                       className="inline-block border border-[#222] text-[#222] text-[12px] md:text-[14px] px-[16px] md:px-[24px] py-[4px] rounded-full hover:bg-[#222] hover:text-white transition-colors uppercase font-medium"
                     >
                       Mua lại
