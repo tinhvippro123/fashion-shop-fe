@@ -406,9 +406,15 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                     </p>
                   </div>
                 </div>
-                <Link href="/admin/customers">
+                <Link
+                  href={
+                    order.customer?.id
+                      ? `/admin/customers/${order.customer.id}`
+                      : "/admin/customers"
+                  }
+                >
                   <Button variant="outline" size="sm">
-                    DS Khách hàng
+                    {order.customer?.id ? "Chi tiết khách hàng" : "DS Khách hàng"}
                   </Button>
                 </Link>
               </div>
@@ -476,7 +482,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                 <div className="absolute top-2 bottom-2 left-2.75 w-0.5 bg-muted z-0"></div>
 
                 <div className="flex gap-4 relative z-10">
-                  <div className="bg-background py-0.5">
+                  <div className="bg-card rounded-full p-0.5">
                     <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                   </div>
                   <div className="pt-1 flex-1">
@@ -491,7 +497,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
 
                 {order.status !== "PENDING" && order.status !== "CANCELLED" && (
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-background py-0.5">
+                    <div className="bg-card rounded-full p-0.5">
                       <Package className="h-6 w-6 text-blue-500" />
                     </div>
                     <div className="pt-1 flex-1">
@@ -506,7 +512,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                 {(order.status === "SHIPPING" ||
                   order.status === "COMPLETED") && (
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-background py-0.5">
+                    <div className="bg-card rounded-full p-0.5">
                       <Truck className="h-6 w-6 text-amber-500" />
                     </div>
                     <div className="pt-1 flex-1">
@@ -522,7 +528,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
 
                 {order.status === "COMPLETED" && (
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-background py-0.5">
+                    <div className="bg-card rounded-full p-0.5">
                       <PackageCheck className="h-6 w-6 text-emerald-600" />
                     </div>
                     <div className="pt-1 flex-1">
@@ -538,7 +544,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
 
                 {order.status === "CANCELLED" && (
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-background py-0.5">
+                    <div className="bg-card rounded-full p-0.5">
                       <AlertTriangle className="h-6 w-6 text-red-500" />
                     </div>
                     <div className="pt-1 flex-1">

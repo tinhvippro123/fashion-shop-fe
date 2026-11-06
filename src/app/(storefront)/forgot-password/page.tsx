@@ -60,10 +60,6 @@ export default function ForgotPasswordPage() {
           : "Hệ thống đã tạo mã OTP khôi phục mật khẩu!"
       );
 
-      if (res.otpCode) {
-        setFallbackOtpHint(res.otpCode);
-      }
-
       setStep(2);
       setOtpCountdown(60);
     } catch (err: unknown) {
@@ -170,12 +166,6 @@ export default function ForgotPasswordPage() {
           </form>
         ) : (
           <form onSubmit={handleResetPassword} className="space-y-[16px]">
-            {fallbackOtpHint && (
-              <div className="p-[12px] bg-[#f0f9ff] border border-[#bae6fd] rounded-[6px] text-[13px] text-[#0369a1] text-center font-mono">
-                Mã OTP thử nghiệm: <strong>{fallbackOtpHint}</strong>
-              </div>
-            )}
-
             <div>
               <div className="flex items-center justify-between mb-[6px]">
                 <label className="text-[13px] font-medium text-[#333] font-['Montserrat',sans-serif]">

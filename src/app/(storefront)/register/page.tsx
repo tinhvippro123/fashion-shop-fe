@@ -75,15 +75,7 @@ export default function RegisterPage() {
         body: JSON.stringify({ email: trimmedEmail }),
       });
       setOtpCountdown(60);
-      if (res.otpCode) {
-        setDemoOtpHint(res.otpCode);
-        toast.success(
-          `Đã gửi mã OTP tới ${res.email}! (Mã OTP xác thực: ${res.otpCode})`,
-          { autoClose: 8000 }
-        );
-      } else {
-        toast.success(`Đã gửi mã OTP tới ${res.email}!`);
-      }
+      toast.success(`Đã gửi mã OTP 6 số tới ${res.email}. Vui lòng kiểm tra hộp thư!`);
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
@@ -410,21 +402,6 @@ export default function RegisterPage() {
                         : "Lấy mã OTP"}
                   </button>
                 </div>
-                {demoOtpHint && (
-                  <p className="mt-[8px] text-[12px] text-[#155724] bg-[#d4edda] px-[12px] py-[6px] rounded-[6px]">
-                    Mã xác thực OTP đã tạo cho <strong>{email}</strong>:{" "}
-                    <strong className="tracking-[2px] text-[14px] underline">
-                      {demoOtpHint}
-                    </strong>{" "}
-                    <button
-                      type="button"
-                      onClick={() => setOtpCode(demoOtpHint)}
-                      className="ml-[8px] text-[#0c5460] font-semibold underline"
-                    >
-                      [Điền nhanh]
-                    </button>
-                  </p>
-                )}
               </div>
 
               <div className="mb-[25px] flex items-center">

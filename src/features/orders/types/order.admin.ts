@@ -54,6 +54,7 @@ export interface Order {
   items: OrderItemAdmin[];
   appliedPromotions?: AppliedPromotion[];
   customer?: {
+    id?: string | number;
     name: string;
     type: string;
     email: string;
