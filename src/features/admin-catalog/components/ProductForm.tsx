@@ -21,7 +21,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/shared/ui/card";
-import { UploadCloud, Plus, Trash2, Save, X, Check, Settings } from "lucide-react";
+import { UploadCloud, Plus, Trash2, Save, X, Check, Settings, Boxes, PackagePlus } from "lucide-react";
 import { BackButton } from "@/shared/ui/back-button";
 import { cn } from "@/shared/utils/utils";
 import { formatPrice } from "@/shared/utils/format";
@@ -391,7 +391,6 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   };
 
   const [batchPrice, setBatchPrice] = useState("");
-  const [batchStock, setBatchStock] = useState("");
 
   const applyBatchPrice = () => {
     const p = Number(batchPrice);
@@ -410,25 +409,6 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       `Đã áp dụng giá ${formatPrice(p)} cho tất cả ${current.length} biến thể!`
     );
     setBatchPrice("");
-  };
-
-  const applyBatchStock = () => {
-    const s = Number(batchStock);
-    if (isNaN(s) || s < 0) {
-      toast.error("Vui lòng nhập số lượng kho hợp lệ");
-      return;
-    }
-    const current = form.getValues("variants") || [];
-    if (current.length === 0) {
-      toast.error("Chưa có biến thể nào để áp dụng");
-      return;
-    }
-    const updated = current.map((v) => ({ ...v, stock: s }));
-    replaceVariants(updated);
-    toast.success(
-      `Đã gán tồn kho ${s} SP cho tất cả ${current.length} biến thể!`
-    );
-    setBatchStock("");
   };
 
   const setDefaultColor = (colorName: string) => {
@@ -969,33 +949,51 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                           (acc, v) => acc + (Number(v.stock) || 0),
                           0
                         );
+                        const displayStock =
+                          variantFields.length > 0
+                            ? totalVarStock
+                            : field.value || 0;
                         return (
                           <FormItem>
                             <FormLabel className="flex items-center justify-between">
-                              <span>
-                                Số lượng kho cơ bản{" "}
-                                <span className="text-red-500">*</span>
+                              <span className="flex items-center gap-1.5 font-semibold">
+                                <Boxes className="h-4 w-4 text-primary" />
+                                Tồn kho hiện tại (Chỉ đọc)
                               </span>
                               {variantFields.length > 0 && (
-                                <span className="text-[11px] font-normal text-muted-foreground">
-                                  Tổng kho biến thể: <b>{totalVarStock} SP</b>
-                                </span>
+                                <Badge
+                                  variant="secondary"
+                                  className="text-[11px] font-mono font-bold"
+                                >
+                                  {totalVarStock} SP
+                                </Badge>
                               )}
                             </FormLabel>
-                            <FormControl>
-                              <Input
-                                type="number"
-                                placeholder="0"
-                                {...field}
-                                onChange={(e) =>
-                                  field.onChange(Number(e.target.value))
-                                }
-                              />
-                            </FormControl>
+                            <div className="flex items-center gap-2">
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  readOnly
+                                  disabled
+                                  value={displayStock}
+                                  className="bg-muted/50 cursor-not-allowed font-bold text-foreground"
+                                />
+                              </FormControl>
+                              {productId && (
+                                <Link
+                                  href={`/admin/stock-imports?productId=${productId}`}
+                                  className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-medium shrink-0 transition-colors shadow-xs"
+                                  title="Mở phiếu nhập kho cho sản phẩm này"
+                                >
+                                  <PackagePlus className="h-4 w-4" />
+                                  Nhập kho
+                                </Link>
+                              )}
+                            </div>
                             <p className="text-[11px] text-muted-foreground">
-                              {variantFields.length > 0
-                                ? "Khi đã tạo biến thể, số lượng tồn kho từng size/màu sẽ được quản lý tại tab Phân loại & Biến thể."
-                                : "Số lượng tồn kho ban đầu khi chưa tạo biến thể."}
+                              💡 Số lượng kho được quản lý tự động qua chứng từ{" "}
+                              <strong className="text-foreground">Nhập kho</strong>{" "}
+                              để đảm bảo lưu vết xuất xứ và tính giá vốn bình quân kế toán.
                             </p>
                             <FormMessage />
                           </FormItem>
@@ -1672,54 +1670,52 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        <div className="flex flex-wrap items-center gap-2.5 p-2.5 bg-muted/40 rounded-lg border text-xs">
-                          <span className="font-semibold text-muted-foreground">
-                            Thiết lập hàng loạt:
-                          </span>
-                          <div className="flex items-center gap-1.5">
-                            <Input
-                              type="number"
-                              placeholder="Giá chung..."
-                              className="h-8 w-28 text-xs bg-card"
-                              value={batchPrice}
-                              onChange={(e) => setBatchPrice(e.target.value)}
-                            />
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              className="h-8 text-xs px-2.5"
-                              onClick={applyBatchPrice}
-                            >
-                              Áp dụng giá
-                            </Button>
+                        <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 bg-muted/40 rounded-lg border text-xs">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-muted-foreground">
+                              Thiết lập hàng loạt:
+                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <Input
+                                type="number"
+                                placeholder="Giá chung..."
+                                className="h-8 w-28 text-xs bg-card"
+                                value={batchPrice}
+                                onChange={(e) => setBatchPrice(e.target.value)}
+                              />
+                              <Button
+                                type="button"
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 text-xs px-2.5"
+                                onClick={applyBatchPrice}
+                              >
+                                Áp dụng giá
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-1.5">
-                            <Input
-                              type="number"
-                              placeholder="Tồn kho..."
-                              className="h-8 w-28 text-xs bg-card"
-                              value={batchStock}
-                              onChange={(e) => setBatchStock(e.target.value)}
-                              title="Nhập số lượng tồn kho áp dụng cho tất cả các biến thể"
-                            />
-                            <Button
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              className="h-8 text-xs px-2.5"
-                              onClick={applyBatchStock}
+
+                          {productId ? (
+                            <Link
+                              href={`/admin/stock-imports?productId=${productId}`}
+                              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 font-medium border border-primary/20 transition-colors shadow-2xs"
+                              title="Tạo phiếu nhập kho cho tất cả biến thể của sản phẩm này"
                             >
-                              Áp dụng kho
-                            </Button>
-                          </div>
+                              <PackagePlus className="h-3.5 w-3.5" />
+                              Nhập kho các biến thể
+                            </Link>
+                          ) : (
+                            <span className="text-[11px] text-muted-foreground italic">
+                              💡 Tồn kho khởi tạo = 0. Sau khi tạo sản phẩm, vui lòng tạo Phiếu nhập kho.
+                            </span>
+                          )}
                         </div>
 
                         <div className="border rounded-md divide-y overflow-hidden">
                           <div className="bg-muted/50 p-4 hidden sm:flex items-center gap-4 text-sm font-semibold">
                             <div className="flex-1">Phân loại</div>
                             <div className="w-28">Giá bán</div>
-                            <div className="w-20">Kho</div>
+                            <div className="w-20 text-center">Tồn kho</div>
                             <div className="w-32">SKU</div>
                             <div className="w-9"></div>
                           </div>
@@ -1753,7 +1749,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   </span>
                                 </p>
                               </div>
-                            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                            <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
                               <FormField
                                 control={form.control}
                                 name={`variants.${i}.price`}
@@ -1768,20 +1764,14 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   />
                                 )}
                               />
-                              <FormField
-                                control={form.control}
-                                name={`variants.${i}.stock`}
-                                render={({ field }) => (
-                                  <Input
-                                    type="number"
-                                    className="w-full sm:w-20 text-sm h-9"
-                                    {...field}
-                                    onChange={(e) =>
-                                      field.onChange(Number(e.target.value))
-                                    }
-                                  />
-                                )}
-                              />
+                              <div className="w-full sm:w-20 flex items-center justify-center">
+                                <span
+                                  className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-muted/80 text-foreground border min-w-[50px] text-center"
+                                  title="Tồn kho hiện tại (Quản lý tự động qua chứng từ Nhập kho)"
+                                >
+                                  {watchedVariants?.[i]?.stock ?? v.stock ?? 0}
+                                </span>
+                              </div>
                               <FormField
                                 control={form.control}
                                 name={`variants.${i}.sku`}
