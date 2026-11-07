@@ -257,7 +257,6 @@ export default function CheckoutPage() {
           })),
         }),
       });
-      clearCart();
       if (isAuthenticated && user && !user.phone && finalPhone) {
         setUser({ ...user, phone: finalPhone });
       }
@@ -271,6 +270,7 @@ export default function CheckoutPage() {
         setSubmitting(false);
         return;
       }
+      clearCart();
       toast.success("Đặt hàng thành công!");
       router.push(
         `/order-success?code=${encodeURIComponent(created.orderCode || "")}`
@@ -1330,19 +1330,25 @@ export default function CheckoutPage() {
           totalAmount={vnPayModalData.totalAmount}
           paymentUrl={vnPayModalData.paymentUrl}
           onSuccess={() => {
+            clearCart();
             setShowVnPayModal(false);
             router.push(
               `/order-success?code=${encodeURIComponent(vnPayModalData.orderCode)}`
             );
           }}
           onClose={() => {
+            const pendingCode = vnPayModalData.orderCode;
             setShowVnPayModal(false);
-            toast.warning(
-              `Đơn hàng #${vnPayModalData.orderCode} đã được tạo ở trạng thái "Chờ thanh toán VNPay".`
-            );
-            router.push(
-              `/order-success?code=${encodeURIComponent(vnPayModalData.orderCode)}&payment=unpaid`
-            );
+            setVnPayModalData(null);
+            if (pendingCode) {
+              apiFetch(`/orders/${encodeURIComponent(pendingCode)}/cancel-unpaid`, {
+                method: "PUT",
+                body: JSON.stringify({
+                  reason: "Khách hàng hủy thanh toán để thay đổi thông tin",
+                }),
+              }).catch(() => null);
+            }
+            toast.info("Đã đóng cổng thanh toán VNPay. Bạn có thể thay đổi phương thức hoặc cập nhật thông tin đơn hàng!");
           }}
         />
       )}

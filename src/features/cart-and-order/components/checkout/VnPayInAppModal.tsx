@@ -29,16 +29,6 @@ export default function VnPayInAppModal({
 
   if (!isOpen) return null;
 
-  const handleRequestClose = () => {
-    if (processing) return;
-    const confirmed = window.confirm(
-      "Đơn hàng của bạn chưa hoàn tất thanh toán qua VNPay.\nBạn có chắc chắn muốn đóng hộp thoại và thanh toán sau không?"
-    );
-    if (confirmed) {
-      onClose();
-    }
-  };
-
   const handleConfirmPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (processing) return;
@@ -70,8 +60,16 @@ export default function VnPayInAppModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
-      <div className="relative w-full max-w-[440px] bg-white rounded-[14px] shadow-2xl overflow-hidden border border-[#e5e7eb]">
+    <div
+      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in"
+      onClick={() => {
+        if (!processing) onClose();
+      }}
+    >
+      <div
+        className="relative w-full max-w-[440px] bg-white rounded-[14px] shadow-2xl overflow-hidden border border-[#e5e7eb]"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="bg-[#005baa] px-5 py-3 text-white flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -90,10 +88,10 @@ export default function VnPayInAppModal({
 
           <button
             type="button"
-            onClick={handleRequestClose}
+            onClick={onClose}
             disabled={processing}
             className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm cursor-pointer"
-            title="Đóng hộp thoại"
+            title="Đóng (quay lại)"
           >
             ✕
           </button>
@@ -216,11 +214,11 @@ export default function VnPayInAppModal({
           <div className="pt-1 text-center">
             <button
               type="button"
-              onClick={handleRequestClose}
+              onClick={onClose}
               disabled={processing}
-              className="text-[12px] text-[#dc3545] hover:text-[#a71d2a] font-medium underline transition-colors cursor-pointer"
+              className="text-[12px] text-[#6c757d] hover:text-[#222] font-medium underline transition-colors cursor-pointer"
             >
-              Hủy thanh toán &amp; Để sau
+              Quay lại thay đổi thông tin
             </button>
           </div>
         </form>
