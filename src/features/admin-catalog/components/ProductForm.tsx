@@ -1326,17 +1326,17 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                     return null;
 
                                   return (
-                                    <div className="space-y-1 mt-2">
+                                    <div className="space-y-1.5 mt-2">
                                       <div className="text-[11px] text-muted-foreground font-medium">
                                         Gợi ý sẵn có ({availableSuggestions.length}):
                                       </div>
-                                      <div className="flex gap-1.5 flex-wrap max-h-24 overflow-y-auto p-1.5 border rounded-md bg-muted/20">
+                                      <div className="flex gap-1.5 flex-wrap">
                                         {availableSuggestions.map(
                                           (sugg: string) => (
                                             <Badge
                                               key={sugg}
                                               variant="outline"
-                                              className="group/sugg text-[10px] py-0 pl-1.5 pr-1 hover:bg-muted font-normal text-muted-foreground flex items-center gap-1 transition-all bg-card"
+                                              className="group/sugg text-[10px] py-0 pl-1.5 pr-1 hover:bg-muted font-normal text-muted-foreground flex items-center gap-1 transition-all"
                                             >
                                               <span
                                                 className="cursor-pointer flex items-center gap-1 py-0.5"
