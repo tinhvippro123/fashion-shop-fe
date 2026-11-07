@@ -444,71 +444,73 @@ export function StockImportManager() {
             description="Nhấn nút Tạo phiếu nhập kho để nhập thêm hàng vào kho."
           />
         ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Mã phiếu</TableHead>
-                <TableHead>Nhà cung cấp</TableHead>
-                <TableHead>Người lập phiếu</TableHead>
-                <TableHead>Ngày nhập</TableHead>
-                <TableHead className="text-right">Tổng SL</TableHead>
-                <TableHead className="text-right">Tổng tiền vốn</TableHead>
-                <TableHead className="text-right">Thao tác</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {isLoading ? (
-                <TableSkeleton columns={7} />
-              ) : (
-                filteredImports.map((imp) => (
-                  <TableRow
-                    key={imp.id}
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => setSelectedReceipt(imp)}
-                  >
-                    <TableCell className="font-semibold text-primary">
-                      {imp.importCode}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">{imp.supplierName}</span>
-                        {imp.note && (
-                          <span className="text-xs text-muted-foreground line-clamp-1">
-                            {imp.note}
-                          </span>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {imp.createdByEmail}
-                    </TableCell>
-                    <TableCell>{imp.createdAt}</TableCell>
-                    <TableCell className="text-right">
-                      <Badge variant="secondary">
-                        +{imp.totalQuantity} SP ({imp.itemCount} SKU)
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-bold">
-                      {imp.formattedTotalCost ||
-                        `${Number(imp.totalCost || 0).toLocaleString("vi-VN")}đ`}
-                    </TableCell>
-                    <TableCell
-                      className="text-right"
-                      onClick={(e) => e.stopPropagation()}
+          <div className="overflow-x-auto">
+            <Table className="min-w-[700px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mã phiếu</TableHead>
+                  <TableHead>Nhà cung cấp</TableHead>
+                  <TableHead>Người lập phiếu</TableHead>
+                  <TableHead>Ngày nhập</TableHead>
+                  <TableHead className="text-right">Tổng SL</TableHead>
+                  <TableHead className="text-right">Tổng tiền vốn</TableHead>
+                  <TableHead className="text-right">Thao tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
+                  <TableSkeleton columns={7} />
+                ) : (
+                  filteredImports.map((imp) => (
+                    <TableRow
+                      key={imp.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => setSelectedReceipt(imp)}
                     >
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setSelectedReceipt(imp)}
+                      <TableCell className="font-semibold text-primary">
+                        {imp.importCode}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{imp.supplierName}</span>
+                          {imp.note && (
+                            <span className="text-xs text-muted-foreground line-clamp-1">
+                              {imp.note}
+                            </span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {imp.createdByEmail}
+                      </TableCell>
+                      <TableCell>{imp.createdAt}</TableCell>
+                      <TableCell className="text-right">
+                        <Badge variant="secondary">
+                          +{imp.totalQuantity} SP ({imp.itemCount} SKU)
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-bold">
+                        {imp.formattedTotalCost ||
+                          `${Number(imp.totalCost || 0).toLocaleString("vi-VN")}đ`}
+                      </TableCell>
+                      <TableCell
+                        className="text-right"
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        <Eye className="mr-1.5 h-3.5 w-3.5" /> Chi tiết
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedReceipt(imp)}
+                        >
+                          <Eye className="mr-1.5 h-3.5 w-3.5" /> Chi tiết
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </div>
 
@@ -517,12 +519,12 @@ export function StockImportManager() {
         open={!!selectedReceipt}
         onOpenChange={(open) => !open && setSelectedReceipt(null)}
       >
-        <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-full max-w-[calc(100%-1rem)] sm:max-w-3xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
-            <DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-bold">
               Chi tiết phiếu nhập #{selectedReceipt?.importCode}
             </DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-xs">
               Nhà cung cấp:{" "}
               <strong className="text-foreground">
                 {selectedReceipt?.supplierName}
@@ -533,7 +535,7 @@ export function StockImportManager() {
           </DialogHeader>
 
           {selectedReceipt?.note && (
-            <div className="p-3 rounded-md bg-muted/50 border text-sm">
+            <div className="p-3 rounded-md bg-muted/50 border text-xs sm:text-sm">
               <span className="font-medium">Ghi chú: </span>
               <span className="text-muted-foreground">
                 {selectedReceipt.note}
@@ -541,10 +543,10 @@ export function StockImportManager() {
             </div>
           )}
 
-          <div className="border rounded-md overflow-hidden">
-            <Table>
+          <div className="border rounded-md overflow-x-auto">
+            <Table className="min-w-[550px]">
               <TableHeader>
-                <TableRow>
+                <TableRow className="text-xs">
                   <TableHead>SKU</TableHead>
                   <TableHead>Sản phẩm</TableHead>
                   <TableHead>Phân loại</TableHead>
@@ -555,7 +557,7 @@ export function StockImportManager() {
               </TableHeader>
               <TableBody>
                 {selectedReceipt?.items?.map((item) => (
-                  <TableRow key={item.id}>
+                  <TableRow key={item.id} className="text-xs">
                     <TableCell className="font-mono text-xs">
                       {item.sku}
                     </TableCell>
@@ -563,7 +565,7 @@ export function StockImportManager() {
                       {item.productName}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">
+                      <Badge variant="outline" className="text-[10px] py-0">
                         {item.colorName} / {item.sizeName}
                       </Badge>
                     </TableCell>
@@ -582,14 +584,14 @@ export function StockImportManager() {
             </Table>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t text-xs sm:text-sm">
+            <span className="text-muted-foreground">
               Tổng số lượng nhập:{" "}
               <strong className="text-foreground">
                 {selectedReceipt?.totalQuantity} sản phẩm
               </strong>
             </span>
-            <span className="text-base font-bold">
+            <span className="text-sm sm:text-base font-bold">
               Tổng cộng:{" "}
               {selectedReceipt?.formattedTotalCost ||
                 `${Number(selectedReceipt?.totalCost || 0).toLocaleString(
@@ -602,10 +604,10 @@ export function StockImportManager() {
 
       {/* Create Stock Import Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-4xl h-[86vh] max-h-[86vh] flex flex-col p-6 gap-0 overflow-hidden">
+        <DialogContent className="w-full max-w-[calc(100%-1rem)] sm:max-w-4xl h-[92vh] sm:h-[86vh] max-h-[92vh] sm:max-h-[86vh] flex flex-col p-4 sm:p-6 gap-0 overflow-hidden">
           {/* Header cố định ở trên */}
           <DialogHeader className="pb-2.5 shrink-0">
-            <DialogTitle className="text-xl font-bold">Tạo phiếu nhập kho mới</DialogTitle>
+            <DialogTitle className="text-lg sm:text-xl font-bold">Tạo phiếu nhập kho mới</DialogTitle>
             <DialogDescription className="text-xs">
               Chọn các biến thể SKU cần nhập hàng. Hệ thống sẽ tự động tăng tồn
               kho và tính lại giá vốn bình quân.
@@ -613,7 +615,7 @@ export function StockImportManager() {
           </DialogHeader>
 
           {/* Phần thông tin Nhà cung cấp & Ghi chú (cố định) */}
-          <div className="grid gap-3 sm:grid-cols-2 py-2 shrink-0">
+          <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2 py-2 shrink-0">
             <div className="space-y-1">
               <Label className="text-xs font-semibold">
                 Nhà cung cấp <span className="text-red-500">*</span>
@@ -645,7 +647,7 @@ export function StockImportManager() {
           </div>
 
           {/* Công cụ thêm mặt hàng (cố định) */}
-          <div className="grid gap-2.5 sm:grid-cols-2 p-2.5 my-1 border rounded-lg bg-primary/5 border-primary/20 shrink-0">
+          <div className="grid gap-2 sm:gap-2.5 grid-cols-1 sm:grid-cols-2 p-2.5 my-1 border rounded-lg bg-primary/5 border-primary/20 shrink-0">
             <div className="space-y-1">
               <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
                 <PackagePlus className="h-3.5 w-3.5" />
@@ -662,7 +664,7 @@ export function StockImportManager() {
                   {uniqueProducts.map((p) => (
                     <SelectItem key={p.id} value={String(p.id)}>
                       <div className="flex items-center justify-between w-full gap-3 text-xs">
-                        <span className="font-medium truncate max-w-[380px]">
+                        <span className="font-medium truncate max-w-[280px] sm:max-w-[380px]">
                           {p.name}
                         </span>
                         <Badge variant="secondary" className="text-[10px] shrink-0 py-0 font-normal">
@@ -696,7 +698,7 @@ export function StockImportManager() {
                         </span>
                         <span className="text-muted-foreground">•</span>
                         <span
-                          className="font-medium truncate max-w-[200px]"
+                          className="font-medium truncate max-w-[140px] sm:max-w-[200px]"
                           title={v.productName}
                         >
                           {v.productName}
@@ -741,18 +743,18 @@ export function StockImportManager() {
             )}
           </div>
 
-          {/* BẢNG DANH SÁCH MẶT HÀNG: NƠI DUY NHẤT CÓ THANH KÉO (overflow-y-auto) */}
+          {/* BẢNG DANH SÁCH MẶT HÀNG: NƠI DUY NHẤT CÓ THANH KÉO (overflow-auto) */}
           <div className="flex-1 min-h-[160px] overflow-hidden border rounded-lg bg-card flex flex-col">
-            <div className="flex-1 overflow-y-auto">
-              <Table>
+            <div className="flex-1 overflow-auto">
+              <Table className="min-w-[650px]">
                 <TableHeader className="bg-muted/80 sticky top-0 z-10 backdrop-blur-xs">
                   <TableRow className="text-xs">
                     <TableHead className="w-10 text-center">#</TableHead>
-                    <TableHead className="min-w-[280px]">Sản phẩm & Biến thể</TableHead>
-                    <TableHead className="w-20 text-center">Tồn kho</TableHead>
-                    <TableHead className="w-24 text-center">SL nhập</TableHead>
-                    <TableHead className="w-32 text-right">Giá vốn ĐV (đ)</TableHead>
-                    <TableHead className="w-32 text-right">Thành tiền (đ)</TableHead>
+                    <TableHead className="min-w-[240px]">Sản phẩm & Biến thể</TableHead>
+                    <TableHead className="w-16 text-center">Tồn kho</TableHead>
+                    <TableHead className="w-20 text-center">SL nhập</TableHead>
+                    <TableHead className="w-28 text-right">Giá vốn ĐV (đ)</TableHead>
+                    <TableHead className="w-28 text-right">Thành tiền (đ)</TableHead>
                     <TableHead className="w-10 text-center"></TableHead>
                   </TableRow>
                 </TableHeader>
@@ -920,33 +922,35 @@ export function StockImportManager() {
           </div>
 
           {/* Phần chân trang (Cố định ở đáy, chạy theo): Thiết kế liền mạch, cân đối và thanh lịch */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3.5 mt-2 border-t shrink-0">
-            <div className="flex items-center gap-2.5 text-sm">
-              <span className="text-muted-foreground font-medium">Tổng tiền dự kiến:</span>
-              <span className="text-xl font-bold text-primary">
-                {draftTotalCost.toLocaleString("vi-VN")} đ
-              </span>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 mt-2 border-t shrink-0">
+            <div className="flex items-center justify-between sm:justify-start gap-2.5 text-xs sm:text-sm">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-muted-foreground font-medium">Tổng tiền:</span>
+                <span className="text-lg sm:text-xl font-bold text-primary">
+                  {draftTotalCost.toLocaleString("vi-VN")} đ
+                </span>
+              </div>
               {draftItems.length > 0 && (
-                <span className="text-xs text-muted-foreground font-medium bg-muted px-2.5 py-0.5 rounded-full border">
-                  {draftItems.length} mặt hàng • {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} SP
+                <span className="text-[11px] sm:text-xs text-muted-foreground font-medium bg-muted px-2 py-0.5 rounded-full border shrink-0">
+                  {draftItems.length} MH • {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} SP
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center justify-end gap-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => setCreateOpen(false)}
-                className="px-4 text-xs font-medium"
+                className="flex-1 sm:flex-none px-4 text-xs font-medium h-8"
               >
                 Hủy bỏ
               </Button>
               <Button
                 onClick={handleSubmitReceipt}
                 disabled={submitting || draftItems.length === 0}
-                className="px-5 text-xs font-semibold shadow-xs"
+                className="flex-1 sm:flex-none px-5 text-xs font-semibold shadow-xs h-8"
               >
-                {submitting ? "Đang lưu phiếu..." : "Xác nhận nhập kho"}
+                {submitting ? "Đang lưu..." : "Xác nhận nhập kho"}
               </Button>
             </div>
           </div>

@@ -1202,11 +1202,11 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                             key={field.id}
                             className="p-4 border rounded-lg bg-card space-y-3"
                           >
-                            <div className="flex items-center justify-between pb-2 border-b">
+                            <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b">
                               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                                 Nhóm thuộc tính #{index + 1} {currentName ? `• ${currentName}` : ""}
                               </span>
-                              <div className="flex items-center gap-2.5">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Link
                                   href="/admin/attributes"
                                   target="_blank"
@@ -1749,49 +1749,62 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   </span>
                                 </p>
                               </div>
-                            <div className="flex flex-wrap gap-2 w-full sm:w-auto items-center">
-                              <FormField
-                                control={form.control}
-                                name={`variants.${i}.price`}
-                                render={({ field }) => (
-                                  <Input
-                                    type="number"
-                                    className="w-full sm:w-28 text-sm h-9"
-                                    {...field}
-                                    onChange={(e) =>
-                                      field.onChange(Number(e.target.value))
-                                    }
-                                  />
-                                )}
-                              />
-                              <div className="w-full sm:w-20 flex items-center justify-center">
-                                <span
-                                  className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-muted/80 text-foreground border min-w-[50px] text-center"
-                                  title="Tồn kho hiện tại (Quản lý tự động qua chứng từ Nhập kho)"
-                                >
-                                  {watchedVariants?.[i]?.stock ?? v.stock ?? 0}
-                                </span>
+                            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 w-full sm:w-auto items-center">
+                              <div className="col-span-1 sm:w-28 space-y-1">
+                                <span className="text-[11px] font-medium text-muted-foreground sm:hidden">Giá bán (đ)</span>
+                                <FormField
+                                  control={form.control}
+                                  name={`variants.${i}.price`}
+                                  render={({ field }) => (
+                                    <Input
+                                      type="number"
+                                      placeholder="Giá bán..."
+                                      className="w-full text-sm h-9"
+                                      {...field}
+                                      onChange={(e) =>
+                                        field.onChange(Number(e.target.value))
+                                      }
+                                    />
+                                  )}
+                                />
                               </div>
-                              <FormField
-                                control={form.control}
-                                name={`variants.${i}.sku`}
-                                render={({ field }) => (
-                                  <Input
-                                    className="w-full sm:w-32 text-sm h-9"
-                                    {...field}
-                                  />
-                                )}
-                              />
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 self-end sm:self-auto transition-colors"
-                                type="button"
-                                onClick={() => removeVariant(i)}
-                                title="Xóa riêng biến thể này khỏi sản phẩm"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
+                              <div className="col-span-1 sm:w-20 space-y-1">
+                                <span className="text-[11px] font-medium text-muted-foreground sm:hidden">Tồn kho</span>
+                                <div className="h-9 flex items-center justify-center">
+                                  <span
+                                    className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-muted/80 text-foreground border w-full text-center"
+                                    title="Tồn kho hiện tại (Quản lý tự động qua chứng từ Nhập kho)"
+                                  >
+                                    {watchedVariants?.[i]?.stock ?? v.stock ?? 0}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="col-span-2 sm:col-span-1 sm:w-32 space-y-1">
+                                <span className="text-[11px] font-medium text-muted-foreground sm:hidden">Mã SKU</span>
+                                <FormField
+                                  control={form.control}
+                                  name={`variants.${i}.sku`}
+                                  render={({ field }) => (
+                                    <Input
+                                      placeholder="Mã SKU..."
+                                      className="w-full text-sm h-9"
+                                      {...field}
+                                    />
+                                  )}
+                                />
+                              </div>
+                              <div className="col-span-2 sm:col-span-1 flex justify-end sm:justify-start">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                  type="button"
+                                  onClick={() => removeVariant(i)}
+                                  title="Xóa riêng biến thể này khỏi sản phẩm"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
                             </div>
                           </div>
                             );

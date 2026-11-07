@@ -325,8 +325,8 @@ export function AttributesManagement() {
                   Chưa có màu sắc nào trong hệ thống. Bấm &quot;Thêm màu mới&quot; để tạo.
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="min-w-[450px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-16">Màu</TableHead>
@@ -414,8 +414,8 @@ export function AttributesManagement() {
                   Chưa có kích thước nào trong hệ thống. Bấm &quot;Thêm kích thước&quot; để tạo.
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="min-w-[450px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-20">Thứ tự</TableHead>
