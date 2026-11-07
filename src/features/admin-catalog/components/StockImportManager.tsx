@@ -602,8 +602,8 @@ export function StockImportManager() {
 
       {/* Create Stock Import Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[92vh] flex flex-col p-0 gap-0 overflow-hidden">
-          <DialogHeader className="p-6 pb-4 border-b shrink-0 bg-background">
+        <DialogContent className="sm:max-w-4xl max-h-[88vh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl rounded-2xl border border-border">
+          <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
             <DialogTitle className="text-xl font-bold">Tạo phiếu nhập kho mới</DialogTitle>
             <DialogDescription className="text-xs">
               Chọn các biến thể SKU cần nhập hàng. Hệ thống sẽ tự động tăng tồn
@@ -611,7 +611,7 @@ export function StockImportManager() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label className="text-xs font-semibold">
@@ -924,22 +924,38 @@ export function StockImportManager() {
             </div>
           </div>
 
-          {/* Sticky DialogFooter: Cố định ở đáy hộp thoại */}
-          <DialogFooter className="p-4 border-t bg-muted/40 shrink-0 flex items-center justify-between sm:justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Tổng tiền dự kiến:</span>
-              <span className="text-base font-bold text-primary">
-                {draftTotalCost.toLocaleString("vi-VN")} đ
-              </span>
+          {/* DialogFooter: Đệm rộng rãi px-6 py-4, cách đều viền hộp thoại, nền rõ ràng */}
+          <DialogFooter className="px-6 py-4 border-t bg-muted/60 shrink-0 flex flex-row items-center justify-between sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex flex-col text-left">
+                <span className="text-[11px] text-muted-foreground font-medium">
+                  Tổng tiền thanh toán dự kiến:
+                </span>
+                <span className="text-lg font-bold text-primary leading-tight">
+                  {draftTotalCost.toLocaleString("vi-VN")} đ
+                </span>
+              </div>
+              {draftItems.length > 0 && (
+                <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5 border">
+                  {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} SP
+                </Badge>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setCreateOpen(false)}>
+            <div className="flex items-center gap-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                size="default"
+                onClick={() => setCreateOpen(false)}
+                className="px-4 text-xs font-medium"
+              >
                 Hủy bỏ
               </Button>
               <Button
-                size="sm"
+                size="default"
                 onClick={handleSubmitReceipt}
                 disabled={submitting || draftItems.length === 0}
+                className="px-5 text-xs font-semibold shadow-xs"
               >
                 {submitting ? "Đang lưu phiếu..." : "Xác nhận nhập kho"}
               </Button>
