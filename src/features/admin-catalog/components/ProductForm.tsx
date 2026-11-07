@@ -104,7 +104,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       isNew: true,
       isBestSeller: false,
       sku: "",
-      stock: 20,
+      stock: 0,
       category: "",
       brand: "LUXE",
       material: "",
@@ -985,7 +985,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                             <FormControl>
                               <Input
                                 type="number"
-                                placeholder="20"
+                                placeholder="0"
                                 {...field}
                                 onChange={(e) =>
                                   field.onChange(Number(e.target.value))
