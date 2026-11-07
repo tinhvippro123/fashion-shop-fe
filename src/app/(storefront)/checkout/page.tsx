@@ -205,6 +205,40 @@ export default function CheckoutPage() {
       return;
     }
 
+    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
+    if (!VN_PHONE_REGEX.test(finalPhone.trim())) {
+      toast.error("Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09)");
+      return;
+    }
+
+    // Tự động kiểm tra và áp dụng mã giảm giá nếu khách đã điền vào ô nhưng chưa bấm "ÁP DỤNG"
+    let activeVoucherCode = appliedVoucher?.code;
+    const pendingVoucher = voucherCode.trim().toUpperCase();
+    if (pendingVoucher && (!appliedVoucher || appliedVoucher.code !== pendingVoucher)) {
+      try {
+        const res = await apiFetch<ValidateVoucherResponse>(
+          "/catalog/vouchers/validate",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              code: pendingVoucher,
+              subtotal: totalAmount,
+            }),
+          }
+        );
+        activeVoucherCode = res.code;
+        setVoucherCode(res.code);
+        setAppliedVoucher({
+          code: res.code,
+          discount: Number(res.discountAmount),
+        });
+        toast.success(`Đã tự động áp dụng mã ${res.code} (-${formatPrice(Number(res.discountAmount))})!`);
+      } catch {
+        toast.error(`Mã giảm giá "${pendingVoucher}" không hợp lệ hoặc chưa đạt điều kiện đơn hàng. Vui lòng kiểm tra lại!`);
+        return;
+      }
+    }
+
     setSubmitting(true);
     try {
       const created = await apiFetch<OrderResponseDto>("/orders", {
@@ -215,7 +249,7 @@ export default function CheckoutPage() {
           recipientEmail: user?.email || undefined,
           shippingAddress: finalAddress,
           paymentMethod: selectedPaymentMethod,
-          voucherCode: appliedVoucher?.code || undefined,
+          voucherCode: activeVoucherCode || undefined,
           note: note.trim() || undefined,
           items: items.map((item) => ({
             variantId: item.variant.id,
@@ -339,6 +373,11 @@ export default function CheckoutPage() {
       !modalStreet.trim()
     ) {
       toast.error("Vui lòng nhập đầy đủ thông tin địa chỉ");
+      return;
+    }
+    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
+    if (!VN_PHONE_REGEX.test(modalPhone.trim())) {
+      toast.error("Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09)");
       return;
     }
     try {
@@ -586,12 +625,13 @@ export default function CheckoutPage() {
                           required
                         />
                         <input
-                          type="text"
+                          type="tel"
                           name="phone"
                           value={receiverPhone}
-                          onChange={(e) => setReceiverPhone(e.target.value)}
+                          onChange={(e) => setReceiverPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
                           className="w-full md:w-1/2 border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
-                          placeholder="Số điện thoại"
+                          placeholder="Số điện thoại (10 số, VD: 0901234567)"
+                          maxLength={11}
                           required
                         />
                       </div>
@@ -957,17 +997,34 @@ export default function CheckoutPage() {
                   <div className="flex gap-[10px]">
                     <input
                       type="text"
+                      autoComplete="off"
                       value={voucherCode}
-                      onChange={(e) => setVoucherCode(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setVoucherCode(val);
+                        if (appliedVoucher && val !== appliedVoucher.code) {
+                          setAppliedVoucher(null);
+                        }
+                      }}
                       placeholder="Nhập mã giảm giá..."
-                      className="flex-1 h-[45px] px-[15px] border border-[#e1e1e1] rounded-[4px] text-[14px] outline-none focus:border-[#222] bg-white"
+                      className="flex-1 h-[45px] px-[15px] border border-[#e1e1e1] rounded-[4px] text-[14px] outline-none focus:border-[#222] bg-white font-mono uppercase"
                     />
                     <button
                       onClick={() => applyVoucherCode(voucherCode)}
                       type="button"
-                      className="bg-white text-[#222] border border-[#222] px-[20px] h-[45px] font-bold text-[14px] rounded-tl-[20px] rounded-br-[20px] hover:bg-[#f9f9f9] transition-colors whitespace-nowrap uppercase"
+                      className={`px-[20px] h-[45px] font-bold text-[14px] rounded-tl-[20px] rounded-br-[20px] transition-colors whitespace-nowrap uppercase cursor-pointer ${
+                        appliedVoucher && appliedVoucher.code === voucherCode.trim().toUpperCase()
+                          ? "bg-emerald-600 text-white border border-emerald-600 hover:bg-emerald-700"
+                          : "bg-white text-[#222] border border-[#222] hover:bg-[#f9f9f9]"
+                      }`}
                     >
-                      ÁP DỤNG
+                      {appliedVoucher && appliedVoucher.code === voucherCode.trim().toUpperCase() ? (
+                        <span className="flex items-center gap-1.5">
+                          <i className="fas fa-check"></i> ĐÃ ÁP DỤNG
+                        </span>
+                      ) : (
+                        "ÁP DỤNG"
+                      )}
                     </button>
                   </div>
                 </div>
@@ -1104,10 +1161,11 @@ export default function CheckoutPage() {
                   className="w-full md:w-1/2 border border-[#e1e1e1] rounded-[4px] px-[15px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
                 />
                 <input
-                  type="text"
+                  type="tel"
                   value={modalPhone}
-                  onChange={(e) => setModalPhone(e.target.value)}
-                  placeholder="Số điện thoại"
+                  onChange={(e) => setModalPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
+                  placeholder="Số điện thoại (10 số, VD: 0901234567)"
+                  maxLength={11}
                   className="w-full md:w-1/2 border border-[#e1e1e1] rounded-[4px] px-[15px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
                 />
               </div>
@@ -1279,8 +1337,11 @@ export default function CheckoutPage() {
           }}
           onClose={() => {
             setShowVnPayModal(false);
+            toast.warning(
+              `Đơn hàng #${vnPayModalData.orderCode} đã được tạo ở trạng thái "Chờ thanh toán VNPay".`
+            );
             router.push(
-              `/order-success?code=${encodeURIComponent(vnPayModalData.orderCode)}`
+              `/order-success?code=${encodeURIComponent(vnPayModalData.orderCode)}&payment=unpaid`
             );
           }}
         />

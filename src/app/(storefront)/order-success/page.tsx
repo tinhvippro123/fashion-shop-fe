@@ -7,18 +7,24 @@ import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
 import { useAuthStore } from "@/features/users/stores/auth.store";
+import VnPayInAppModal from "@/features/cart-and-order/components/checkout/VnPayInAppModal";
 
 function OrderSuccessContent() {
   const searchParams = useSearchParams();
   const code = searchParams.get("code") || "";
   const { isAuthenticated } = useAuthStore();
   const [order, setOrder] = useState<OrderResponseDto | null>(null);
+  const [showVnPayModal, setShowVnPayModal] = useState(false);
 
-  useEffect(() => {
+  const loadOrder = () => {
     if (!code) return;
     apiFetch<OrderResponseDto>(`/orders/${encodeURIComponent(code)}`)
       .then(setOrder)
       .catch(() => setOrder(null));
+  };
+
+  useEffect(() => {
+    loadOrder();
   }, [code]);
 
   const today = new Date();
@@ -40,6 +46,9 @@ function OrderSuccessContent() {
       : order?.paymentMethod === "BANK_TRANSFER"
       ? "Chuyển khoản ngân hàng (VietQR)"
       : "Thanh toán khi nhận hàng (COD)";
+
+  const isVnPayUnpaid =
+    order?.paymentMethod === "VNPAY" && order?.paymentStatus !== "PAID";
 
   return (
     <div className="pb-[80px]">
@@ -64,42 +73,84 @@ function OrderSuccessContent() {
             </div>
 
             <div className="relative z-[2] text-center w-[100px]">
-              <div className="w-[12px] h-[12px] md:w-[16px] md:h-[16px] mx-auto rounded-full bg-[#222] mb-[5px] md:mb-[10px] relative z-10"></div>
+              <div className={`w-[12px] h-[12px] md:w-[16px] md:h-[16px] mx-auto rounded-full mb-[5px] md:mb-[10px] relative z-10 ${isVnPayUnpaid ? "bg-amber-500" : "bg-[#222]"}`}></div>
               <div className="text-[12px] md:text-[14px] font-medium text-[#222] bg-white px-1">
-                Hoàn thành đơn
+                {isVnPayUnpaid ? "Chờ thanh toán" : "Hoàn thành đơn"}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Success Content */}
+        {/* Success / Pending Content */}
         <div className="max-w-[700px] mx-auto mt-[40px] md:mt-[60px]">
           <div className="text-center mb-[40px]">
-            <div className="w-[80px] h-[80px] mx-auto bg-[#f7f8f9] rounded-[20px] rounded-br-[4px] rounded-tl-[4px] flex items-center justify-center mb-[25px]">
-              <svg
-                className="w-[40px] h-[40px] text-[#222]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M5 13l4 4L19 7"
-                ></path>
-              </svg>
+            <div className={`w-[80px] h-[80px] mx-auto rounded-[20px] rounded-br-[4px] rounded-tl-[4px] flex items-center justify-center mb-[25px] ${isVnPayUnpaid ? "bg-amber-50 text-amber-600" : "bg-[#f7f8f9] text-[#222]"}`}>
+              {isVnPayUnpaid ? (
+                <svg className="w-[40px] h-[40px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              ) : (
+                <svg
+                  className="w-[40px] h-[40px]"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M5 13l4 4L19 7"
+                  ></path>
+                </svg>
+              )}
             </div>
-            <h1 className="text-[28px] md:text-[32px] font-normal text-[#222] mb-[15px] uppercase tracking-[1px]">
-              ĐẶT HÀNG THÀNH CÔNG
+            <h1 className="text-[26px] md:text-[32px] font-normal text-[#222] mb-[15px] uppercase tracking-[1px]">
+              {isVnPayUnpaid ? "ĐƠN HÀNG ĐÃ TẠO - CHỜ THANH TOÁN VNPAY" : "ĐẶT HÀNG THÀNH CÔNG"}
             </h1>
             <p className="text-[15px] text-[#6c6d70] leading-[1.6]">
-              Cảm ơn bạn đã mua sắm tại <strong>LUXE FASHION</strong>.
-              <br className="hidden md:block" />
-              Đơn hàng của bạn đã được tiếp nhận và đang trong quá trình xử lý.
+              {isVnPayUnpaid ? (
+                <>
+                  Cảm ơn bạn đã đặt hàng tại <strong>LUXE FASHION</strong>.
+                  <br className="hidden md:block" />
+                  Đơn hàng của bạn đã được ghi nhận nhưng đang ở trạng thái <strong>Chờ thanh toán qua VNPay</strong>.
+                </>
+              ) : (
+                <>
+                  Cảm ơn bạn đã mua sắm tại <strong>LUXE FASHION</strong>.
+                  <br className="hidden md:block" />
+                  Đơn hàng của bạn đã được tiếp nhận và đang trong quá trình xử lý.
+                </>
+              )}
             </p>
           </div>
+
+          {/* Action Callout if VNPay Unpaid */}
+          {isVnPayUnpaid && (
+            <div className="bg-amber-50 border border-amber-200 rounded-[12px] p-5 mb-[30px] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 font-bold text-lg">
+                  ⚠
+                </div>
+                <div>
+                  <h4 className="font-bold text-[15px] text-amber-900 mb-0.5">
+                    Đơn hàng chưa hoàn tất thanh toán VNPay
+                  </h4>
+                  <p className="text-[13px] text-amber-800 m-0">
+                    Vui lòng bấm thanh toán để đơn hàng được xác nhận và đóng gói sớm nhất!
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowVnPayModal(true)}
+                className="bg-[#005baa] hover:bg-[#004a8c] text-white px-5 py-2.5 text-[13px] font-bold uppercase rounded-[6px] shadow transition-colors shrink-0 cursor-pointer"
+              >
+                Thanh toán ngay qua VNPay
+              </button>
+            </div>
+          )}
 
           {/* Order Details Box */}
           <div className="bg-[#f7f8f9] rounded-[4px] p-[30px] md:p-[40px] mb-[40px]">
@@ -142,11 +193,15 @@ function OrderSuccessContent() {
               </div>
               <div className="flex-1 font-normal text-[#222] text-[15px] flex items-center gap-2">
                 <span>{paymentDisplay}</span>
-                {order?.paymentStatus === "PAID" && (
+                {order?.paymentStatus === "PAID" ? (
                   <span className="text-[11px] font-bold bg-[#137333] text-white px-2 py-0.5 rounded uppercase tracking-wider">
                     ĐÃ THANH TOÁN (PAID)
                   </span>
-                )}
+                ) : isVnPayUnpaid ? (
+                  <span className="text-[11px] font-bold bg-amber-600 text-white px-2 py-0.5 rounded uppercase tracking-wider">
+                    CHƯA THANH TOÁN (UNPAID)
+                  </span>
+                ) : null}
               </div>
             </div>
 
@@ -284,6 +339,20 @@ function OrderSuccessContent() {
               XEM ĐƠN HÀNG
             </Link>
           </div>
+
+          {showVnPayModal && order && (
+            <VnPayInAppModal
+              isOpen={showVnPayModal}
+              orderCode={order.orderCode}
+              totalAmount={order.totalAmount || 0}
+              paymentUrl={order.paymentUrl}
+              onSuccess={() => {
+                setShowVnPayModal(false);
+                loadOrder();
+              }}
+              onClose={() => setShowVnPayModal(false)}
+            />
+          )}
         </div>
       </div>
     </div>

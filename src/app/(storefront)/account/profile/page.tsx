@@ -45,6 +45,11 @@ export default function ProfilePage() {
       toast.error("Họ và tên không được để trống");
       return;
     }
+    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
+    if (phone.trim() && !VN_PHONE_REGEX.test(phone.trim())) {
+      toast.error("Số điện thoại không hợp lệ! Vui lòng nhập 10 chữ số bắt đầu bằng 03, 05, 07, 08, 09.");
+      return;
+    }
     setSaving(true);
     try {
       const updated = await apiFetch<User>("/account/profile", {
@@ -149,9 +154,12 @@ export default function ProfilePage() {
               </label>
               <div className="flex-1 w-full">
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={11}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
+                  placeholder="0987654321"
                   className="w-full border border-[#e1e1e1] rounded-[4px] p-[10px_15px] text-[14px] text-[#222] outline-none focus:border-[#222] transition-colors"
                 />
               </div>

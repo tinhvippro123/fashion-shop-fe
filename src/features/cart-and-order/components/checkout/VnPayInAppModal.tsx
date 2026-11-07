@@ -29,6 +29,16 @@ export default function VnPayInAppModal({
 
   if (!isOpen) return null;
 
+  const handleRequestClose = () => {
+    if (processing) return;
+    const confirmed = window.confirm(
+      "Đơn hàng của bạn chưa hoàn tất thanh toán qua VNPay.\nBạn có chắc chắn muốn đóng hộp thoại và thanh toán sau không?"
+    );
+    if (confirmed) {
+      onClose();
+    }
+  };
+
   const handleConfirmPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (processing) return;
@@ -80,10 +90,10 @@ export default function VnPayInAppModal({
 
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleRequestClose}
             disabled={processing}
-            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm"
-            title="Đóng"
+            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm cursor-pointer"
+            title="Đóng hộp thoại"
           >
             ✕
           </button>
@@ -206,11 +216,11 @@ export default function VnPayInAppModal({
           <div className="pt-1 text-center">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleRequestClose}
               disabled={processing}
-              className="text-[11.5px] text-[#6c757d] hover:text-[#222] underline transition-colors cursor-pointer"
+              className="text-[12px] text-[#dc3545] hover:text-[#a71d2a] font-medium underline transition-colors cursor-pointer"
             >
-              Hủy và thanh toán sau
+              Hủy thanh toán &amp; Để sau
             </button>
           </div>
         </form>

@@ -320,6 +320,11 @@ function AddressModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
+    if (!VN_PHONE_REGEX.test(phone.trim())) {
+      toast.error("Số điện thoại không hợp lệ! Vui lòng nhập 10 chữ số bắt đầu bằng 03, 05, 07, 08, 09.");
+      return;
+    }
     setSaving(true);
     try {
       await onSubmit({
@@ -370,12 +375,14 @@ function AddressModal({
               </div>
               <div className="w-full md:w-1/2 px-[15px]">
                 <input
-                  type="text"
+                  type="tel"
+                  inputMode="numeric"
+                  maxLength={11}
                   className="w-full border-b border-[#e1e1e1] pb-[10px] pt-[10px] text-[#222] focus:border-[#222] outline-none transition-colors placeholder-[#6c6d70]"
-                  placeholder="Số điện thoại"
+                  placeholder="Số điện thoại (10 chữ số)"
                   required
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
+                  onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
                 />
               </div>
             </div>
