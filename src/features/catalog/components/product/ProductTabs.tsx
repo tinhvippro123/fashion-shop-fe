@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   ProductDetail,
   ProductReviewItem,
@@ -93,6 +94,29 @@ export default function ProductTabs({
   const [comment, setComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const [eligibility, setEligibility] = useState<{
+    canReview: boolean;
+    purchased: boolean;
+    reviewed: boolean;
+    reason?: string | null;
+  } | null>(null);
+  const [loadingEligibility, setLoadingEligibility] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === "reviews" && isAuthenticated && product?.id) {
+      setLoadingEligibility(true);
+      apiFetch<{
+        canReview: boolean;
+        purchased: boolean;
+        reviewed: boolean;
+        reason?: string | null;
+      }>(`/catalog/products/${product.id}/review-eligibility`)
+        .then((data) => setEligibility(data))
+        .catch(() => setEligibility(null))
+        .finally(() => setLoadingEligibility(false));
+    }
+  }, [activeTab, isAuthenticated, product?.id]);
+
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
@@ -112,6 +136,12 @@ export default function ProductTabs({
       onReviewAdded(created);
       setComment("");
       setRating(5);
+      setEligibility({
+        canReview: false,
+        purchased: true,
+        reviewed: true,
+        reason: "ALREADY_REVIEWED",
+      });
       toast.success("Gửi đánh giá sản phẩm thành công!");
     } catch (err) {
       toast.error((err as Error).message);
@@ -259,13 +289,48 @@ export default function ProductTabs({
 
         {activeTab === "reviews" && (
           <div className="animate-fadeIn space-y-6">
-            {isAuthenticated ? (
+            {!isAuthenticated ? (
+              <div className="border border-[#e7e8e9] p-4 rounded-[8px] bg-[#f8f9fa] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="text-[13px] text-[#555] flex items-center gap-2">
+                  <i className="fas fa-lock text-[#888]"></i>
+                  <span>Vui lòng đăng nhập để gửi đánh giá cho sản phẩm này.</span>
+                </div>
+                <Link
+                  href="/login"
+                  className="bg-[#222] text-white px-4 py-2 text-[12px] font-bold uppercase rounded-tl-[10px] rounded-br-[10px] hover:bg-black transition-colors shrink-0 text-center"
+                >
+                  Đăng nhập ngay
+                </Link>
+              </div>
+            ) : loadingEligibility ? (
+              <div className="border border-[#e7e8e9] p-4 rounded-[8px] bg-[#f8f9fa] text-[13px] text-[#777] flex items-center gap-2">
+                <i className="fas fa-spinner fa-spin"></i>
+                <span>Đang kiểm tra quyền đánh giá sản phẩm...</span>
+              </div>
+            ) : eligibility?.reviewed ? (
+              <div className="border border-emerald-200 bg-emerald-50 text-emerald-800 p-4 rounded-[8px] text-[13px] flex items-start gap-2.5">
+                <i className="fas fa-check-circle text-[16px] text-emerald-600 mt-0.5 shrink-0"></i>
+                <div>
+                  <strong className="font-semibold block mb-0.5">Bạn đã gửi đánh giá cho sản phẩm này</strong>
+                  <span>Cảm ơn những phản hồi quý báu của bạn đã giúp cộng đồng và LUXE nâng cao chất lượng sản phẩm!</span>
+                </div>
+              </div>
+            ) : !eligibility?.purchased ? (
+              <div className="border border-amber-200 bg-amber-50 text-amber-800 p-4 rounded-[8px] text-[13px] flex items-start gap-2.5">
+                <i className="fas fa-shield-alt text-[16px] text-amber-600 mt-0.5 shrink-0"></i>
+                <div>
+                  <strong className="font-semibold block mb-0.5">Quyền đánh giá dành riêng cho người mua hàng</strong>
+                  <span>Để đảm bảo tính khách quan và trải nghiệm thực tế, chỉ những khách hàng <strong>đã mua và nhận hàng thành công</strong> sản phẩm này mới có thể viết đánh giá.</span>
+                </div>
+              </div>
+            ) : (
               <form
                 onSubmit={handleSubmitReview}
                 className="border border-[#e7e8e9] p-4 rounded-[8px] bg-[#f8f9fa]"
               >
-                <div className="font-semibold text-[14px] text-[#222] mb-2">
-                  Gửi đánh giá của bạn
+                <div className="font-semibold text-[14px] text-[#222] mb-2 flex items-center gap-2">
+                  <i className="fas fa-badge-check text-emerald-600"></i>
+                  <span>Đã mua hàng thành công • Gửi đánh giá của bạn</span>
                 </div>
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-[13px] text-[#6c6d70]">Số sao:</span>
@@ -289,7 +354,7 @@ export default function ProductTabs({
                   onChange={(e) => setComment(e.target.value)}
                   rows={3}
                   required
-                  placeholder="Chia sẻ cảm nhận thực tế về chất liệu và kiểu dáng sản phẩm..."
+                  placeholder="Chia sẻ cảm nhận thực tế về chất liệu, đường may và kiểu dáng sản phẩm..."
                   className="w-full border border-[#ddd] rounded-[4px] p-3 text-[13px] bg-white outline-none focus:border-[#222] mb-3"
                 />
                 <button
@@ -300,10 +365,6 @@ export default function ProductTabs({
                   {submitting ? "Đang gửi..." : "Gửi đánh giá"}
                 </button>
               </form>
-            ) : (
-              <div className="text-[13px] text-[#6c757d] italic">
-                Vui lòng đăng nhập để viết đánh giá cho sản phẩm này.
-              </div>
             )}
 
             {reviews.length === 0 ? (
