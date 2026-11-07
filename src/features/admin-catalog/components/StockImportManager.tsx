@@ -602,19 +602,19 @@ export function StockImportManager() {
 
       {/* Create Stock Import Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[88vh] flex flex-col p-0 gap-0 overflow-hidden shadow-2xl rounded-2xl border border-border">
-          <DialogHeader className="px-6 py-4 border-b shrink-0 bg-background">
-            <DialogTitle className="text-xl font-bold">Tạo phiếu nhập kho mới</DialogTitle>
-            <DialogDescription className="text-xs">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Tạo phiếu nhập kho mới</DialogTitle>
+            <DialogDescription>
               Chọn các biến thể SKU cần nhập hàng. Hệ thống sẽ tự động tăng tồn
               kho và tính lại giá vốn bình quân.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <div className="grid gap-4 py-2">
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">
+              <div className="space-y-2">
+                <Label>
                   Nhà cung cấp <span className="text-red-500">*</span>
                 </Label>
                 <div className="relative">
@@ -623,7 +623,6 @@ export function StockImportManager() {
                     placeholder="Gõ hoặc chọn nhà cung cấp..."
                     value={supplierName}
                     onChange={(e) => setSupplierName(e.target.value)}
-                    className="h-9 text-xs"
                   />
                   <datalist id="supplier-options">
                     {suggestedSuppliers.map((sup) => (
@@ -635,14 +634,13 @@ export function StockImportManager() {
                   💡 Gợi ý đối tác quen thuộc hoặc gõ trực tiếp tên xưởng may mới.
                 </p>
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold">Ghi chú chứng từ</Label>
+              <div className="space-y-2">
+                <Label>Ghi chú chứng từ</Label>
                 <Textarea
                   rows={2}
                   placeholder="VD: Nhập bổ sung lô hàng Thu Đông đợt 1..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
-                  className="text-xs min-h-[36px]"
                 />
               </div>
             </div>
@@ -746,221 +744,213 @@ export function StockImportManager() {
               </div>
 
               <div className="border rounded-lg overflow-hidden bg-card">
-                <div className="max-h-[340px] overflow-y-auto">
-                  <Table>
-                    <TableHeader className="bg-muted/70 sticky top-0 z-10">
-                      <TableRow className="text-xs">
-                        <TableHead className="w-10 text-center">#</TableHead>
-                        <TableHead className="min-w-[280px]">Sản phẩm & Biến thể</TableHead>
-                        <TableHead className="w-20 text-center">Tồn kho</TableHead>
-                        <TableHead className="w-24 text-center">SL nhập</TableHead>
-                        <TableHead className="w-32 text-right">Giá vốn ĐV (đ)</TableHead>
-                        <TableHead className="w-32 text-right">Thành tiền (đ)</TableHead>
-                        <TableHead className="w-10 text-center"></TableHead>
+                <Table>
+                  <TableHeader className="bg-muted/70">
+                    <TableRow className="text-xs">
+                      <TableHead className="w-10 text-center">#</TableHead>
+                      <TableHead className="min-w-[280px]">Sản phẩm & Biến thể</TableHead>
+                      <TableHead className="w-20 text-center">Tồn kho</TableHead>
+                      <TableHead className="w-24 text-center">SL nhập</TableHead>
+                      <TableHead className="w-32 text-right">Giá vốn ĐV (đ)</TableHead>
+                      <TableHead className="w-32 text-right">Thành tiền (đ)</TableHead>
+                      <TableHead className="w-10 text-center"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {draftItems.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-xs">
+                          Chưa có mặt hàng nào trong phiếu.
+                          <br />
+                          Vui lòng chọn <strong>Nhập theo sản phẩm</strong> hoặc <strong>Thêm biến thể SKU lẻ</strong> ở phía trên.
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {draftItems.length === 0 ? (
-                        <TableRow>
-                          <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-xs">
-                            Chưa có mặt hàng nào trong phiếu.
-                            <br />
-                            Vui lòng chọn <strong>Nhập theo sản phẩm</strong> hoặc <strong>Thêm biến thể SKU lẻ</strong> ở phía trên.
-                          </TableCell>
-                        </TableRow>
-                      ) : (
-                        draftItems.map((row, idx) => {
-                          const chosenVariant = variants.find(
-                            (v) => String(v.id) === row.variantId
-                          );
-                          const subtotal =
-                            (Number(row.quantity) || 0) * (Number(row.unitCost) || 0);
-                          return (
-                            <TableRow key={idx} className="hover:bg-muted/30">
-                              <TableCell className="text-center text-xs text-muted-foreground font-mono">
-                                {idx + 1}
-                              </TableCell>
-                              <TableCell className="py-2">
-                                {chosenVariant ? (
-                                  <div className="space-y-0.5">
-                                    <div className="font-semibold text-xs text-foreground">
-                                      {chosenVariant.productName}
-                                    </div>
-                                    <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-muted-foreground">
-                                      <span className="font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded text-[10px]">
-                                        {chosenVariant.sku}
-                                      </span>
-                                      <span>•</span>
-                                      <span>
-                                        Màu:{" "}
-                                        <strong className="text-foreground font-medium">
-                                          {chosenVariant.colorName}
-                                        </strong>
-                                      </span>
-                                      <span>•</span>
-                                      <span>
-                                        Size:{" "}
-                                        <strong className="text-foreground font-medium">
-                                          {chosenVariant.size?.name || "FS"}
-                                        </strong>
-                                      </span>
-                                    </div>
+                    ) : (
+                      draftItems.map((row, idx) => {
+                        const chosenVariant = variants.find(
+                          (v) => String(v.id) === row.variantId
+                        );
+                        const subtotal =
+                          (Number(row.quantity) || 0) * (Number(row.unitCost) || 0);
+                        return (
+                          <TableRow key={idx} className="hover:bg-muted/30">
+                            <TableCell className="text-center text-xs text-muted-foreground font-mono">
+                              {idx + 1}
+                            </TableCell>
+                            <TableCell className="py-2">
+                              {chosenVariant ? (
+                                <div className="space-y-0.5">
+                                  <div className="font-semibold text-xs text-foreground">
+                                    {chosenVariant.productName}
                                   </div>
-                                ) : (
-                                  <Select
-                                    value={row.variantId}
-                                    onValueChange={(val) =>
-                                      handleVariantChange(idx, String(val))
-                                    }
-                                  >
-                                    <SelectTrigger className="h-8 text-xs">
-                                      <SelectValue placeholder="Chọn biến thể SKU..." />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-80 w-[560px] max-w-[92vw]">
-                                      {variants.map((v) => (
-                                        <SelectItem key={v.id} value={String(v.id)}>
-                                          <div className="flex items-center gap-2 py-0.5 text-xs w-full">
-                                            <span className="font-mono font-semibold text-primary shrink-0">
-                                              {v.sku}
-                                            </span>
-                                            <span className="text-muted-foreground">•</span>
-                                            <span
-                                              className="font-medium truncate max-w-[200px]"
-                                              title={v.productName}
-                                            >
-                                              {v.productName}
-                                            </span>
-                                            <Badge
-                                              variant="outline"
-                                              className="text-[10px] py-0 px-1 shrink-0 font-normal"
-                                            >
-                                              {v.colorName} / {v.size?.name || "FS"}
-                                            </Badge>
-                                            <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
-                                              Tồn: {v.stock}
-                                            </span>
-                                          </div>
-                                        </SelectItem>
-                                      ))}
-                                    </SelectContent>
-                                  </Select>
-                                )}
-                              </TableCell>
-                              <TableCell className="text-center font-medium text-xs">
-                                <Badge variant="secondary" className="font-mono text-[11px]">
-                                  {chosenVariant ? chosenVariant.stock : 0}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Input
-                                  type="number"
-                                  min={1}
-                                  className="h-8 w-20 text-center font-bold text-xs mx-auto"
-                                  value={row.quantity}
-                                  onChange={(e) =>
-                                    setDraftItems((prev) =>
-                                      prev.map((r, i) =>
-                                        i === idx
-                                          ? {
-                                              ...r,
-                                              quantity: Math.max(
-                                                1,
-                                                Number(e.target.value)
-                                              ),
-                                            }
-                                          : r
-                                      )
-                                    )
+                                  <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-muted-foreground">
+                                    <span className="font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded text-[10px]">
+                                      {chosenVariant.sku}
+                                    </span>
+                                    <span>•</span>
+                                    <span>
+                                      Màu:{" "}
+                                      <strong className="text-foreground font-medium">
+                                        {chosenVariant.colorName}
+                                      </strong>
+                                    </span>
+                                    <span>•</span>
+                                    <span>
+                                      Size:{" "}
+                                      <strong className="text-foreground font-medium">
+                                        {chosenVariant.size?.name || "FS"}
+                                      </strong>
+                                    </span>
+                                  </div>
+                                </div>
+                              ) : (
+                                <Select
+                                  value={row.variantId}
+                                  onValueChange={(val) =>
+                                    handleVariantChange(idx, String(val))
                                   }
-                                />
-                              </TableCell>
-                              <TableCell className="text-right">
-                                <Input
-                                  type="number"
-                                  min={0}
-                                  step={1000}
-                                  className="h-8 w-28 text-right font-medium text-xs ml-auto"
-                                  value={row.unitCost}
-                                  onChange={(e) =>
-                                    setDraftItems((prev) =>
-                                      prev.map((r, i) =>
-                                        i === idx
-                                          ? {
-                                              ...r,
-                                              unitCost: Math.max(
-                                                0,
-                                                Number(e.target.value)
-                                              ),
-                                            }
-                                          : r
-                                      )
-                                    )
-                                  }
-                                />
-                              </TableCell>
-                              <TableCell className="text-right font-bold text-xs text-foreground whitespace-nowrap">
-                                {subtotal.toLocaleString("vi-VN")} đ
-                              </TableCell>
-                              <TableCell className="text-center">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleRemoveRow(idx)}
-                                  className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                  title="Xóa dòng này"
                                 >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </TableCell>
-                            </TableRow>
-                          );
-                        })
-                      )}
-                    </TableBody>
-                  </Table>
-                </div>
+                                  <SelectTrigger className="h-8 text-xs">
+                                    <SelectValue placeholder="Chọn biến thể SKU..." />
+                                  </SelectTrigger>
+                                  <SelectContent className="max-h-80 w-[560px] max-w-[92vw]">
+                                    {variants.map((v) => (
+                                      <SelectItem key={v.id} value={String(v.id)}>
+                                        <div className="flex items-center gap-2 py-0.5 text-xs w-full">
+                                          <span className="font-mono font-semibold text-primary shrink-0">
+                                            {v.sku}
+                                          </span>
+                                          <span className="text-muted-foreground">•</span>
+                                          <span
+                                            className="font-medium truncate max-w-[200px]"
+                                            title={v.productName}
+                                          >
+                                            {v.productName}
+                                          </span>
+                                          <Badge
+                                            variant="outline"
+                                            className="text-[10px] py-0 px-1 shrink-0 font-normal"
+                                          >
+                                            {v.colorName} / {v.size?.name || "FS"}
+                                          </Badge>
+                                          <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
+                                            Tồn: {v.stock}
+                                          </span>
+                                        </div>
+                                      </SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              )}
+                            </TableCell>
+                            <TableCell className="text-center font-medium text-xs">
+                              <Badge variant="secondary" className="font-mono text-[11px]">
+                                {chosenVariant ? chosenVariant.stock : 0}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Input
+                                type="number"
+                                min={1}
+                                className="h-8 w-20 text-center font-bold text-xs mx-auto"
+                                value={row.quantity}
+                                onChange={(e) =>
+                                  setDraftItems((prev) =>
+                                    prev.map((r, i) =>
+                                      i === idx
+                                        ? {
+                                            ...r,
+                                            quantity: Math.max(
+                                              1,
+                                              Number(e.target.value)
+                                            ),
+                                          }
+                                        : r
+                                    )
+                                  )
+                                }
+                              />
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Input
+                                type="number"
+                                min={0}
+                                step={1000}
+                                className="h-8 w-28 text-right font-medium text-xs ml-auto"
+                                value={row.unitCost}
+                                onChange={(e) =>
+                                  setDraftItems((prev) =>
+                                    prev.map((r, i) =>
+                                      i === idx
+                                        ? {
+                                            ...r,
+                                            unitCost: Math.max(
+                                              0,
+                                              Number(e.target.value)
+                                            ),
+                                          }
+                                        : r
+                                    )
+                                  )
+                                }
+                              />
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-xs text-foreground whitespace-nowrap">
+                              {subtotal.toLocaleString("vi-VN")} đ
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleRemoveRow(idx)}
+                                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                title="Xóa dòng này"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Phần chân trang tổng kết: Thiết kế liền mạch, cân đối và thanh lịch */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t mt-2">
+              <div className="flex items-center gap-2.5 text-sm">
+                <span className="text-muted-foreground font-medium">Tổng tiền dự kiến:</span>
+                <span className="text-xl font-bold text-primary">
+                  {draftTotalCost.toLocaleString("vi-VN")} đ
+                </span>
+                {draftItems.length > 0 && (
+                  <span className="text-xs text-muted-foreground font-medium bg-muted px-2.5 py-0.5 rounded-full border">
+                    {draftItems.length} mặt hàng • {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} SP
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCreateOpen(false)}
+                  className="px-4 text-xs font-medium"
+                >
+                  Hủy bỏ
+                </Button>
+                <Button
+                  onClick={handleSubmitReceipt}
+                  disabled={submitting || draftItems.length === 0}
+                  className="px-5 text-xs font-semibold shadow-xs"
+                >
+                  {submitting ? "Đang lưu phiếu..." : "Xác nhận nhập kho"}
+                </Button>
               </div>
             </div>
           </div>
-
-          {/* DialogFooter: Đệm rộng rãi px-6 py-4, cách đều viền hộp thoại, nền rõ ràng */}
-          <DialogFooter className="px-6 py-4 border-t bg-muted/60 shrink-0 flex flex-row items-center justify-between sm:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex flex-col text-left">
-                <span className="text-[11px] text-muted-foreground font-medium">
-                  Tổng tiền thanh toán dự kiến:
-                </span>
-                <span className="text-lg font-bold text-primary leading-tight">
-                  {draftTotalCost.toLocaleString("vi-VN")} đ
-                </span>
-              </div>
-              {draftItems.length > 0 && (
-                <Badge variant="secondary" className="text-xs font-semibold px-2 py-0.5 border">
-                  {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} SP
-                </Badge>
-              )}
-            </div>
-            <div className="flex items-center gap-2.5">
-              <Button
-                type="button"
-                variant="outline"
-                size="default"
-                onClick={() => setCreateOpen(false)}
-                className="px-4 text-xs font-medium"
-              >
-                Hủy bỏ
-              </Button>
-              <Button
-                size="default"
-                onClick={handleSubmitReceipt}
-                disabled={submitting || draftItems.length === 0}
-                className="px-5 text-xs font-semibold shadow-xs"
-              >
-                {submitting ? "Đang lưu phiếu..." : "Xác nhận nhập kho"}
-              </Button>
-            </div>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
