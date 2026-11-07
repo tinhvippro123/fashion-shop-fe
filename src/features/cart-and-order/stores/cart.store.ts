@@ -98,7 +98,9 @@ function hasAuthToken(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const raw = localStorage.getItem("auth-storage");
-    return Boolean(raw && JSON.parse(raw)?.state?.token);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    return Boolean(parsed?.state?.isAuthenticated || parsed?.state?.token);
   } catch {
     return false;
   }

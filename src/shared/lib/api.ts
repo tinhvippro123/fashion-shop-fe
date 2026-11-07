@@ -50,6 +50,7 @@ export async function apiRequestWithMeta<T>(
   const res = await fetch(`${API_BASE_URL}${normalizedPath}`, {
     ...options,
     headers,
+    credentials: "include",
     cache: "no-store",
   });
 

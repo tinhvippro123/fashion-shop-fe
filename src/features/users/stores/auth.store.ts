@@ -113,7 +113,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refreshProfile: async () => {
-        if (!get().token) return null;
+        if (!get().isAuthenticated && !get().token) return null;
         try {
           const profile = await apiFetch<User>("/account/profile");
           const normalizedUser: User = {
@@ -134,7 +134,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       syncWishlist: async () => {
-        if (!get().token) {
+        if (!get().isAuthenticated && !get().token) {
           set({ wishlistIds: [] });
           return;
         }
@@ -167,6 +167,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       logout: () => {
+        apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
         set({
           isAuthenticated: false,
           token: null,
@@ -177,6 +178,11 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
+      partialize: (state) => ({
+        isAuthenticated: state.isAuthenticated,
+        user: state.user,
+        wishlistIds: state.wishlistIds,
+      }),
     }
   )
 );
