@@ -78,6 +78,7 @@ export function StockImportManager() {
   const [createOpen, setCreateOpen] = useState(false);
   const [supplierName, setSupplierName] = useState("");
   const [note, setNote] = useState("");
+  const [selectedProductToAdd, setSelectedProductToAdd] = useState("");
   const [draftItems, setDraftItems] = useState<DraftImportItem[]>([
     { variantId: "", quantity: 20, unitCost: 150000 },
   ]);
@@ -166,6 +167,75 @@ export function StockImportManager() {
     (sum, item) => sum + (Number(item.quantity) || 0) * (Number(item.unitCost) || 0),
     0
   );
+
+  const suggestedSuppliers = useMemo(() => {
+    const fromReceipts = imports.map((i) => i.supplierName).filter(Boolean);
+    const defaults = [
+      "Xưởng May Thời Trang LUXE Việt Nam",
+      "Xưởng May Thời Trang Cao Cấp Đông Á",
+      "Công ty Dệt May Sài Gòn LUXE",
+      "Xưởng May Veston & Dạ Hà Nội",
+      "Xưởng May LUXE Prime",
+      "Công ty TNHH Phụ Liệu Thời Trang Á Châu",
+      "Xưởng Sản Xuất Đồ Da & Phụ Kiện Hưng Phát",
+    ];
+    return Array.from(new Set([...fromReceipts, ...defaults]));
+  }, [imports]);
+
+  const uniqueProducts = useMemo(() => {
+    const map = new Map<
+      number,
+      { id: number; name: string; variantCount: number }
+    >();
+    for (const v of variants) {
+      const existing = map.get(v.productId);
+      if (!existing) {
+        map.set(v.productId, {
+          id: v.productId,
+          name: v.productName,
+          variantCount: 1,
+        });
+      } else {
+        existing.variantCount += 1;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name, "vi")
+    );
+  }, [variants]);
+
+  const handleAddProductVariants = (prodId?: string | null) => {
+    if (!prodId) return;
+    const pId = Number(prodId);
+    const matched = variants.filter((v) => v.productId === pId);
+    if (matched.length === 0) return;
+
+    setDraftItems((prev) => {
+      const cleanPrev = prev.filter((r) => r.variantId !== "");
+      const existingIds = new Set(cleanPrev.map((r) => r.variantId));
+      const newItems = matched
+        .filter((m) => !existingIds.has(String(m.id)))
+        .map((m) => ({
+          variantId: String(m.id),
+          quantity: 20,
+          unitCost: Number(
+            m.costPrice || Math.round((m.price || 0) * 0.55) || 150000
+          ),
+        }));
+
+      if (newItems.length === 0) {
+        toast.info(
+          "Tất cả các biến thể của sản phẩm này đã có trong danh sách nhập!"
+        );
+        return prev;
+      }
+      toast.success(
+        `Đã thêm ${newItems.length} biến thể của "${matched[0].productName}" vào phiếu!`
+      );
+      return [...cleanPrev, ...newItems];
+    });
+    setSelectedProductToAdd("");
+  };
 
   const handleOpenCreate = () => {
     const first = variants[0];
@@ -524,21 +594,67 @@ export function StockImportManager() {
                 <Label>
                   Nhà cung cấp <span className="text-red-500">*</span>
                 </Label>
-                <Input
-                  placeholder="VD: Xưởng May LUXE Việt Nam"
-                  value={supplierName}
-                  onChange={(e) => setSupplierName(e.target.value)}
-                />
+                <div className="relative">
+                  <Input
+                    list="supplier-options"
+                    placeholder="Gõ hoặc chọn nhà cung cấp..."
+                    value={supplierName}
+                    onChange={(e) => setSupplierName(e.target.value)}
+                  />
+                  <datalist id="supplier-options">
+                    {suggestedSuppliers.map((sup) => (
+                      <option key={sup} value={sup} />
+                    ))}
+                  </datalist>
+                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  💡 Gợi ý đối tác quen thuộc hoặc gõ trực tiếp tên xưởng may mới.
+                </p>
               </div>
               <div className="space-y-2">
                 <Label>Ghi chú chứng từ</Label>
                 <Textarea
-                  rows={1}
-                  placeholder="VD: Nhập bổ sung lô hàng Thu Đông..."
+                  rows={2}
+                  placeholder="VD: Nhập bổ sung lô hàng Thu Đông đợt 1..."
                   value={note}
                   onChange={(e) => setNote(e.target.value)}
                 />
               </div>
+            </div>
+
+            {/* Quick Import by Product */}
+            <div className="p-3.5 border rounded-lg bg-primary/5 border-primary/20 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                  <PackagePlus className="h-4 w-4" />
+                  Nhập nhanh theo sản phẩm (Tự động tải tất cả màu & size)
+                </span>
+                <span className="text-[11px] text-muted-foreground">
+                  {uniqueProducts.length} sản phẩm trong kho
+                </span>
+              </div>
+              <Select
+                value={selectedProductToAdd}
+                onValueChange={handleAddProductVariants}
+              >
+                <SelectTrigger className="h-9 text-xs bg-background">
+                  <SelectValue placeholder="👉 Chọn sản phẩm để tự động thêm toàn bộ các size/màu..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-72 w-[540px] max-w-[92vw]">
+                  {uniqueProducts.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      <div className="flex items-center justify-between w-full gap-3 text-xs">
+                        <span className="font-medium truncate max-w-[380px]">
+                          {p.name}
+                        </span>
+                        <Badge variant="secondary" className="text-[10px] shrink-0 py-0 font-normal">
+                          {p.variantCount} biến thể
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -551,7 +667,7 @@ export function StockImportManager() {
                 size="sm"
                 onClick={handleAddRow}
               >
-                <Plus className="h-4 w-4 mr-1" /> Thêm dòng SKU
+                <Plus className="h-4 w-4 mr-1" /> Thêm 1 dòng SKU
               </Button>
             </div>
 
@@ -580,11 +696,30 @@ export function StockImportManager() {
                               : "Chọn biến thể SKU..."}
                           </SelectValue>
                         </SelectTrigger>
-                        <SelectContent className="max-h-72">
+                        <SelectContent className="max-h-80 w-[560px] max-w-[92vw]">
                           {variants.map((v) => (
                             <SelectItem key={v.id} value={String(v.id)}>
-                              {v.sku} — {v.productName} ({v.colorName} /{" "}
-                              {v.size?.name || "FS"}) • Tồn: {v.stock}
+                              <div className="flex items-center gap-2 py-0.5 text-xs w-full">
+                                <span className="font-mono font-semibold text-primary shrink-0">
+                                  {v.sku}
+                                </span>
+                                <span className="text-muted-foreground">•</span>
+                                <span
+                                  className="font-medium truncate max-w-[200px]"
+                                  title={v.productName}
+                                >
+                                  {v.productName}
+                                </span>
+                                <Badge
+                                  variant="outline"
+                                  className="text-[10px] py-0 px-1 shrink-0 font-normal"
+                                >
+                                  {v.colorName} / {v.size?.name || "FS"}
+                                </Badge>
+                                <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
+                                  Tồn: {v.stock}
+                                </span>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>

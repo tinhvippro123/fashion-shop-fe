@@ -1197,22 +1197,40 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       </div>
                     ) : (
                       <div className="space-y-6">
-                        {optionFields.map((field, index) => (
+                        {optionFields.map((field, index) => {
+                          const currentName = form.watch(`options.${index}.name`);
+                          return (
                           <div
                             key={field.id}
-                            className="p-4 border rounded-lg bg-card relative group"
+                            className="p-4 border rounded-lg bg-card space-y-3"
                           >
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs px-2.5 py-1 h-7 flex items-center gap-1 border border-transparent hover:border-destructive/20 transition-all"
-                              onClick={() => handleRemoveOption(index)}
-                              type="button"
-                              title="Xóa toàn bộ nhóm thuộc tính này"
-                            >
-                              <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                              <span className="text-xs text-destructive font-medium">Xóa nhóm</span>
-                            </Button>
+                            <div className="flex items-center justify-between pb-2 border-b">
+                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                                Nhóm thuộc tính #{index + 1} {currentName ? `• ${currentName}` : ""}
+                              </span>
+                              <div className="flex items-center gap-2.5">
+                                <Link
+                                  href="/admin/attributes"
+                                  target="_blank"
+                                  className="text-[11px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-muted"
+                                  title="Mở trang Quản lý bảng màu & kích thước trong tab mới"
+                                >
+                                  <Settings className="h-3 w-3" />
+                                  Quản lý bảng thuộc tính
+                                </Link>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs px-2.5 py-1 h-7 flex items-center gap-1 border border-transparent hover:border-destructive/20 transition-all"
+                                  onClick={() => handleRemoveOption(index)}
+                                  type="button"
+                                  title="Xóa toàn bộ nhóm thuộc tính này"
+                                >
+                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
+                                  <span className="text-xs text-destructive font-medium">Xóa nhóm</span>
+                                </Button>
+                              </div>
+                            </div>
 
                             <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
                               <FormField
@@ -1249,15 +1267,6 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               <div className="space-y-2">
                                 <div className="flex items-center justify-between">
                                   <Label>Giá trị (Nhấn Enter để thêm)</Label>
-                                  <Link
-                                    href="/admin/attributes"
-                                    target="_blank"
-                                    className="text-[11px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors"
-                                    title="Mở trang Quản lý bảng màu & kích thước trong tab mới"
-                                  >
-                                    <Settings className="h-3 w-3" />
-                                    Quản lý bảng thuộc tính
-                                  </Link>
                                 </div>
                                 <Input
                                   placeholder="VD: Đỏ, Xanh... rồi ấn Enter"
@@ -1375,7 +1384,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               </div>
                             </div>
                           </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </CardContent>
