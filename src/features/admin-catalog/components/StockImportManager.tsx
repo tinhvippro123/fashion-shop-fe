@@ -602,353 +602,352 @@ export function StockImportManager() {
 
       {/* Create Stock Import Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Tạo phiếu nhập kho mới</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="sm:max-w-4xl h-[86vh] max-h-[86vh] flex flex-col p-6 gap-0 overflow-hidden">
+          {/* Header cố định ở trên */}
+          <DialogHeader className="pb-2.5 shrink-0">
+            <DialogTitle className="text-xl font-bold">Tạo phiếu nhập kho mới</DialogTitle>
+            <DialogDescription className="text-xs">
               Chọn các biến thể SKU cần nhập hàng. Hệ thống sẽ tự động tăng tồn
               kho và tính lại giá vốn bình quân.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-2">
-                <Label>
-                  Nhà cung cấp <span className="text-red-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    list="supplier-options"
-                    placeholder="Gõ hoặc chọn nhà cung cấp..."
-                    value={supplierName}
-                    onChange={(e) => setSupplierName(e.target.value)}
-                  />
-                  <datalist id="supplier-options">
-                    {suggestedSuppliers.map((sup) => (
-                      <option key={sup} value={sup} />
-                    ))}
-                  </datalist>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  💡 Gợi ý đối tác quen thuộc hoặc gõ trực tiếp tên xưởng may mới.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Ghi chú chứng từ</Label>
-                <Textarea
-                  rows={2}
-                  placeholder="VD: Nhập bổ sung lô hàng Thu Đông đợt 1..."
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
+          {/* Phần thông tin Nhà cung cấp & Ghi chú (cố định) */}
+          <div className="grid gap-3 sm:grid-cols-2 py-2 shrink-0">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">
+                Nhà cung cấp <span className="text-red-500">*</span>
+              </Label>
+              <div className="relative">
+                <Input
+                  list="supplier-options"
+                  placeholder="Gõ hoặc chọn nhà cung cấp..."
+                  value={supplierName}
+                  onChange={(e) => setSupplierName(e.target.value)}
+                  className="h-8 text-xs"
                 />
+                <datalist id="supplier-options">
+                  {suggestedSuppliers.map((sup) => (
+                    <option key={sup} value={sup} />
+                  ))}
+                </datalist>
               </div>
             </div>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold">Ghi chú chứng từ</Label>
+              <Input
+                placeholder="VD: Nhập bổ sung lô hàng Thu Đông đợt 1..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="h-8 text-xs"
+              />
+            </div>
+          </div>
 
-            {/* BẢNG DANH SÁCH MẶT HÀNG NHẬP (Table compact ERP standard) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold flex items-center gap-2">
-                  <span>Danh sách mặt hàng nhập ({draftItems.length})</span>
-                  {draftItems.length > 0 && (
-                    <Badge variant="outline" className="text-[11px] font-normal">
-                      Tổng {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} sản phẩm
-                    </Badge>
-                  )}
-                </Label>
-                {draftItems.length > 0 && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleClearAllRows}
-                    className="h-7 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="h-3.5 w-3.5 mr-1" /> Xóa tất cả
-                  </Button>
-                )}
-              </div>
+          {/* Công cụ thêm mặt hàng (cố định) */}
+          <div className="grid gap-2.5 sm:grid-cols-2 p-2.5 my-1 border rounded-lg bg-primary/5 border-primary/20 shrink-0">
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                <PackagePlus className="h-3.5 w-3.5" />
+                Cách 1: Nhập theo sản phẩm (Toàn bộ màu & size)
+              </Label>
+              <Select
+                value={selectedProductToAdd}
+                onValueChange={handleAddProductVariants}
+              >
+                <SelectTrigger className="h-8 text-xs bg-background">
+                  <SelectValue placeholder="👉 Chọn sản phẩm để bung tất cả size/màu..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-72 w-[540px] max-w-[92vw]">
+                  {uniqueProducts.map((p) => (
+                    <SelectItem key={p.id} value={String(p.id)}>
+                      <div className="flex items-center justify-between w-full gap-3 text-xs">
+                        <span className="font-medium truncate max-w-[380px]">
+                          {p.name}
+                        </span>
+                        <Badge variant="secondary" className="text-[10px] shrink-0 py-0 font-normal">
+                          {p.variantCount} biến thể
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-              <div className="border rounded-lg overflow-hidden bg-card">
-                <Table>
-                  <TableHeader className="bg-muted/70">
-                    <TableRow className="text-xs">
-                      <TableHead className="w-10 text-center">#</TableHead>
-                      <TableHead className="min-w-[280px]">Sản phẩm & Biến thể</TableHead>
-                      <TableHead className="w-20 text-center">Tồn kho</TableHead>
-                      <TableHead className="w-24 text-center">SL nhập</TableHead>
-                      <TableHead className="w-32 text-right">Giá vốn ĐV (đ)</TableHead>
-                      <TableHead className="w-32 text-right">Thành tiền (đ)</TableHead>
-                      <TableHead className="w-10 text-center"></TableHead>
+            <div className="space-y-1">
+              <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                <Plus className="h-3.5 w-3.5 text-primary" />
+                Cách 2: Thêm 1 biến thể SKU lẻ
+              </Label>
+              <Select
+                value={selectedVariantToAdd}
+                onValueChange={handleAddSingleVariant}
+              >
+                <SelectTrigger className="h-8 text-xs bg-background">
+                  <SelectValue placeholder="👉 Chọn 1 biến thể SKU cụ thể..." />
+                </SelectTrigger>
+                <SelectContent className="max-h-80 w-[580px] max-w-[92vw]">
+                  {variants.map((v) => (
+                    <SelectItem key={v.id} value={String(v.id)}>
+                      <div className="flex items-center gap-2 py-0.5 text-xs w-full">
+                        <span className="font-mono font-semibold text-primary shrink-0">
+                          {v.sku}
+                        </span>
+                        <span className="text-muted-foreground">•</span>
+                        <span
+                          className="font-medium truncate max-w-[200px]"
+                          title={v.productName}
+                        >
+                          {v.productName}
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] py-0 px-1 shrink-0 font-normal"
+                        >
+                          {v.colorName} / {v.size?.name || "FS"}
+                        </Badge>
+                        <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
+                          Tồn: {v.stock}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Tiêu đề danh sách mặt hàng (cố định) */}
+          <div className="flex items-center justify-between pt-1 pb-1.5 shrink-0">
+            <Label className="text-xs font-semibold flex items-center gap-2">
+              <span>Danh sách mặt hàng nhập ({draftItems.length})</span>
+              {draftItems.length > 0 && (
+                <Badge variant="outline" className="text-[10px] font-normal py-0">
+                  Tổng {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} SP
+                </Badge>
+              )}
+            </Label>
+            {draftItems.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={handleClearAllRows}
+                className="h-6 text-xs text-muted-foreground hover:text-destructive hover:bg-destructive/10 px-2"
+              >
+                <Trash2 className="h-3 w-3 mr-1" /> Xóa tất cả
+              </Button>
+            )}
+          </div>
+
+          {/* BẢNG DANH SÁCH MẶT HÀNG: NƠI DUY NHẤT CÓ THANH KÉO (overflow-y-auto) */}
+          <div className="flex-1 min-h-[160px] overflow-hidden border rounded-lg bg-card flex flex-col">
+            <div className="flex-1 overflow-y-auto">
+              <Table>
+                <TableHeader className="bg-muted/80 sticky top-0 z-10 backdrop-blur-xs">
+                  <TableRow className="text-xs">
+                    <TableHead className="w-10 text-center">#</TableHead>
+                    <TableHead className="min-w-[280px]">Sản phẩm & Biến thể</TableHead>
+                    <TableHead className="w-20 text-center">Tồn kho</TableHead>
+                    <TableHead className="w-24 text-center">SL nhập</TableHead>
+                    <TableHead className="w-32 text-right">Giá vốn ĐV (đ)</TableHead>
+                    <TableHead className="w-32 text-right">Thành tiền (đ)</TableHead>
+                    <TableHead className="w-10 text-center"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {draftItems.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-xs">
+                        Chưa có mặt hàng nào trong phiếu.
+                        <br />
+                        Vui lòng chọn <strong>Nhập theo sản phẩm</strong> hoặc <strong>Thêm biến thể SKU lẻ</strong> ở phía trên.
+                      </TableCell>
                     </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {draftItems.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={7} className="h-32 text-center text-muted-foreground text-xs">
-                          Chưa có mặt hàng nào trong phiếu.
-                          <br />
-                          Vui lòng chọn <strong>Nhập theo sản phẩm</strong> hoặc <strong>Thêm biến thể SKU lẻ</strong> ở phía trên.
-                        </TableCell>
-                      </TableRow>
-                    ) : (
-                      draftItems.map((row, idx) => {
-                        const chosenVariant = variants.find(
-                          (v) => String(v.id) === row.variantId
-                        );
-                        const subtotal =
-                          (Number(row.quantity) || 0) * (Number(row.unitCost) || 0);
-                        return (
-                          <TableRow key={idx} className="hover:bg-muted/30">
-                            <TableCell className="text-center text-xs text-muted-foreground font-mono">
-                              {idx + 1}
-                            </TableCell>
-                            <TableCell className="py-2">
-                              {chosenVariant ? (
-                                <div className="space-y-0.5">
-                                  <div className="font-semibold text-xs text-foreground">
-                                    {chosenVariant.productName}
-                                  </div>
-                                  <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-muted-foreground">
-                                    <span className="font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded text-[10px]">
-                                      {chosenVariant.sku}
-                                    </span>
-                                    <span>•</span>
-                                    <span>
-                                      Màu:{" "}
-                                      <strong className="text-foreground font-medium">
-                                        {chosenVariant.colorName}
-                                      </strong>
-                                    </span>
-                                    <span>•</span>
-                                    <span>
-                                      Size:{" "}
-                                      <strong className="text-foreground font-medium">
-                                        {chosenVariant.size?.name || "FS"}
-                                      </strong>
-                                    </span>
-                                  </div>
+                  ) : (
+                    draftItems.map((row, idx) => {
+                      const chosenVariant = variants.find(
+                        (v) => String(v.id) === row.variantId
+                      );
+                      const subtotal =
+                        (Number(row.quantity) || 0) * (Number(row.unitCost) || 0);
+                      return (
+                        <TableRow key={idx} className="hover:bg-muted/30">
+                          <TableCell className="text-center text-xs text-muted-foreground font-mono">
+                            {idx + 1}
+                          </TableCell>
+                          <TableCell className="py-2">
+                            {chosenVariant ? (
+                              <div className="space-y-0.5">
+                                <div className="font-semibold text-xs text-foreground">
+                                  {chosenVariant.productName}
                                 </div>
-                              ) : (
-                                <Select
-                                  value={row.variantId}
-                                  onValueChange={(val) =>
-                                    handleVariantChange(idx, String(val))
-                                  }
-                                >
-                                  <SelectTrigger className="h-8 text-xs">
-                                    <SelectValue placeholder="Chọn biến thể SKU..." />
-                                  </SelectTrigger>
-                                  <SelectContent className="max-h-80 w-[560px] max-w-[92vw]">
-                                    {variants.map((v) => (
-                                      <SelectItem key={v.id} value={String(v.id)}>
-                                        <div className="flex items-center gap-2 py-0.5 text-xs w-full">
-                                          <span className="font-mono font-semibold text-primary shrink-0">
-                                            {v.sku}
-                                          </span>
-                                          <span className="text-muted-foreground">•</span>
-                                          <span
-                                            className="font-medium truncate max-w-[200px]"
-                                            title={v.productName}
-                                          >
-                                            {v.productName}
-                                          </span>
-                                          <Badge
-                                            variant="outline"
-                                            className="text-[10px] py-0 px-1 shrink-0 font-normal"
-                                          >
-                                            {v.colorName} / {v.size?.name || "FS"}
-                                          </Badge>
-                                          <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
-                                            Tồn: {v.stock}
-                                          </span>
-                                        </div>
-                                      </SelectItem>
-                                    ))}
-                                  </SelectContent>
-                                </Select>
-                              )}
-                            </TableCell>
-                            <TableCell className="text-center font-medium text-xs">
-                              <Badge variant="secondary" className="font-mono text-[11px]">
-                                {chosenVariant ? chosenVariant.stock : 0}
-                              </Badge>
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Input
-                                type="number"
-                                min={1}
-                                className="h-8 w-20 text-center font-bold text-xs mx-auto"
-                                value={row.quantity}
-                                onChange={(e) =>
-                                  setDraftItems((prev) =>
-                                    prev.map((r, i) =>
-                                      i === idx
-                                        ? {
-                                            ...r,
-                                            quantity: Math.max(
-                                              1,
-                                              Number(e.target.value)
-                                            ),
-                                          }
-                                        : r
-                                    )
-                                  )
+                                <div className="flex items-center gap-1.5 flex-wrap text-[11px] text-muted-foreground">
+                                  <span className="font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.2 rounded text-[10px]">
+                                    {chosenVariant.sku}
+                                  </span>
+                                  <span>•</span>
+                                  <span>
+                                    Màu:{" "}
+                                    <strong className="text-foreground font-medium">
+                                      {chosenVariant.colorName}
+                                    </strong>
+                                  </span>
+                                  <span>•</span>
+                                  <span>
+                                    Size:{" "}
+                                    <strong className="text-foreground font-medium">
+                                      {chosenVariant.size?.name || "FS"}
+                                    </strong>
+                                  </span>
+                                </div>
+                              </div>
+                            ) : (
+                              <Select
+                                value={row.variantId}
+                                onValueChange={(val) =>
+                                  handleVariantChange(idx, String(val))
                                 }
-                              />
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <Input
-                                type="number"
-                                min={0}
-                                step={1000}
-                                className="h-8 w-28 text-right font-medium text-xs ml-auto"
-                                value={row.unitCost}
-                                onChange={(e) =>
-                                  setDraftItems((prev) =>
-                                    prev.map((r, i) =>
-                                      i === idx
-                                        ? {
-                                            ...r,
-                                            unitCost: Math.max(
-                                              0,
-                                              Number(e.target.value)
-                                            ),
-                                          }
-                                        : r
-                                    )
-                                  )
-                                }
-                              />
-                            </TableCell>
-                            <TableCell className="text-right font-bold text-xs text-foreground whitespace-nowrap">
-                              {subtotal.toLocaleString("vi-VN")} đ
-                            </TableCell>
-                            <TableCell className="text-center">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleRemoveRow(idx)}
-                                className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                title="Xóa dòng này"
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        );
-                      })
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                                <SelectTrigger className="h-8 text-xs">
+                                  <SelectValue placeholder="Chọn biến thể SKU..." />
+                                </SelectTrigger>
+                                <SelectContent className="max-h-80 w-[560px] max-w-[92vw]">
+                                  {variants.map((v) => (
+                                    <SelectItem key={v.id} value={String(v.id)}>
+                                      <div className="flex items-center gap-2 py-0.5 text-xs w-full">
+                                        <span className="font-mono font-semibold text-primary shrink-0">
+                                          {v.sku}
+                                        </span>
+                                        <span className="text-muted-foreground">•</span>
+                                        <span
+                                          className="font-medium truncate max-w-[200px]"
+                                          title={v.productName}
+                                        >
+                                          {v.productName}
+                                        </span>
+                                        <Badge
+                                          variant="outline"
+                                          className="text-[10px] py-0 px-1 shrink-0 font-normal"
+                                        >
+                                          {v.colorName} / {v.size?.name || "FS"}
+                                        </Badge>
+                                        <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
+                                          Tồn: {v.stock}
+                                        </span>
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-center font-medium text-xs">
+                            <Badge variant="secondary" className="font-mono text-[11px]">
+                              {chosenVariant ? chosenVariant.stock : 0}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Input
+                              type="number"
+                              min={1}
+                              className="h-8 w-20 text-center font-bold text-xs mx-auto"
+                              value={row.quantity}
+                              onChange={(e) =>
+                                setDraftItems((prev) =>
+                                  prev.map((r, i) =>
+                                    i === idx
+                                      ? {
+                                          ...r,
+                                          quantity: Math.max(
+                                            1,
+                                            Number(e.target.value)
+                                          ),
+                                        }
+                                      : r
+                                  )
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Input
+                              type="number"
+                              min={0}
+                              step={1000}
+                              className="h-8 w-28 text-right font-medium text-xs ml-auto"
+                              value={row.unitCost}
+                              onChange={(e) =>
+                                setDraftItems((prev) =>
+                                  prev.map((r, i) =>
+                                    i === idx
+                                      ? {
+                                          ...r,
+                                          unitCost: Math.max(
+                                            0,
+                                            Number(e.target.value)
+                                          ),
+                                        }
+                                      : r
+                                  )
+                                )
+                              }
+                            />
+                          </TableCell>
+                          <TableCell className="text-right font-bold text-xs text-foreground whitespace-nowrap">
+                            {subtotal.toLocaleString("vi-VN")} đ
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleRemoveRow(idx)}
+                              className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                              title="Xóa dòng này"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             </div>
+          </div>
 
-            {/* Công cụ thêm mặt hàng ngay dưới đáy bảng: Vừa xem xong dòng cuối là chọn thêm tiếp tại chỗ, KHÔNG CẦN CUỘN LÊN */}
-            <div className="grid gap-3 sm:grid-cols-2 p-3.5 border rounded-lg bg-primary/5 border-primary/20">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
-                  <PackagePlus className="h-4 w-4" />
-                  ➕ Thêm tiếp theo sản phẩm (Toàn bộ màu & size)
-                </Label>
-                <Select
-                  value={selectedProductToAdd}
-                  onValueChange={handleAddProductVariants}
-                >
-                  <SelectTrigger className="h-9 text-xs bg-background">
-                    <SelectValue placeholder="👉 Chọn thêm sản phẩm khác để thêm toàn bộ size/màu..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72 w-[540px] max-w-[92vw]">
-                    {uniqueProducts.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        <div className="flex items-center justify-between w-full gap-3 text-xs">
-                          <span className="font-medium truncate max-w-[380px]">
-                            {p.name}
-                          </span>
-                          <Badge variant="secondary" className="text-[10px] shrink-0 py-0 font-normal">
-                            {p.variantCount} biến thể
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                  <Plus className="h-4 w-4 text-primary" />
-                  🔍 Hoặc thêm tiếp 1 biến thể SKU lẻ
-                </Label>
-                <Select
-                  value={selectedVariantToAdd}
-                  onValueChange={handleAddSingleVariant}
-                >
-                  <SelectTrigger className="h-9 text-xs bg-background">
-                    <SelectValue placeholder="👉 Chọn 1 biến thể SKU lẻ cần thêm..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-80 w-[580px] max-w-[92vw]">
-                    {variants.map((v) => (
-                      <SelectItem key={v.id} value={String(v.id)}>
-                        <div className="flex items-center gap-2 py-0.5 text-xs w-full">
-                          <span className="font-mono font-semibold text-primary shrink-0">
-                            {v.sku}
-                          </span>
-                          <span className="text-muted-foreground">•</span>
-                          <span
-                            className="font-medium truncate max-w-[200px]"
-                            title={v.productName}
-                          >
-                            {v.productName}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 px-1 shrink-0 font-normal"
-                          >
-                            {v.colorName} / {v.size?.name || "FS"}
-                          </Badge>
-                          <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
-                            Tồn: {v.stock}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Phần chân trang tổng kết: Thiết kế liền mạch, cân đối và thanh lịch */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t mt-2">
-              <div className="flex items-center gap-2.5 text-sm">
-                <span className="text-muted-foreground font-medium">Tổng tiền dự kiến:</span>
-                <span className="text-xl font-bold text-primary">
-                  {draftTotalCost.toLocaleString("vi-VN")} đ
+          {/* Phần chân trang (Cố định ở đáy, chạy theo): Thiết kế liền mạch, cân đối và thanh lịch */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3.5 mt-2 border-t shrink-0">
+            <div className="flex items-center gap-2.5 text-sm">
+              <span className="text-muted-foreground font-medium">Tổng tiền dự kiến:</span>
+              <span className="text-xl font-bold text-primary">
+                {draftTotalCost.toLocaleString("vi-VN")} đ
+              </span>
+              {draftItems.length > 0 && (
+                <span className="text-xs text-muted-foreground font-medium bg-muted px-2.5 py-0.5 rounded-full border">
+                  {draftItems.length} mặt hàng • {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} SP
                 </span>
-                {draftItems.length > 0 && (
-                  <span className="text-xs text-muted-foreground font-medium bg-muted px-2.5 py-0.5 rounded-full border">
-                    {draftItems.length} mặt hàng • {draftItems.reduce((s, i) => s + Number(i.quantity || 0), 0)} SP
-                  </span>
-                )}
-              </div>
-              <div className="flex items-center gap-2.5">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setCreateOpen(false)}
-                  className="px-4 text-xs font-medium"
-                >
-                  Hủy bỏ
-                </Button>
-                <Button
-                  onClick={handleSubmitReceipt}
-                  disabled={submitting || draftItems.length === 0}
-                  className="px-5 text-xs font-semibold shadow-xs"
-                >
-                  {submitting ? "Đang lưu phiếu..." : "Xác nhận nhập kho"}
-                </Button>
-              </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2.5">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setCreateOpen(false)}
+                className="px-4 text-xs font-medium"
+              >
+                Hủy bỏ
+              </Button>
+              <Button
+                onClick={handleSubmitReceipt}
+                disabled={submitting || draftItems.length === 0}
+                className="px-5 text-xs font-semibold shadow-xs"
+              >
+                {submitting ? "Đang lưu phiếu..." : "Xác nhận nhập kho"}
+              </Button>
             </div>
           </div>
         </DialogContent>
