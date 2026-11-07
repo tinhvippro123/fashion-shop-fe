@@ -645,80 +645,6 @@ export function StockImportManager() {
               </div>
             </div>
 
-            {/* Công cụ thêm mặt hàng (2 cách: Thêm theo sản phẩm & Thêm biến thể SKU lẻ) */}
-            <div className="grid gap-3 sm:grid-cols-2 p-3.5 border rounded-lg bg-primary/5 border-primary/20">
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
-                  <PackagePlus className="h-4 w-4" />
-                  Cách 1: Nhập theo sản phẩm (Toàn bộ màu & size)
-                </Label>
-                <Select
-                  value={selectedProductToAdd}
-                  onValueChange={handleAddProductVariants}
-                >
-                  <SelectTrigger className="h-9 text-xs bg-background">
-                    <SelectValue placeholder="👉 Chọn sản phẩm để bung tất cả size/màu..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-72 w-[540px] max-w-[92vw]">
-                    {uniqueProducts.map((p) => (
-                      <SelectItem key={p.id} value={String(p.id)}>
-                        <div className="flex items-center justify-between w-full gap-3 text-xs">
-                          <span className="font-medium truncate max-w-[380px]">
-                            {p.name}
-                          </span>
-                          <Badge variant="secondary" className="text-[10px] shrink-0 py-0 font-normal">
-                            {p.variantCount} biến thể
-                          </Badge>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
-                  <Plus className="h-4 w-4 text-primary" />
-                  Cách 2: Thêm 1 biến thể SKU lẻ
-                </Label>
-                <Select
-                  value={selectedVariantToAdd}
-                  onValueChange={handleAddSingleVariant}
-                >
-                  <SelectTrigger className="h-9 text-xs bg-background">
-                    <SelectValue placeholder="👉 Chọn 1 biến thể SKU cụ thể..." />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-80 w-[580px] max-w-[92vw]">
-                    {variants.map((v) => (
-                      <SelectItem key={v.id} value={String(v.id)}>
-                        <div className="flex items-center gap-2 py-0.5 text-xs w-full">
-                          <span className="font-mono font-semibold text-primary shrink-0">
-                            {v.sku}
-                          </span>
-                          <span className="text-muted-foreground">•</span>
-                          <span
-                            className="font-medium truncate max-w-[200px]"
-                            title={v.productName}
-                          >
-                            {v.productName}
-                          </span>
-                          <Badge
-                            variant="outline"
-                            className="text-[10px] py-0 px-1 shrink-0 font-normal"
-                          >
-                            {v.colorName} / {v.size?.name || "FS"}
-                          </Badge>
-                          <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
-                            Tồn: {v.stock}
-                          </span>
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
             {/* BẢNG DANH SÁCH MẶT HÀNG NHẬP (Table compact ERP standard) */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -916,6 +842,80 @@ export function StockImportManager() {
                     )}
                   </TableBody>
                 </Table>
+              </div>
+            </div>
+
+            {/* Công cụ thêm mặt hàng ngay dưới đáy bảng: Vừa xem xong dòng cuối là chọn thêm tiếp tại chỗ, KHÔNG CẦN CUỘN LÊN */}
+            <div className="grid gap-3 sm:grid-cols-2 p-3.5 border rounded-lg bg-primary/5 border-primary/20">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold flex items-center gap-1.5 text-primary">
+                  <PackagePlus className="h-4 w-4" />
+                  ➕ Thêm tiếp theo sản phẩm (Toàn bộ màu & size)
+                </Label>
+                <Select
+                  value={selectedProductToAdd}
+                  onValueChange={handleAddProductVariants}
+                >
+                  <SelectTrigger className="h-9 text-xs bg-background">
+                    <SelectValue placeholder="👉 Chọn thêm sản phẩm khác để thêm toàn bộ size/màu..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72 w-[540px] max-w-[92vw]">
+                    {uniqueProducts.map((p) => (
+                      <SelectItem key={p.id} value={String(p.id)}>
+                        <div className="flex items-center justify-between w-full gap-3 text-xs">
+                          <span className="font-medium truncate max-w-[380px]">
+                            {p.name}
+                          </span>
+                          <Badge variant="secondary" className="text-[10px] shrink-0 py-0 font-normal">
+                            {p.variantCount} biến thể
+                          </Badge>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold flex items-center gap-1.5 text-foreground">
+                  <Plus className="h-4 w-4 text-primary" />
+                  🔍 Hoặc thêm tiếp 1 biến thể SKU lẻ
+                </Label>
+                <Select
+                  value={selectedVariantToAdd}
+                  onValueChange={handleAddSingleVariant}
+                >
+                  <SelectTrigger className="h-9 text-xs bg-background">
+                    <SelectValue placeholder="👉 Chọn 1 biến thể SKU lẻ cần thêm..." />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-80 w-[580px] max-w-[92vw]">
+                    {variants.map((v) => (
+                      <SelectItem key={v.id} value={String(v.id)}>
+                        <div className="flex items-center gap-2 py-0.5 text-xs w-full">
+                          <span className="font-mono font-semibold text-primary shrink-0">
+                            {v.sku}
+                          </span>
+                          <span className="text-muted-foreground">•</span>
+                          <span
+                            className="font-medium truncate max-w-[200px]"
+                            title={v.productName}
+                          >
+                            {v.productName}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className="text-[10px] py-0 px-1 shrink-0 font-normal"
+                          >
+                            {v.colorName} / {v.size?.name || "FS"}
+                          </Badge>
+                          <span className="ml-auto text-muted-foreground shrink-0 font-medium bg-muted/60 px-1.5 py-0.5 rounded text-[11px]">
+                            Tồn: {v.stock}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
