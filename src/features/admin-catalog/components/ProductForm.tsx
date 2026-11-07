@@ -556,11 +556,45 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   };
 
   const applyFashionPreset = () => {
-    replaceOptions([
+    const defaultOptions = [
       { name: "Màu sắc", values: ["Đen", "Trắng"] },
       { name: "Kích thước", values: ["S", "M", "L"] },
-    ]);
-    toast.success("Đã áp dụng mẫu Thời trang!");
+    ];
+    replaceOptions(defaultOptions);
+
+    const basePrice = form.getValues("price") || 0;
+    const baseSku = form.getValues("sku") || `LX-${Date.now() % 10000}`;
+    const existingVariants = form.getValues("variants") || [];
+
+    const combinations: Record<string, string>[] = [];
+    defaultOptions[0].values.forEach((c) => {
+      defaultOptions[1].values.forEach((s) => {
+        combinations.push({ "Màu sắc": c, "Kích thước": s });
+      });
+    });
+
+    const newVariants: TProductVariant[] = combinations.map((combo, i) => {
+      const matched = existingVariants.find((ev) => {
+        const evOpts = ev.options || {};
+        return Object.entries(combo).every(
+          ([k, v]) =>
+            (evOpts[k] || "").toLowerCase() === (v || "").toLowerCase()
+        );
+      });
+      const colorCode = combo["Màu sắc"] === "Đen" ? "C1" : "C2";
+      return {
+        id: matched?.id,
+        sku: matched?.sku || `${baseSku}-${colorCode}-${combo["Kích thước"]}`,
+        price: matched?.price ?? basePrice,
+        costPrice: matched?.costPrice,
+        stock: matched?.stock ?? 0,
+        options: combo,
+        image: matched?.image,
+      };
+    });
+
+    replaceVariants(newVariants);
+    toast.success("Đã áp dụng mẫu Thời trang & tự động sinh 6 biến thể (Đen, Trắng × S, M, L)!");
   };
 
   const handleQuickSetName = (index: number, name: string) => {
@@ -1282,50 +1316,64 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   )
                                     return null;
                                   const isColor = isColorAttribute(currentName);
+                                  const currentValues =
+                                    watchedOptions?.[index]?.values || [];
+                                  const availableSuggestions = (
+                                    suggestions.values[currentName] || []
+                                  ).filter((sugg) => !currentValues.includes(sugg));
+
+                                  if (availableSuggestions.length === 0)
+                                    return null;
+
                                   return (
-                                    <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                                      {suggestions.values[currentName].map(
-                                        (sugg: string) => (
-                                          <Badge
-                                            key={sugg}
-                                            variant="outline"
-                                            className="group/sugg text-[10px] py-0 pl-1.5 pr-1 hover:bg-muted font-normal text-muted-foreground flex items-center gap-1 transition-all"
-                                          >
-                                            <span
-                                              className="cursor-pointer flex items-center gap-1 py-0.5"
-                                              onClick={() =>
-                                                handleQuickAddValue(index, sugg)
-                                              }
-                                              title={`Thêm ${sugg}`}
+                                    <div className="space-y-1 mt-2">
+                                      <div className="text-[11px] text-muted-foreground font-medium">
+                                        Gợi ý sẵn có ({availableSuggestions.length}):
+                                      </div>
+                                      <div className="flex gap-1.5 flex-wrap max-h-24 overflow-y-auto p-1.5 border rounded-md bg-muted/20">
+                                        {availableSuggestions.map(
+                                          (sugg: string) => (
+                                            <Badge
+                                              key={sugg}
+                                              variant="outline"
+                                              className="group/sugg text-[10px] py-0 pl-1.5 pr-1 hover:bg-muted font-normal text-muted-foreground flex items-center gap-1 transition-all bg-card"
                                             >
-                                              {isColor && (
-                                                <span
-                                                  className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
-                                                  style={{
-                                                    backgroundColor:
-                                                      getFashionColorHex(sugg),
-                                                  }}
-                                                />
-                                              )}
-                                              + {sugg}
-                                            </span>
-                                            <button
-                                              type="button"
-                                              className="opacity-0 group-hover/sugg:opacity-100 hover:text-destructive hover:bg-destructive/15 rounded-full p-0.5 transition-all ml-0.5"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                handleDeleteSuggestion(
-                                                  currentName,
-                                                  sugg
-                                                );
-                                              }}
-                                              title={`Xóa vĩnh viễn "${sugg}" khỏi danh mục gợi ý`}
-                                            >
-                                              <X className="h-2.5 w-2.5" />
-                                            </button>
-                                          </Badge>
-                                        )
-                                      )}
+                                              <span
+                                                className="cursor-pointer flex items-center gap-1 py-0.5"
+                                                onClick={() =>
+                                                  handleQuickAddValue(index, sugg)
+                                                }
+                                                title={`Thêm ${sugg}`}
+                                              >
+                                                {isColor && (
+                                                  <span
+                                                    className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
+                                                    style={{
+                                                      backgroundColor:
+                                                        getFashionColorHex(sugg),
+                                                    }}
+                                                  />
+                                                )}
+                                                + {sugg}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                className="opacity-0 group-hover/sugg:opacity-100 hover:text-destructive hover:bg-destructive/15 rounded-full p-0.5 transition-all ml-0.5"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  handleDeleteSuggestion(
+                                                    currentName,
+                                                    sugg
+                                                  );
+                                                }}
+                                                title={`Xóa vĩnh viễn "${sugg}" khỏi danh mục gợi ý`}
+                                              >
+                                                <X className="h-2.5 w-2.5" />
+                                              </button>
+                                            </Badge>
+                                          )
+                                        )}
+                                      </div>
                                     </div>
                                   );
                                 })()}
