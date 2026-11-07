@@ -199,6 +199,9 @@ export default function CheckoutPage() {
 
     if (!finalName || !finalPhone || !finalAddress) {
       toast.error("Vui lòng chọn hoặc nhập đầy đủ địa chỉ giao hàng");
+      if (isAuthenticated && addresses.length === 0) {
+        setShowAddAddressModal(true);
+      }
       return;
     }
 
