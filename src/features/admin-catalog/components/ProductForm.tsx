@@ -21,7 +21,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/shared/ui/card";
-import { UploadCloud, Plus, Trash2, Save, X, Check, Settings, Boxes, PackagePlus } from "lucide-react";
+import { UploadCloud, Plus, Trash2, Save, X, Check, Settings, Boxes, PackagePlus, AlertTriangle } from "lucide-react";
 import { BackButton } from "@/shared/ui/back-button";
 import { cn } from "@/shared/utils/utils";
 import { formatPrice } from "@/shared/utils/format";
@@ -1696,9 +1696,17 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <CardTitle>Danh sách Biến thể</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <CardTitle>Danh sách Biến thể</CardTitle>
+                        {variantFields.some((v, idx) => (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5) && (
+                          <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40 text-xs font-semibold gap-1">
+                            <AlertTriangle className="h-3 w-3" />
+                            {variantFields.filter((v, idx) => (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5).length} biến thể sắp hết (≤ 5)
+                          </Badge>
+                        )}
+                      </div>
                       <CardDescription>
-                        Quản lý giá và kho cho từng phân loại.
+                        Quản lý giá và kho cho từng phân loại. Hệ thống cảnh báo khi tồn kho ≤ 5 sản phẩm.
                       </CardDescription>
                     </div>
                     <Button
@@ -1763,7 +1771,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                           <div className="bg-muted/50 p-4 hidden sm:flex items-center gap-4 text-sm font-semibold">
                             <div className="flex-1">Phân loại</div>
                             <div className="w-28">Giá bán</div>
-                            <div className="w-20 text-center">Tồn kho</div>
+                            <div className="w-24 text-center">Tồn kho</div>
                             <div className="w-32">SKU</div>
                             <div className="w-9"></div>
                           </div>
@@ -1816,15 +1824,42 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   )}
                                 />
                               </div>
-                              <div className="col-span-1 sm:w-20 space-y-1">
+                              <div className="col-span-1 sm:w-24 space-y-1">
                                 <span className="text-[11px] font-medium text-muted-foreground sm:hidden">Tồn kho</span>
                                 <div className="h-9 flex items-center justify-center">
-                                  <span
-                                    className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-muted/80 text-foreground border w-full text-center"
-                                    title="Tồn kho hiện tại (Quản lý tự động qua chứng từ Nhập kho)"
-                                  >
-                                    {watchedVariants?.[i]?.stock ?? v.stock ?? 0}
-                                  </span>
+                                  {(() => {
+                                    const stockVal = watchedVariants?.[i]?.stock ?? v.stock ?? 0;
+                                    if (stockVal === 0) {
+                                      return (
+                                        <span
+                                          className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/40 w-full text-center flex items-center justify-center gap-1 shadow-2xs"
+                                          title="Hết hàng (0 SP). Vui lòng lập phiếu nhập kho!"
+                                        >
+                                          <span>0</span>
+                                          <span className="text-[9px] px-1 py-0.5 rounded bg-red-600 text-white font-semibold uppercase leading-none">Hết</span>
+                                        </span>
+                                      );
+                                    }
+                                    if (stockVal <= 5) {
+                                      return (
+                                        <span
+                                          className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/40 w-full text-center flex items-center justify-center gap-1 shadow-2xs"
+                                          title={`Cảnh báo sắp hết hàng: Còn ${stockVal} sản phẩm (Ngưỡng cảnh báo: ≤ 5 SP)`}
+                                        >
+                                          <span>{stockVal}</span>
+                                          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
+                                        </span>
+                                      );
+                                    }
+                                    return (
+                                      <span
+                                        className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-muted/80 text-foreground border w-full text-center"
+                                        title={`Tồn kho an toàn: ${stockVal} sản phẩm`}
+                                      >
+                                        {stockVal}
+                                      </span>
+                                    );
+                                  })()}
                                 </div>
                               </div>
                               <div className="col-span-2 sm:col-span-1 sm:w-32 space-y-1">
