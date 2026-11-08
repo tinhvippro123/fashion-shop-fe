@@ -151,8 +151,8 @@ export default function VnPayInAppModal({
               spellCheck={false}
               value={cardNumber}
               onChange={(e) => setCardNumber(e.target.value)}
-              placeholder="9704 1985 2619 1432 198"
-              className="w-full px-3 py-1.5 border border-[#d1d5db] rounded-[6px] text-[13px] font-mono text-[#222] focus:outline-none focus:border-[#005baa]"
+              placeholder="Nhập số thẻ in trên thẻ"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] font-mono text-[#222] placeholder:font-sans placeholder:text-[#9ca3af] focus:outline-none focus:border-[#005baa]"
               required
             />
           </div>
@@ -168,8 +168,8 @@ export default function VnPayInAppModal({
               spellCheck={false}
               value={cardHolder}
               onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-              placeholder="NGUYEN VAN A"
-              className="w-full px-3 py-1.5 border border-[#d1d5db] rounded-[6px] text-[13px] uppercase text-[#222] focus:outline-none focus:border-[#005baa]"
+              placeholder="Tên in trên thẻ (không dấu)"
+              className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] uppercase text-[#222] placeholder:normal-case placeholder:font-sans placeholder:text-[#9ca3af] focus:outline-none focus:border-[#005baa]"
               required
             />
           </div>
@@ -186,8 +186,9 @@ export default function VnPayInAppModal({
                 spellCheck={false}
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
-                placeholder="07/15"
-                className="w-full px-3 py-1.5 border border-[#d1d5db] rounded-[6px] text-[13px] text-center font-mono text-[#222] focus:outline-none focus:border-[#005baa]"
+                placeholder="MM/YY"
+                maxLength={5}
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] text-center font-mono text-[#222] placeholder:font-sans placeholder:text-[#9ca3af] focus:outline-none focus:border-[#005baa]"
                 required
               />
             </div>
@@ -200,18 +201,24 @@ export default function VnPayInAppModal({
                 autoComplete="off"
                 spellCheck={false}
                 value={otp}
-                onChange={(e) => setOtp(e.target.value)}
-                placeholder="123456"
-                className="w-full px-3 py-1.5 border border-[#d1d5db] rounded-[6px] text-[13px] text-center font-mono font-bold text-[#005baa] focus:outline-none focus:border-[#005baa]"
+                onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
+                placeholder="Nhập 6 số OTP"
+                maxLength={6}
+                className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] text-center font-mono font-bold text-[#222] placeholder:font-sans placeholder:font-normal placeholder:text-[#9ca3af] focus:outline-none focus:border-[#005baa]"
                 required
               />
             </div>
           </div>
 
           {/* Payment hint */}
-          <div className="bg-sky-50 border border-sky-200 rounded-[6px] px-2.5 py-1.5 text-[11px] text-sky-800 flex items-center gap-1.5">
-            <span className="font-bold text-sky-900">ℹ</span>
-            <span>Hệ thống thanh toán bảo mật • Bấm xác nhận để hoàn tất đơn hàng</span>
+          <div className="bg-sky-50 border border-sky-200 rounded-[6px] px-3 py-2 text-[11px] text-sky-800 space-y-1">
+            <div className="flex items-center gap-1.5 font-medium">
+              <span className="font-bold text-sky-900">ℹ</span>
+              <span>Cổng thanh toán bảo mật • Sandbox thử nghiệm</span>
+            </div>
+            <div className="text-[10.5px] text-sky-700 leading-normal">
+              Nhập thông tin thẻ thanh toán hoặc bấm nút <strong>&quot;Điền mẫu thẻ test&quot;</strong> ở trên để nạp nhanh thông tin thẻ NCB mẫu.
+            </div>
           </div>
 
           {/* Submit Button */}
