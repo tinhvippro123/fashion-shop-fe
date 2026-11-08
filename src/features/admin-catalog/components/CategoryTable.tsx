@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 import { Badge } from "@/shared/ui/badge";
-import { Search, Filter, MoreHorizontal, X, EyeOff, Eye, Trash2 } from "lucide-react";
+import { Search, Filter, MoreHorizontal, X, EyeOff, Eye, Trash2, Pencil } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,8 +60,8 @@ function CategoryTableActions({
             active: category.isActive,
           }}
           trigger={
-            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-              Chỉnh sửa
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="cursor-pointer flex items-center">
+              <Pencil className="mr-2 h-4 w-4" /> Chỉnh sửa
             </DropdownMenuItem>
           }
         />

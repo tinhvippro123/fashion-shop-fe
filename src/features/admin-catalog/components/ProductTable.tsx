@@ -27,6 +27,7 @@ import {
   PackagePlus,
   AlertTriangle,
   ExternalLink,
+  Pencil,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -56,11 +57,11 @@ function ProductTableActions({
         render={
           <Link
             href={`/admin/products/${product.id}/edit`}
-            className="w-full h-full cursor-pointer"
+            className="w-full h-full cursor-pointer flex items-center"
           />
         }
       >
-        Chỉnh sửa
+        <Pencil className="mr-2 h-4 w-4" /> Chỉnh sửa
       </DropdownMenuItem>
 
       <DropdownMenuItem
