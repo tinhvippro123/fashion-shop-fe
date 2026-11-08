@@ -151,7 +151,7 @@ export default function VnPayInAppModal({
               spellCheck={false}
               value={cardNumber}
               onChange={(e) => setCardNumber(e.target.value)}
-              placeholder="Nhập số thẻ in trên thẻ"
+              placeholder="Nhập số thẻ ATM"
               className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] font-mono text-[#222] placeholder:font-sans placeholder:text-[#9ca3af] focus:outline-none focus:border-[#005baa]"
               required
             />
@@ -168,7 +168,7 @@ export default function VnPayInAppModal({
               spellCheck={false}
               value={cardHolder}
               onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
-              placeholder="Tên in trên thẻ (không dấu)"
+              placeholder="Họ và tên chủ thẻ (không dấu)"
               className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] uppercase text-[#222] placeholder:normal-case placeholder:font-sans placeholder:text-[#9ca3af] focus:outline-none focus:border-[#005baa]"
               required
             />
@@ -202,7 +202,7 @@ export default function VnPayInAppModal({
                 spellCheck={false}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value.replace(/[^0-9]/g, "").slice(0, 6))}
-                placeholder="Nhập 6 số OTP"
+                placeholder="Nhập mã xác thực OTP"
                 maxLength={6}
                 className="w-full px-3 py-2 border border-[#d1d5db] rounded-[6px] text-[13px] text-center font-mono font-bold text-[#222] placeholder:font-sans placeholder:font-normal placeholder:text-[#9ca3af] focus:outline-none focus:border-[#005baa]"
                 required
