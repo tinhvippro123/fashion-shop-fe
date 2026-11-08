@@ -89,12 +89,7 @@ export default function VnPayInAppModal({
   };
 
   return (
-    <div
-      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in"
-      onClick={() => {
-        if (!processing) onClose();
-      }}
-    >
+    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
       <div
         className="relative w-full max-w-[440px] bg-white rounded-[14px] shadow-2xl overflow-hidden border border-[#e5e7eb]"
         onClick={(e) => e.stopPropagation()}
