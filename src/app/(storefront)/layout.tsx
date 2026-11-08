@@ -25,6 +25,8 @@ export default function StorefrontLayout({
         closeOnClick
         pauseOnHover
         theme="colored"
+        style={{ zIndex: 999999 }}
+        className="!z-[999999]"
       />
     </div>
   );

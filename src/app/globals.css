@@ -191,3 +191,11 @@ html {
   }
 }
 
+/* Ensure Toast notifications always stay above all modals, drawers, and overlays */
+:root {
+  --toastify-z-index: 999999;
+}
+.Toastify__toast-container {
+  z-index: 999999 !important;
+}
+

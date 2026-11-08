@@ -31,6 +31,7 @@ import {
   VoucherDto,
 } from "@/features/cart-and-order/types/order";
 import VnPayInAppModal from "@/features/cart-and-order/components/checkout/VnPayInAppModal";
+import { cn } from "@/shared/utils/utils";
 
 const emptySubscribe = () => () => { };
 
@@ -1096,34 +1097,60 @@ export default function CheckoutPage() {
                   Hiện chưa có mã giảm giá nào đang hoạt động.
                 </div>
               ) : (
-                availableVouchers.map((v) => (
-                  <div
-                    key={v.id}
-                    className="border border-[#e1e1e1] rounded-[6px] p-[16px] flex justify-between items-center gap-[15px] hover:border-[#222] transition-colors"
-                  >
-                    <div>
-                      <div className="font-bold text-[15px] text-[#222]">
-                        {v.code}{" "}
-                        <span className="font-normal text-[#dc3545]">
-                          (-{v.discountAmount})
-                        </span>
-                      </div>
-                      <div className="text-[13px] text-[#666] mt-1">
-                        {v.name} • Đơn tối thiểu: {v.minOrderValue}
-                      </div>
-                      <div className="text-[12px] text-[#999] mt-1">
-                        Hiệu lực: {v.duration}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => applyVoucherCode(v.code)}
-                      className="bg-[#222] text-white text-[12px] font-bold px-[16px] py-[10px] rounded-tl-[12px] rounded-br-[12px] uppercase shrink-0 hover:bg-black"
+                availableVouchers.map((v) => {
+                  const minReq = v.minOrderValueRaw || 0;
+                  const isEligible = totalAmount >= minReq;
+                  const missingAmount = Math.max(0, minReq - totalAmount);
+
+                  return (
+                    <div
+                      key={v.id}
+                      className={cn(
+                        "border rounded-[6px] p-[16px] flex justify-between items-center gap-[15px] transition-colors",
+                        isEligible
+                          ? "border-[#e1e1e1] hover:border-[#222]"
+                          : "border-border/60 bg-muted/20"
+                      )}
                     >
-                      Dùng ngay
-                    </button>
-                  </div>
-                ))
+                      <div className="flex-1">
+                        <div className="font-bold text-[15px] text-[#222]">
+                          {v.code}{" "}
+                          <span className="font-normal text-[#dc3545]">
+                            (-{v.discountAmount})
+                          </span>
+                        </div>
+                        <div className="text-[13px] text-[#666] mt-1">
+                          {v.name} • Đơn tối thiểu: {v.minOrderValue}
+                        </div>
+                        {!isEligible && missingAmount > 0 && (
+                          <div className="text-[11px] font-medium text-amber-700 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded mt-1.5 inline-block">
+                            Còn thiếu {missingAmount.toLocaleString("vi-VN")}đ để áp dụng
+                          </div>
+                        )}
+                        <div className="text-[12px] text-[#999] mt-1">
+                          Hiệu lực: {v.duration}
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => applyVoucherCode(v.code)}
+                        className={cn(
+                          "text-[12px] font-bold px-[16px] py-[10px] rounded-tl-[12px] rounded-br-[12px] uppercase shrink-0 transition-colors cursor-pointer",
+                          isEligible
+                            ? "bg-[#222] text-white hover:bg-black"
+                            : "bg-muted text-muted-foreground hover:bg-muted/80 border border-border"
+                        )}
+                        title={
+                          !isEligible
+                            ? `Cần mua thêm ${missingAmount.toLocaleString("vi-VN")}đ để dùng mã này`
+                            : undefined
+                        }
+                      >
+                        Dùng ngay
+                      </button>
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
