@@ -12,6 +12,7 @@ export default function ProductsPage() {
 
   const allProducts = products;
   const activeProducts = products.filter((p) => p.isActive && p.stock > 0);
+  const lowStockProducts = products.filter((p) => p.isActive && p.lowStockVariantCount > 0);
   const outOfStockProducts = products.filter((p) => p.isActive && p.stock === 0);
   const hiddenProducts = products.filter((p) => !p.isActive);
 
@@ -48,8 +49,14 @@ export default function ProductsPage() {
               Đang bán ({activeProducts.length})
             </TabsTrigger>
             <TabsTrigger
+              value="low_stock"
+              className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-amber-600 font-medium"
+            >
+              Sắp hết hàng ({lowStockProducts.length})
+            </TabsTrigger>
+            <TabsTrigger
               value="out_of_stock"
-              className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-amber-700"
+              className="data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:text-red-600"
             >
               Hết hàng ({outOfStockProducts.length})
             </TabsTrigger>
@@ -73,6 +80,14 @@ export default function ProductsPage() {
         <TabsContent value="active" className="mt-0">
           <ProductTable
             products={activeProducts}
+            onToggleProductActive={setProductActiveState}
+            isLoading={isLoading}
+          />
+        </TabsContent>
+
+        <TabsContent value="low_stock" className="mt-0">
+          <ProductTable
+            products={lowStockProducts}
             onToggleProductActive={setProductActiveState}
             isLoading={isLoading}
           />

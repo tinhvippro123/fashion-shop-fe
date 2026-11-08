@@ -381,24 +381,36 @@ export function ProductTable({
                         {product.price}
                       </TableCell>
                       <TableCell>
-                        {product.stock > 0 && product.stock <= 5 ? (
-                          <div
-                            className="flex items-center gap-1.5 text-orange-500 font-medium"
-                            title="Sắp hết hàng"
+                        <div className="flex flex-col gap-1">
+                          <span
+                            className={cn(
+                              "font-bold text-sm",
+                              product.stock === 0
+                                ? "text-red-600 font-extrabold"
+                                : product.stock <= 5
+                                ? "text-amber-600 font-bold"
+                                : "text-foreground"
+                            )}
                           >
-                            <span>{product.stock}</span>
-                            <AlertTriangle className="h-4 w-4" />
-                          </div>
-                        ) : product.stock === 0 ? (
-                          <div
-                            className="flex items-center gap-1.5 text-red-500 font-bold"
-                            title="Hết hàng"
-                          >
-                            <span>0</span>
-                          </div>
-                        ) : (
-                          product.stock
-                        )}
+                            {product.stock}
+                          </span>
+
+                          {product.lowStockVariantCount > 0 && (
+                            <div
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded cursor-help w-fit"
+                              title={`Chi tiết biến thể sắp hết:\n${product.lowStockVariants.map((lv) => `• ${lv.label}`).join("\n")}`}
+                            >
+                              <AlertTriangle className="h-3 w-3 shrink-0 text-amber-600" />
+                              <span>{product.lowStockVariantCount} biến thể ≤ 5</span>
+                            </div>
+                          )}
+
+                          {product.stock === 0 && (
+                            <span className="inline-block text-[10px] font-bold text-red-600 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-900 w-fit">
+                              Hết hàng
+                            </span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
                         {product.sold ? product.sold.toLocaleString("vi-VN") : "0"}
@@ -486,9 +498,16 @@ export function ProductTable({
                     >
                       {product.name}
                     </h4>
-                    <p className="text-sm text-muted-foreground mb-1">
-                      {product.category}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mb-1">
+                      <span>{product.category}</span>
+                      <span>&bull;</span>
+                      <span>Kho: <b className={product.stock === 0 ? "text-red-600" : ""}>{product.stock}</b></span>
+                      {product.lowStockVariantCount > 0 && (
+                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded">
+                          {product.lowStockVariantCount} biến thể ≤ 5
+                        </span>
+                      )}
+                    </div>
                     <div className="mt-auto flex items-center justify-between">
                       <span className="font-bold text-foreground">
                         {product.price}

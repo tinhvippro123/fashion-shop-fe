@@ -79,6 +79,13 @@ export interface AdminProduct {
   isActive: boolean;
   image?: string;
   description?: string;
+  lowStockVariantCount: number;
+  outOfStockVariantCount: number;
+  lowStockVariants: Array<{
+    sku: string;
+    stock: number;
+    label: string;
+  }>;
 }
 
 export interface AdminCategory {

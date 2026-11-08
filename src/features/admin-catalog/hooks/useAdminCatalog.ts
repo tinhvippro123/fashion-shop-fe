@@ -9,6 +9,20 @@ import {
 } from "../types/catalog.admin";
 
 function mapRawToAdminProduct(p: RawProductResponseDto): AdminProduct {
+  const rawVariants = p.adminVariants || [];
+  const lowStockList = rawVariants
+    .filter((v) => (v.stock ?? 0) <= 5)
+    .map((v) => {
+      const optStr = Object.values(v.options || {}).join(" / ");
+      return {
+        sku: v.sku,
+        stock: v.stock ?? 0,
+        label: optStr ? `${optStr}: còn ${v.stock}` : `${v.sku}: còn ${v.stock}`,
+      };
+    });
+
+  const outOfStockCount = rawVariants.filter((v) => (v.stock ?? 0) === 0).length;
+
   return {
     id: String(p.id),
     numericId: p.id,
@@ -32,6 +46,9 @@ function mapRawToAdminProduct(p: RawProductResponseDto): AdminProduct {
     isActive: Boolean(p.isActive),
     image: p.images?.[0],
     description: p.description,
+    lowStockVariantCount: lowStockList.length,
+    outOfStockVariantCount: outOfStockCount,
+    lowStockVariants: lowStockList,
   };
 }
 
