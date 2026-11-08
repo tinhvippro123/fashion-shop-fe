@@ -54,7 +54,28 @@ export default function ProductCard({
       : null
   );
   const [isQuickSizeOpen, setIsQuickSizeOpen] = useState(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const quickSizeRef = useRef<HTMLDivElement>(null);
+
+  const activeColor =
+    product.productColors?.find((c) => c.id === activeColorId) ||
+    product.productColors?.[0];
+
+  const mainImage =
+    activeColor && activeColor.images && activeColor.images.length > 0
+      ? resolveImageUrl(activeColor.images[0].imageUrl)
+      : "/uploads/03321697-61dc-4f30-8da7-d25085a78741.webp";
+
+  const hoverImage =
+    activeColor && activeColor.images && activeColor.images.length > 1
+      ? resolveImageUrl(activeColor.images[1].imageUrl)
+      : null;
+
+  useEffect(() => {
+    setIsLoaded(false);
+    setHasError(false);
+  }, [mainImage]);
 
   useEffect(() => {
     if (!isQuickSizeOpen) return;
@@ -111,20 +132,6 @@ export default function ProductCard({
     }
   };
 
-  const activeColor =
-    product.productColors?.find((c) => c.id === activeColorId) ||
-    product.productColors?.[0];
-
-  const mainImage =
-    activeColor && activeColor.images && activeColor.images.length > 0
-      ? resolveImageUrl(activeColor.images[0].imageUrl)
-      : "/uploads/03321697-61dc-4f30-8da7-d25085a78741.webp";
-
-  const hoverImage =
-    activeColor && activeColor.images && activeColor.images.length > 1
-      ? resolveImageUrl(activeColor.images[1].imageUrl)
-      : mainImage;
-
   const availableVariants = activeColor?.variants || [];
 
   return (
@@ -151,21 +158,41 @@ export default function ProductCard({
       ) : null}
 
       {/* Image container: Scoped hover so only hovering the image swaps it */}
-      <div className="group relative overflow-hidden aspect-[2/3] bg-[#f8f9fa]">
+      <div className="group relative overflow-hidden aspect-[2/3] bg-[#f8f9fa] rounded-[4px]">
+        {/* Shimmer skeleton while loading */}
+        {!isLoaded && (
+          <div className="absolute inset-0 bg-gradient-to-r from-[#f0f0f2] via-[#e4e4e7] to-[#f0f0f2] animate-pulse z-[1]" />
+        )}
+
         <Link href={`/product/${product.slug || product.id}`} className="block w-full h-full">
+          {/* Main product image with smooth fade-in */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={mainImage}
+            src={hasError ? "/uploads/03321697-61dc-4f30-8da7-d25085a78741.webp" : mainImage}
             alt={product.name}
-            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
+            onLoad={() => setIsLoaded(true)}
+            onError={() => {
+              setHasError(true);
+              setIsLoaded(true);
+            }}
+            className={`w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105 ${
+              isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
+            }`}
           />
 
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={hoverImage}
-            alt={`${product.name} hover`}
-            className="absolute top-0 left-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[2]"
-          />
+          {/* Hover alternate image (only rendered if distinct from main image) */}
+          {hoverImage && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={hoverImage}
+              alt={`${product.name} hover`}
+              loading="lazy"
+              decoding="async"
+              className="absolute top-0 left-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300 z-[2] pointer-events-none"
+            />
+          )}
         </Link>
       </div>
 

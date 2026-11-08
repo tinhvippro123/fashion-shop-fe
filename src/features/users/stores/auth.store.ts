@@ -30,6 +30,10 @@ export interface RegisterPayload {
   dateOfBirth?: string;
   password: string;
   otpCode: string;
+  province?: string;
+  district?: string;
+  ward?: string;
+  streetAddress?: string;
 }
 
 interface AuthState {
@@ -180,6 +184,7 @@ export const useAuthStore = create<AuthState>()(
       name: "auth-storage",
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
+        token: state.token,
         user: state.user,
         wishlistIds: state.wishlistIds,
       }),

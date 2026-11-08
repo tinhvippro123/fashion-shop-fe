@@ -158,8 +158,18 @@ export default function ProductGrid({
 
       {/* Product Grid */}
       {loading ? (
-        <div className="py-16 text-center text-[#6c6d70]">
-          Đang tải danh sách sản phẩm...
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-x-[20px] gap-y-[30px] w-full animate-pulse py-2">
+          {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+            <div key={i} className="mb-[30px]">
+              <div className="aspect-[2/3] bg-gradient-to-r from-[#f0f0f2] via-[#e4e4e7] to-[#f0f0f2] rounded-[4px] mb-[15px]" />
+              <div className="flex gap-[6px] mb-[10px]">
+                <div className="w-[18px] h-[18px] rounded-full bg-[#e4e4e7]" />
+                <div className="w-[18px] h-[18px] rounded-full bg-[#e4e4e7]" />
+              </div>
+              <div className="h-[14px] bg-[#e4e4e7] rounded w-3/4 mb-[8px]" />
+              <div className="h-[16px] bg-[#e4e4e7] rounded w-1/2" />
+            </div>
+          ))}
         </div>
       ) : paginatedProducts.length === 0 ? (
         <div className="py-20 flex flex-col items-center justify-center text-center px-4">

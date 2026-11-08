@@ -146,22 +146,11 @@ export default function RegisterPage() {
         dateOfBirth: dateOfBirth || undefined,
         password,
         otpCode: otpCode.trim(),
+        province: selectedProvince || undefined,
+        district: selectedDistrict || undefined,
+        ward: selectedWard || undefined,
+        streetAddress: street.trim() || undefined,
       });
-
-      if (selectedProvince && street.trim()) {
-        await apiFetch("/account/addresses", {
-          method: "POST",
-          body: JSON.stringify({
-            recipientName: fullName,
-            phone: phone.trim(),
-            province: selectedProvince,
-            district: selectedDistrict,
-            ward: selectedWard,
-            streetAddress: street.trim(),
-            isDefault: true,
-          }),
-        }).catch(() => null);
-      }
 
       toast.success("Đăng ký tài khoản thành công!");
       router.push("/");

@@ -14,6 +14,9 @@ export default function Home() {
   const [womenProducts, setWomenProducts] = useState<Product[]>([]);
   const [menProducts, setMenProducts] = useState<Product[]>([]);
   const [saleProducts, setSaleProducts] = useState<Product[]>([]);
+  const [loadingWomen, setLoadingWomen] = useState(true);
+  const [loadingMen, setLoadingMen] = useState(true);
+  const [loadingSale, setLoadingSale] = useState(true);
 
   useEffect(() => {
     // 1. New Arrival - Nữ (Giới hạn 10 sản phẩm mới nhất)
@@ -22,7 +25,8 @@ export default function Home() {
         const list = res || [];
         setWomenProducts(list.slice(0, 10));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoadingWomen(false));
 
     // 2. New Arrival - Nam (Giới hạn 10 sản phẩm mới nhất)
     apiFetch<Product[]>("/catalog/products?categorySlug=nam")
@@ -30,7 +34,8 @@ export default function Home() {
         const list = res || [];
         setMenProducts(list.slice(0, 10));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoadingMen(false));
 
     // 3. Best Seller & Hot Deals (Lấy 10 sản phẩm đang có ưu đãi giảm giá tốt nhất)
     apiFetch<Product[]>("/catalog/products?onSale=true")
@@ -38,7 +43,8 @@ export default function Home() {
         const list = res || [];
         setSaleProducts(list.slice(0, 10));
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setLoadingSale(false));
   }, []);
 
   return (
@@ -79,7 +85,7 @@ export default function Home() {
         <div>
           {activeTab === "women" && (
             <div className="animate-fade-in">
-              <ProductSlider products={womenProducts} sliderId="new-women" />
+              <ProductSlider products={womenProducts} loading={loadingWomen} sliderId="new-women" />
               <div className="text-center mt-[24px]">
                 <Link
                   href="/danh-muc/nu"
@@ -93,7 +99,7 @@ export default function Home() {
 
           {activeTab === "men" && (
             <div className="animate-fade-in">
-              <ProductSlider products={menProducts} sliderId="new-men" />
+              <ProductSlider products={menProducts} loading={loadingMen} sliderId="new-men" />
               <div className="text-center mt-[24px]">
                 <Link
                   href="/danh-muc/nam"
@@ -111,7 +117,7 @@ export default function Home() {
       <FeaturedCategories />
 
       {/* 4. BEST SELLER & HOT DEALS SECTION */}
-      {saleProducts.length > 0 && (
+      {(loadingSale || saleProducts.length > 0) && (
         <section className="w-full min-[1200px]:px-[85px] px-[15px] mx-auto my-[60px]">
           <div className="text-center mb-[25px]">
             <h3 className="text-[28px] md:text-[32px] font-bold uppercase tracking-[3px] text-[#000]">
@@ -119,7 +125,7 @@ export default function Home() {
             </h3>
           </div>
 
-          <ProductSlider products={saleProducts} sliderId="best-seller" />
+          <ProductSlider products={saleProducts} loading={loadingSale} sliderId="best-seller" />
 
           <div className="text-center mt-[24px]">
             <Link
