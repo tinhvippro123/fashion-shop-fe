@@ -14,10 +14,12 @@ function mapRawToAdminProduct(p: RawProductResponseDto): AdminProduct {
     .filter((v) => (v.stock ?? 0) <= 5)
     .map((v) => {
       const optStr = Object.values(v.options || {}).join(" / ");
+      const stockNum = v.stock ?? 0;
+      const statusText = stockNum === 0 ? "Hết (0)" : `còn ${stockNum}`;
       return {
         sku: v.sku,
-        stock: v.stock ?? 0,
-        label: optStr ? `${optStr}: còn ${v.stock}` : `${v.sku}: còn ${v.stock}`,
+        stock: stockNum,
+        label: optStr ? `${optStr} (${statusText})` : `${v.sku} (${statusText})`,
       };
     });
 

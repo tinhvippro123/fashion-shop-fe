@@ -297,7 +297,7 @@ export function ProductTable({
                 <TableHead>Tên sản phẩm</TableHead>
                 <TableHead>Danh mục</TableHead>
                 <TableHead>Giá bán</TableHead>
-                <TableHead>Kho</TableHead>
+                <TableHead className="min-w-[170px]">Tồn kho &amp; Biến thể</TableHead>
                 <TableHead>Đã bán</TableHead>
                 <TableHead>Đánh giá</TableHead>
                 <TableHead>Trạng thái</TableHead>
@@ -381,34 +381,51 @@ export function ProductTable({
                         {product.price}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          <span
-                            className={cn(
-                              "font-bold text-sm",
-                              product.stock === 0
-                                ? "text-red-600 font-extrabold"
-                                : product.stock <= 5
-                                ? "text-amber-600 font-bold"
-                                : "text-foreground"
-                            )}
-                          >
-                            {product.stock}
-                          </span>
-
-                          {product.lowStockVariantCount > 0 && (
-                            <div
-                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-amber-700 dark:text-amber-400 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.5 rounded cursor-help w-fit"
-                              title={`Chi tiết biến thể sắp hết:\n${product.lowStockVariants.map((lv) => `• ${lv.label}`).join("\n")}`}
+                        <div className="flex flex-col gap-1.5 min-w-[150px]">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn(
+                                "font-bold text-sm font-mono",
+                                product.stock === 0
+                                  ? "text-red-600 font-extrabold"
+                                  : product.stock <= 5
+                                  ? "text-amber-600 font-bold"
+                                  : "text-foreground"
+                              )}
                             >
-                              <AlertTriangle className="h-3 w-3 shrink-0 text-amber-600" />
-                              <span>{product.lowStockVariantCount} biến thể ≤ 5</span>
-                            </div>
-                          )}
-
-                          {product.stock === 0 && (
-                            <span className="inline-block text-[10px] font-bold text-red-600 bg-red-50 dark:bg-red-950/40 px-1.5 py-0.5 rounded border border-red-200 dark:border-red-900 w-fit">
-                              Hết hàng
+                              Tổng: {product.stock}
                             </span>
+                            {product.stock === 0 && (
+                              <span className="inline-block text-[9.5px] font-bold text-red-600 bg-red-500/15 px-1 py-0.2 rounded border border-red-500/30">
+                                Hết hàng
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Hiển thị trực tiếp danh sách tên biến thể sắp hết (<= 5) */}
+                          {product.lowStockVariantCount > 0 && (
+                            <div className="flex flex-col gap-1 mt-0.5">
+                              {product.lowStockVariants.slice(0, 3).map((lv) => (
+                                <div
+                                  key={lv.sku}
+                                  className={cn(
+                                    "inline-flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded border leading-tight w-fit font-medium",
+                                    lv.stock === 0
+                                      ? "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/35 font-semibold"
+                                      : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/35"
+                                  )}
+                                  title={`Mã SKU: ${lv.sku}`}
+                                >
+                                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" />
+                                  <span className="font-semibold">{lv.label}</span>
+                                </div>
+                              ))}
+                              {product.lowStockVariants.length > 3 && (
+                                <span className="text-[10px] text-muted-foreground italic pl-1">
+                                  + thêm {product.lowStockVariants.length - 3} biến thể khác...
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </TableCell>
@@ -498,14 +515,29 @@ export function ProductTable({
                     >
                       {product.name}
                     </h4>
-                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground mb-1">
-                      <span>{product.category}</span>
-                      <span>&bull;</span>
-                      <span>Kho: <b className={product.stock === 0 ? "text-red-600" : ""}>{product.stock}</b></span>
+                    <div className="flex flex-col gap-1 text-xs text-muted-foreground mb-1.5">
+                      <div className="flex items-center gap-2">
+                        <span>{product.category}</span>
+                        <span>&bull;</span>
+                        <span>Tổng kho: <b className={product.stock === 0 ? "text-red-600" : ""}>{product.stock}</b></span>
+                      </div>
                       {product.lowStockVariantCount > 0 && (
-                        <span className="text-[10px] font-semibold text-amber-700 bg-amber-500/15 border border-amber-500/30 px-1.5 py-0.2 rounded">
-                          {product.lowStockVariantCount} biến thể ≤ 5
-                        </span>
+                        <div className="flex flex-wrap gap-1 mt-0.5">
+                          {product.lowStockVariants.slice(0, 2).map((lv) => (
+                            <span
+                              key={lv.sku}
+                              className="text-[10px] font-semibold text-amber-800 bg-amber-500/15 border border-amber-500/35 px-1.5 py-0.5 rounded flex items-center gap-1"
+                            >
+                              <AlertTriangle className="h-2.5 w-2.5 text-amber-600" />
+                              {lv.label}
+                            </span>
+                          ))}
+                          {product.lowStockVariants.length > 2 && (
+                            <span className="text-[10px] text-muted-foreground italic">
+                              +{product.lowStockVariants.length - 2} biến thể khác...
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                     <div className="mt-auto flex items-center justify-between">
