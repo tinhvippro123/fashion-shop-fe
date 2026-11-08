@@ -21,11 +21,18 @@ export default function VnPayInAppModal({
   onSuccess,
   onClose,
 }: VnPayInAppModalProps) {
-  const [cardNumber, setCardNumber] = useState("9704 1985 2619 1432 198");
-  const [cardHolder, setCardHolder] = useState("NGUYEN VAN A");
-  const [issueDate, setIssueDate] = useState("07/15");
-  const [otp, setOtp] = useState("123456");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardHolder, setCardHolder] = useState("");
+  const [issueDate, setIssueDate] = useState("");
+  const [otp, setOtp] = useState("");
   const [processing, setProcessing] = useState(false);
+
+  const handleFillTestData = () => {
+    setCardNumber("9704 1985 2619 1432 198");
+    setCardHolder("NGUYEN VAN A");
+    setIssueDate("07/15");
+    setOtp("123456");
+  };
 
   if (!isOpen) return null;
 
@@ -123,18 +130,25 @@ export default function VnPayInAppModal({
                 Thẻ ATM Quốc dân (NCB)
               </span>
             </div>
-            <span className="text-[10px] bg-green-100 text-green-800 font-bold px-1.5 py-0.5 rounded uppercase">
-              ĐÃ CHỌN
-            </span>
+            <button
+              type="button"
+              onClick={handleFillTestData}
+              className="text-[11px] bg-sky-50 text-[#005baa] hover:bg-sky-100 border border-sky-200 font-semibold px-2 py-0.5 rounded transition-colors cursor-pointer"
+              title="Nhấp để tự động điền mẫu thẻ test NCB"
+            >
+              ⚡ Điền mẫu thẻ test
+            </button>
           </div>
 
           {/* Card number */}
           <div>
             <label className="block text-[11px] font-semibold text-[#555] uppercase mb-0.5">
-              Số thẻ ATM test
+              Số thẻ ATM
             </label>
             <input
               type="text"
+              autoComplete="off"
+              spellCheck={false}
               value={cardNumber}
               onChange={(e) => setCardNumber(e.target.value)}
               placeholder="9704 1985 2619 1432 198"
@@ -150,6 +164,8 @@ export default function VnPayInAppModal({
             </label>
             <input
               type="text"
+              autoComplete="off"
+              spellCheck={false}
               value={cardHolder}
               onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
               placeholder="NGUYEN VAN A"
@@ -166,6 +182,8 @@ export default function VnPayInAppModal({
               </label>
               <input
                 type="text"
+                autoComplete="off"
+                spellCheck={false}
                 value={issueDate}
                 onChange={(e) => setIssueDate(e.target.value)}
                 placeholder="07/15"
@@ -175,10 +193,12 @@ export default function VnPayInAppModal({
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[#555] uppercase mb-0.5">
-                Mã OTP test
+                Mã OTP
               </label>
               <input
                 type="text"
+                autoComplete="off"
+                spellCheck={false}
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 placeholder="123456"
