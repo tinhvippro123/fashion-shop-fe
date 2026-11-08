@@ -151,7 +151,7 @@ function VnPayReturnContent() {
                 <h2 className="text-[18px] font-normal text-[#222] mb-[25px] pb-[15px] border-b border-[#e1e1e1] flex items-center justify-between">
                   <span>Chi tiết giao dịch</span>
                   <span className="text-[12px] bg-[#137333] text-white px-2.5 py-1 rounded font-semibold tracking-wide uppercase">
-                    ĐÃ THANH TOÁN (PAID)
+                    ĐÃ THANH TOÁN
                   </span>
                 </h2>
 

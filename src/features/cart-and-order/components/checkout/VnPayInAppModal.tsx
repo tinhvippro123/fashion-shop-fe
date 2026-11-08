@@ -27,13 +27,6 @@ export default function VnPayInAppModal({
   const [otp, setOtp] = useState("");
   const [processing, setProcessing] = useState(false);
 
-  const handleFillTestData = () => {
-    setCardNumber("9704 1985 2619 1432 198");
-    setCardHolder("NGUYEN VAN A");
-    setIssueDate("07/15");
-    setOtp("123456");
-  };
-
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, "").slice(0, 19);
     const formatted = raw.match(/.{1,4}/g)?.join(" ") || raw;
@@ -150,23 +143,18 @@ export default function VnPayInAppModal({
         {/* Form Body */}
         <form onSubmit={handleConfirmPayment} className="p-5 space-y-3">
           {/* Bank Indicator */}
-          <div className="flex items-center justify-between p-2 border border-[#d1d5db] rounded-[6px] bg-[#f9fafb]">
+          <div className="flex items-center justify-between p-2.5 border border-[#d1d5db] rounded-[6px] bg-[#f9fafb]">
             <div className="flex items-center gap-2">
               <div className="w-6 h-6 rounded bg-[#005baa] text-white flex items-center justify-center font-bold text-[10px]">
                 NCB
               </div>
-              <span className="font-semibold text-[12.5px] text-[#222]">
+              <span className="font-semibold text-[13px] text-[#222]">
                 Thẻ ATM Quốc dân (NCB)
               </span>
             </div>
-            <button
-              type="button"
-              onClick={handleFillTestData}
-              className="text-[11px] bg-sky-50 text-[#005baa] hover:bg-sky-100 border border-sky-200 font-semibold px-2 py-0.5 rounded transition-colors cursor-pointer"
-              title="Nhấp để tự động điền mẫu thẻ test NCB"
-            >
-              ⚡ Điền mẫu thẻ test
-            </button>
+            <span className="text-[10px] bg-green-100 text-green-800 font-bold px-2 py-0.5 rounded uppercase">
+              ĐÃ CHỌN
+            </span>
           </div>
 
           {/* Card number */}
@@ -241,14 +229,9 @@ export default function VnPayInAppModal({
           </div>
 
           {/* Payment hint */}
-          <div className="bg-sky-50 border border-sky-200 rounded-[6px] px-3 py-2 text-[11px] text-sky-800 space-y-1">
-            <div className="flex items-center gap-1.5 font-medium">
-              <span className="font-bold text-sky-900">ℹ</span>
-              <span>Cổng thanh toán bảo mật • Sandbox thử nghiệm</span>
-            </div>
-            <div className="text-[10.5px] text-sky-700 leading-normal">
-              Nhập thông tin thẻ thanh toán hoặc bấm nút <strong>&quot;Điền mẫu thẻ test&quot;</strong> ở trên để nạp nhanh thông tin thẻ NCB mẫu.
-            </div>
+          <div className="bg-sky-50 border border-sky-200 rounded-[6px] px-3 py-2 text-[11px] text-sky-800 flex items-center gap-1.5">
+            <span className="font-bold text-sky-900">ℹ</span>
+            <span>Hệ thống thanh toán bảo mật • Bấm xác nhận để hoàn tất đơn hàng</span>
           </div>
 
           {/* Submit Button */}

@@ -195,11 +195,11 @@ function OrderSuccessContent() {
                 <span>{paymentDisplay}</span>
                 {order?.paymentStatus === "PAID" ? (
                   <span className="text-[11px] font-bold bg-[#137333] text-white px-2 py-0.5 rounded uppercase tracking-wider">
-                    ĐÃ THANH TOÁN (PAID)
+                    ĐÃ THANH TOÁN
                   </span>
                 ) : isVnPayUnpaid ? (
                   <span className="text-[11px] font-bold bg-amber-600 text-white px-2 py-0.5 rounded uppercase tracking-wider">
-                    CHƯA THANH TOÁN (UNPAID)
+                    CHƯA THANH TOÁN
                   </span>
                 ) : null}
               </div>
