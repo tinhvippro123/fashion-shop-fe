@@ -154,6 +154,13 @@ export default function CheckoutPage() {
 
   const submitFinalOrder = useCallback(async () => {
     if (submitting) return;
+
+    // If VNPay order already exists and user wants to continue paying for it
+    if (selectedPaymentMethod === "VNPAY" && vnPayModalData?.orderCode) {
+      setShowVnPayModal(true);
+      return;
+    }
+
     if (items.length === 0) {
       toast.error("Giỏ hàng của bạn đang trống");
       router.push("/cart");
@@ -288,6 +295,7 @@ export default function CheckoutPage() {
     selectedPaymentMethod,
     appliedVoucher,
     note,
+    vnPayModalData,
     clearCart,
     router,
   ]);
@@ -488,6 +496,52 @@ export default function CheckoutPage() {
             </div>
           </div>
         </div>
+
+        {/* Banner if there is an active pending VNPay order */}
+        {vnPayModalData && (
+          <div className="max-w-[1200px] mx-auto mb-6 p-4 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-900 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm animate-fade-in">
+            <div className="flex items-center gap-3 text-[14px]">
+              <span className="text-2xl">⏳</span>
+              <div>
+                <div>
+                  Đơn hàng <strong className="font-mono text-[#222]">#{vnPayModalData.orderCode}</strong> đã được tạo ở trạng thái <span className="font-semibold text-amber-800">Chờ thanh toán (VNPay)</span>.
+                </div>
+                <div className="text-[12px] text-amber-700">
+                  Bạn có thể xem lại thông tin trên trang và mở lại cổng thanh toán bất cứ khi nào sẵn sàng.
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setShowVnPayModal(true)}
+                className="px-4 py-2 bg-[#005baa] hover:bg-[#004a8c] text-white text-[12px] font-bold uppercase rounded-[6px] shadow transition-colors cursor-pointer"
+              >
+                Mở lại thanh toán
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  clearCart();
+                  router.push(
+                    `/order-success?code=${encodeURIComponent(vnPayModalData.orderCode)}`
+                  );
+                }}
+                className="px-3.5 py-2 border border-amber-300 hover:bg-amber-100 text-amber-900 text-[12px] font-medium rounded-[6px] transition-colors cursor-pointer"
+              >
+                Xem đơn hàng
+              </button>
+              <button
+                type="button"
+                onClick={() => setVnPayModalData(null)}
+                className="px-2.5 py-2 text-[12px] text-amber-700 hover:text-amber-950 underline transition-colors cursor-pointer"
+                title="Tạo đơn hàng mới nếu muốn đổi thông tin"
+              >
+                Tạo đơn mới
+              </button>
+            </div>
+          </div>
+        )}
 
         <form
           onSubmit={(e) => {
@@ -1368,18 +1422,10 @@ export default function CheckoutPage() {
             );
           }}
           onClose={() => {
-            const pendingCode = vnPayModalData.orderCode;
             setShowVnPayModal(false);
-            setVnPayModalData(null);
-            if (pendingCode) {
-              apiFetch(`/orders/${encodeURIComponent(pendingCode)}/cancel-unpaid`, {
-                method: "PUT",
-                body: JSON.stringify({
-                  reason: "Khách hàng hủy thanh toán để thay đổi thông tin",
-                }),
-              }).catch(() => null);
-            }
-            toast.info("Đã đóng cổng thanh toán VNPay. Bạn có thể thay đổi phương thức hoặc cập nhật thông tin đơn hàng!");
+            toast.info(
+              "Đã đóng cửa sổ VNPay. Đơn hàng của bạn đang ở trạng thái Chờ thanh toán!"
+            );
           }}
         />
       )}

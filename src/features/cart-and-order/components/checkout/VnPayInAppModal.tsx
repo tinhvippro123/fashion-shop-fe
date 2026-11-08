@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { formatPrice } from "@/shared/utils/format";
 import { apiFetch } from "@/shared/lib/api";
 import { toast } from "sonner";
@@ -56,6 +56,20 @@ export default function VnPayInAppModal({
     setOtp(e.target.value.replace(/\D/g, "").slice(0, 6));
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !processing) {
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen, processing, onClose]);
+
   if (!isOpen) return null;
 
   const handleConfirmPayment = async (e: React.FormEvent) => {
@@ -89,9 +103,14 @@ export default function VnPayInAppModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in">
+    <div
+      className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 animate-fade-in cursor-pointer"
+      onClick={() => {
+        if (!processing) onClose();
+      }}
+    >
       <div
-        className="relative w-full max-w-[440px] bg-white rounded-[14px] shadow-2xl overflow-hidden border border-[#e5e7eb]"
+        className="relative w-full max-w-[440px] bg-white rounded-[14px] shadow-2xl overflow-hidden border border-[#e5e7eb] cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
