@@ -1,15 +1,26 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice } from "@/shared/utils/format";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
 
+const STATUS_OPTIONS = [
+  { value: "ALL", label: "Tất cả", icon: "fas fa-layer-group", color: "text-[#6c757d]" },
+  { value: "PENDING", label: "Chờ xử lý", icon: "fas fa-clock", color: "text-[#f59e0b]" },
+  { value: "PROCESSING", label: "Đang chuẩn bị", icon: "fas fa-box", color: "text-[#3b82f6]" },
+  { value: "SHIPPING", label: "Đang giao", icon: "fas fa-truck", color: "text-[#06b6d4]" },
+  { value: "COMPLETED", label: "Đã giao", icon: "fas fa-check-circle", color: "text-[#10b981]" },
+  { value: "CANCELLED", label: "Đã hủy", icon: "fas fa-ban", color: "text-[#ef4444]" },
+];
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<OrderResponseDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState("ALL");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     apiFetch<OrderResponseDto[]>("/orders/my-orders")
@@ -17,6 +28,37 @@ export default function OrdersPage() {
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const counts: Record<string, number> = {
+    ALL: orders.length,
+    PENDING: orders.filter((o) => o.status === "PENDING").length,
+    PROCESSING: orders.filter((o) => o.status === "PROCESSING").length,
+    SHIPPING: orders.filter((o) => o.status === "SHIPPING").length,
+    COMPLETED: orders.filter((o) => o.status === "COMPLETED").length,
+    CANCELLED: orders.filter((o) => o.status === "CANCELLED").length,
+  };
+
+  const selectedOption =
+    STATUS_OPTIONS.find((opt) => opt.value === statusFilter) || STATUS_OPTIONS[0];
 
   const filteredOrders =
     statusFilter === "ALL"
@@ -67,21 +109,87 @@ export default function OrdersPage() {
         </h5>
 
         <div className="flex items-center self-end md:self-auto">
-          <label className="text-[#6c6d70] text-[14px] mr-[8px] mb-0 whitespace-nowrap">
+          <label className="text-[#6c6d70] text-[14px] mr-[10px] mb-0 whitespace-nowrap">
             Trạng thái đơn hàng:
           </label>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="border border-[#e7e8e9] rounded-[4px] p-[6px_12px] text-[14px] text-[#495057] outline-none focus:border-[#222] w-[170px] bg-white"
-          >
-            <option value="ALL">Tất cả</option>
-            <option value="PENDING">Chờ xử lý</option>
-            <option value="PROCESSING">Đang chuẩn bị</option>
-            <option value="SHIPPING">Đang giao</option>
-            <option value="COMPLETED">Đã giao</option>
-            <option value="CANCELLED">Đã hủy</option>
-          </select>
+          <div className="relative" ref={dropdownRef}>
+            <button
+              type="button"
+              onClick={() => setIsDropdownOpen((prev) => !prev)}
+              aria-expanded={isDropdownOpen}
+              className={`flex items-center justify-between gap-3 min-w-[195px] h-[40px] px-3.5 py-2 bg-white border rounded-[10px] text-[13.5px] text-[#222] font-medium transition-all duration-200 outline-none shadow-xs hover:border-[#222] ${
+                isDropdownOpen
+                  ? "border-[#222] ring-2 ring-black/5"
+                  : "border-[#e5e7eb]"
+              }`}
+            >
+              <div className="flex items-center gap-2 truncate">
+                <i className={`${selectedOption.icon} ${selectedOption.color} text-[13px] shrink-0`} />
+                <span className="truncate">{selectedOption.label}</span>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[#f1f2f4] text-[#6c6d70] font-semibold">
+                  {counts[statusFilter] ?? 0}
+                </span>
+                <i
+                  className={`fas fa-chevron-down text-[11px] text-[#888] transition-transform duration-300 ease-out ${
+                    isDropdownOpen ? "rotate-180 text-[#222]" : ""
+                  }`}
+                />
+              </div>
+            </button>
+
+            {/* Floating Dropdown Menu with rounded corners and smooth animation */}
+            <div
+              className={`absolute right-0 top-[calc(100%+6px)] z-50 w-[220px] p-1.5 bg-white border border-[#eaeaea] rounded-[14px] shadow-[0_12px_32px_rgba(0,0,0,0.12),0_2px_6px_rgba(0,0,0,0.06)] transition-all duration-200 origin-top-right transform ${
+                isDropdownOpen
+                  ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
+                  : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
+              }`}
+            >
+              <div className="flex flex-col gap-0.5">
+                {STATUS_OPTIONS.map((opt) => {
+                  const isSelected = statusFilter === opt.value;
+                  const count = counts[opt.value] ?? 0;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => {
+                        setStatusFilter(opt.value);
+                        setIsDropdownOpen(false);
+                      }}
+                      className={`group flex items-center justify-between w-full px-3 py-2 rounded-[8px] text-[13.5px] transition-all duration-150 text-left cursor-pointer outline-none ${
+                        isSelected
+                          ? "bg-[#f4f4f5] text-[#111] font-semibold"
+                          : "text-[#4b5563] hover:bg-[#f8f9fa] hover:text-[#111]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 truncate">
+                        <i className={`${opt.icon} ${opt.color} text-[13px] w-[16px] text-center shrink-0`} />
+                        <span className="truncate">{opt.label}</span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span
+                          className={`text-[11px] px-2 py-0.5 rounded-full font-medium transition-colors ${
+                            isSelected
+                              ? "bg-[#222] text-white"
+                              : "bg-[#f3f4f6] text-[#6b7280] group-hover:bg-[#e5e7eb]"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                        {isSelected && (
+                          <i className="fas fa-check text-[11px] text-[#222]" />
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
