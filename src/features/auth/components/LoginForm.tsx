@@ -100,7 +100,7 @@ export function LoginForm() {
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="admin@luxe.vn"
+                  placeholder="Nhập email quản trị..."
                   required
                   className="h-11"
                   disabled={isLoading}
@@ -126,7 +126,7 @@ export function LoginForm() {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
+                    placeholder="Nhập mật khẩu..."
                     required
                     className="h-11 pr-10"
                     disabled={isLoading}
