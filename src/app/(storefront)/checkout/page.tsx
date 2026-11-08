@@ -140,25 +140,17 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (user) {
-      if (!receiverName && (user.fullName || user.name)) {
-        setReceiverName(user.fullName || user.name || "");
-      }
-      if (!receiverPhone && user.phone) {
-        setReceiverPhone(user.phone);
-      }
+      setReceiverName((prev) => prev || user.fullName || user.name || "");
+      setReceiverPhone((prev) => prev || user.phone || "");
     }
-  }, [user, receiverName, receiverPhone]);
+  }, [user]);
 
   useEffect(() => {
     if (showAddAddressModal && user) {
-      if (!modalName && (user.fullName || user.name)) {
-        setModalName(user.fullName || user.name || "");
-      }
-      if (!modalPhone && user.phone) {
-        setModalPhone(user.phone);
-      }
+      setModalName((prev) => prev || user.fullName || user.name || "");
+      setModalPhone((prev) => prev || user.phone || "");
     }
-  }, [showAddAddressModal, user, modalName, modalPhone]);
+  }, [showAddAddressModal, user]);
 
   const submitFinalOrder = useCallback(async () => {
     if (submitting) return;
@@ -619,6 +611,8 @@ export default function CheckoutPage() {
                         <input
                           type="text"
                           name="receiverName"
+                          autoComplete="off"
+                          spellCheck={false}
                           value={receiverName}
                           onChange={(e) => setReceiverName(e.target.value)}
                           className="w-full md:w-1/2 border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
@@ -628,6 +622,8 @@ export default function CheckoutPage() {
                         <input
                           type="tel"
                           name="phone"
+                          autoComplete="off"
+                          spellCheck={false}
                           value={receiverPhone}
                           onChange={(e) => setReceiverPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
                           className="w-full md:w-1/2 border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
@@ -697,6 +693,8 @@ export default function CheckoutPage() {
                         <input
                           type="text"
                           name="street"
+                          autoComplete="off"
+                          spellCheck={false}
                           value={street}
                           onChange={(e) => setStreet(e.target.value)}
                           className="w-full border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
@@ -1182,6 +1180,8 @@ export default function CheckoutPage() {
               <div className="flex flex-col md:flex-row gap-[20px] mb-[20px]">
                 <input
                   type="text"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={modalName}
                   onChange={(e) => setModalName(e.target.value)}
                   placeholder="Họ tên người nhận"
@@ -1189,6 +1189,8 @@ export default function CheckoutPage() {
                 />
                 <input
                   type="tel"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={modalPhone}
                   onChange={(e) => setModalPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
                   placeholder="Số điện thoại (10 số, VD: 0901234567)"
@@ -1246,6 +1248,8 @@ export default function CheckoutPage() {
               <div className="mb-[25px]">
                 <input
                   type="text"
+                  autoComplete="off"
+                  spellCheck={false}
                   value={modalStreet}
                   onChange={(e) => setModalStreet(e.target.value)}
                   placeholder="Địa chỉ cụ thể (Số nhà, tên đường...)"

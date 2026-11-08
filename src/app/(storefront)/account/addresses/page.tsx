@@ -366,6 +366,8 @@ function AddressModal({
               <div className="w-full md:w-1/2 px-[15px] mb-[16px] md:mb-0">
                 <input
                   type="text"
+                  autoComplete="off"
+                  spellCheck={false}
                   className="w-full border-b border-[#e1e1e1] pb-[10px] pt-[10px] text-[#222] focus:border-[#222] outline-none transition-colors placeholder-[#6c6d70]"
                   placeholder="Họ tên người nhận"
                   required
@@ -377,6 +379,8 @@ function AddressModal({
                 <input
                   type="tel"
                   inputMode="numeric"
+                  autoComplete="off"
+                  spellCheck={false}
                   maxLength={11}
                   className="w-full border-b border-[#e1e1e1] pb-[10px] pt-[10px] text-[#222] focus:border-[#222] outline-none transition-colors placeholder-[#6c6d70]"
                   placeholder="Số điện thoại (10 chữ số)"
@@ -439,6 +443,8 @@ function AddressModal({
             <div className="mb-[24px]">
               <input
                 type="text"
+                autoComplete="off"
+                spellCheck={false}
                 className="w-full border-b border-[#e1e1e1] pb-[10px] pt-[10px] text-[#222] focus:border-[#222] outline-none transition-colors placeholder-[#6c6d70]"
                 placeholder="Địa chỉ cụ thể (Số nhà, tên đường...)"
                 required
