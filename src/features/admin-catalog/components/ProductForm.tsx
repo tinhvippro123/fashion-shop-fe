@@ -61,6 +61,7 @@ import {
 } from "../api/attributes.api";
 import { apiFetch } from "@/shared/lib/api";
 import { resolveImageUrl } from "@/shared/utils/format";
+import { ImageReorderGrid } from "./ImageReorderGrid";
 
 const RichTextEditor = dynamic(
   () =>
@@ -347,7 +348,19 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     form.setValue("colorImages", {
       ...currentMap,
       [colorName]: prevImgs.filter((i) => i !== imgUrl),
-    });
+    }, { shouldDirty: true });
+  };
+
+  const handleReorderColorImages = (colorName: string, newImages: string[]) => {
+    const currentMap = form.getValues("colorImages") || {};
+    form.setValue("colorImages", {
+      ...currentMap,
+      [colorName]: newImages,
+    }, { shouldDirty: true });
+  };
+
+  const handleReorderGeneralImages = (newImages: string[]) => {
+    form.setValue("images", newImages, { shouldDirty: true });
   };
 
   const handleColorFileUpload = async (
@@ -1517,34 +1530,11 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                         </CardHeader>
                         <CardContent className="space-y-4">
                           {currentImages.length > 0 ? (
-                            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                              {currentImages.map((imgUrl, imgIdx) => (
-                                <div
-                                  key={imgIdx}
-                                  className="relative aspect-2/3 rounded-md overflow-hidden border bg-muted group"
-                                >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={resolveImageUrl(imgUrl)}
-                                    alt={`Ảnh ${imgIdx + 1}`}
-                                    className="w-full h-full object-cover"
-                                  />
-                                  {imgIdx === 0 && (
-                                    <Badge className="absolute bottom-1 left-1 bg-black/85 text-white text-[9px] px-1.5 py-0 border border-white/20 shadow-xs pointer-events-none">
-                                      Ảnh đại diện
-                                    </Badge>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRemoveGeneralImage(imgUrl)}
-                                    className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    title="Xóa ảnh này"
-                                  >
-                                    <X className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
+                            <ImageReorderGrid
+                              images={currentImages}
+                              onReorder={handleReorderGeneralImages}
+                              onRemove={handleRemoveGeneralImage}
+                            />
                           ) : (
                             <p className="text-xs text-muted-foreground italic">
                               Chưa có hình ảnh nào cho sản phẩm.
@@ -1651,36 +1641,13 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
 
                               {/* Images Grid */}
                               {colorImgs.length > 0 ? (
-                                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-                                  {colorImgs.map((imgUrl, imgIdx) => (
-                                    <div
-                                      key={imgIdx}
-                                      className="relative aspect-2/3 rounded-md overflow-hidden border bg-muted group"
-                                    >
-                                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                                      <img
-                                        src={resolveImageUrl(imgUrl)}
-                                        alt={`${colorName} ${imgIdx + 1}`}
-                                        className="w-full h-full object-cover"
-                                      />
-                                      {colorIdx === 0 && imgIdx === 0 && (
-                                        <Badge className="absolute bottom-1 left-1 bg-black/85 text-white text-[9px] px-1.5 py-0 border border-white/20 shadow-xs pointer-events-none">
-                                          Ảnh đại diện
-                                        </Badge>
-                                      )}
-                                      <button
-                                        type="button"
-                                        onClick={() =>
-                                          handleRemoveColorImage(colorName, imgUrl)
-                                        }
-                                        className="absolute top-1 right-1 bg-black/70 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                        title="Xóa ảnh này"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </button>
-                                    </div>
-                                  ))}
-                                </div>
+                                <ImageReorderGrid
+                                  images={colorImgs}
+                                  onReorder={(imgs) => handleReorderColorImages(colorName, imgs)}
+                                  onRemove={(url) => handleRemoveColorImage(colorName, url)}
+                                  colorName={colorName}
+                                  isDefaultColor={colorIdx === 0}
+                                />
                               ) : (
                                 <p className="text-xs text-muted-foreground italic">
                                   Chưa có ảnh riêng cho màu {colorName} (sẽ sử dụng ảnh chung của sản phẩm).

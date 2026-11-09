@@ -39,3 +39,4 @@ export function getSizeSortOrder(sizeName?: string | null): number {
   }
   return 500;
 }
+
