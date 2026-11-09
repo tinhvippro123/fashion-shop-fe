@@ -145,7 +145,18 @@ export default function OrderDetailPage({
           style={{ borderRadius: "20px 0 20px 0" }}
         >
           <div className="w-full relative">
-            <div className="absolute top-[6px] left-[7px] right-[7px] h-[2px] bg-[#e1e1e1] z-[1]"></div>
+            {/* Background line with active progress bar fill */}
+            <div className="absolute top-[6px] left-[7px] right-[7px] h-[2px] bg-[#e5e7eb] z-[1] overflow-hidden">
+              <div
+                className="h-full bg-[#222] transition-all duration-500 ease-out"
+                style={{
+                  width:
+                    order.status === "CANCELLED"
+                      ? "0%"
+                      : `${(activeStepIdx / (STEP_ORDER.length - 1)) * 100}%`,
+                }}
+              />
+            </div>
 
             <div className="flex justify-between relative z-[2] h-[48px]">
               {order.status === "CANCELLED" ? (
