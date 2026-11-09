@@ -151,12 +151,12 @@ export default function OrdersPage() {
           <label className="text-[#6c6d70] text-[14px] mr-[10px] mb-0 whitespace-nowrap">
             Trạng thái đơn hàng:
           </label>
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative w-[185px]" ref={dropdownRef}>
             <button
               type="button"
               onClick={() => setIsDropdownOpen((prev) => !prev)}
               aria-expanded={isDropdownOpen}
-              className={`flex items-center justify-between gap-3 min-w-[170px] h-[38px] px-3.5 py-1.5 bg-white border rounded-[8px] text-[13.5px] text-[#222] font-medium transition-all duration-200 outline-none shadow-xs hover:border-[#222] ${
+              className={`flex items-center justify-between w-full h-[38px] px-3 py-1.5 bg-white border rounded-[8px] text-[13.5px] text-[#222] font-medium transition-all duration-200 outline-none shadow-xs hover:border-[#222] cursor-pointer ${
                 isDropdownOpen
                   ? "border-[#222] ring-2 ring-black/5"
                   : "border-[#e5e7eb]"
@@ -164,11 +164,11 @@ export default function OrdersPage() {
             >
               <span className="truncate">{selectedOption.label}</span>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#f1f2f4] text-[#6c6d70] font-semibold">
+                <span className="w-5 h-5 flex items-center justify-center text-[11px] rounded-full bg-[#f1f2f4] text-[#6c6d70] font-semibold">
                   {counts[statusFilter] ?? 0}
                 </span>
                 <i
-                  className={`fas fa-chevron-down text-[10px] text-[#888] transition-transform duration-200 ${
+                  className={`fas fa-chevron-down text-[10px] text-[#888] w-3 text-center transition-transform duration-200 ${
                     isDropdownOpen ? "rotate-180 text-[#222]" : ""
                   }`}
                 />
@@ -177,7 +177,7 @@ export default function OrdersPage() {
 
             {/* Floating Dropdown Menu */}
             <div
-              className={`absolute right-0 top-[calc(100%+6px)] z-50 w-[190px] p-1.5 bg-white border border-[#eaeaea] rounded-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200 origin-top-right transform ${
+              className={`absolute left-0 right-0 top-[calc(100%+6px)] z-50 w-full p-1 bg-white border border-[#eaeaea] rounded-[8px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200 origin-top transform ${
                 isDropdownOpen
                   ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
                   : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
@@ -195,7 +195,7 @@ export default function OrdersPage() {
                         setStatusFilter(opt.value);
                         setIsDropdownOpen(false);
                       }}
-                      className={`group flex items-center justify-between w-full px-3 py-2 rounded-[6px] text-[13.5px] transition-colors text-left cursor-pointer outline-none ${
+                      className={`group flex items-center justify-between w-full px-2.5 py-1.5 rounded-[6px] text-[13.5px] transition-colors text-left cursor-pointer outline-none ${
                         isSelected
                           ? "bg-[#f4f4f5] text-[#111] font-semibold"
                           : "text-[#4b5563] hover:bg-[#f8f9fa] hover:text-[#111]"
@@ -203,15 +203,18 @@ export default function OrdersPage() {
                     >
                       <span className="truncate">{opt.label}</span>
 
-                      <span
-                        className={`text-[11px] px-2 py-0.5 rounded-full font-medium transition-colors ${
-                          isSelected
-                            ? "bg-[#222] text-white"
-                            : "bg-[#f3f4f6] text-[#6b7280] group-hover:bg-[#e5e7eb]"
-                        }`}
-                      >
-                        {count}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`w-5 h-5 flex items-center justify-center text-[11px] rounded-full font-medium transition-colors ${
+                            isSelected
+                              ? "bg-[#222] text-white"
+                              : "bg-[#f3f4f6] text-[#6b7280] group-hover:bg-[#e5e7eb]"
+                          }`}
+                        >
+                          {count}
+                        </span>
+                        <span className="w-3 shrink-0" />
+                      </div>
                     </button>
                   );
                 })}
