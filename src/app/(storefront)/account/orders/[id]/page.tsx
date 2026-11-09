@@ -249,10 +249,14 @@ export default function OrderDetailPage({
                     </Link>
                   )}
                   {order.status === "COMPLETED" && item.productId && (
-                    (item.isReviewed || (item.productId && reviewedProductIds.has(item.productId))) ? (
-                      <span className="inline-flex items-center gap-1.5 text-[12px] md:text-[13px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-[14px] py-[4px] rounded-full">
+                    Boolean(item.isReviewed || item.reviewed || (item.productId && reviewedProductIds.has(item.productId))) ? (
+                      <Link
+                        href={`/product/${item.productSlug || item.productId}#reviews`}
+                        className="inline-flex items-center gap-1.5 text-[12px] md:text-[13px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-[14px] py-[4px] rounded-full transition-colors"
+                        title="Xem nhận xét của bạn tại trang sản phẩm"
+                      >
                         <i className="fas fa-check text-[11px]"></i> Đã đánh giá
-                      </span>
+                      </Link>
                     ) : (
                       <button
                         type="button"

@@ -14,6 +14,7 @@ export interface OrderItemDto {
   quantity: number;
   totalPrice: number;
   isReviewed?: boolean;
+  reviewed?: boolean;
 }
 
 export interface AppliedPromotionDto {
