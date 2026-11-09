@@ -1071,8 +1071,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               value={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Chọn danh mục">
+                                <SelectTrigger className="w-full max-w-full min-w-0">
+                                  <SelectValue placeholder="Chọn danh mục" className="truncate">
                                     {selectedCat
                                       ? getCategoryFullPath(selectedCat, categories)
                                       : field.value || "Chọn danh mục"}
