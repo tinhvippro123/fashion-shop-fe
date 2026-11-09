@@ -526,10 +526,10 @@ export default function Header() {
               onClick={() => toggleMiniCart()}
               title="Giỏ hàng"
             >
-              {/* IVY moda exact SVG shopping bag icon */}
+              {/* LUXE exact SVG shopping bag icon */}
               <IvyBagIcon className="w-[22px] h-[22px]" />
 
-              {/* Black circular badge with white count matching IVY moda */}
+              {/* Black circular badge with white count matching LUXE style */}
               <span className="absolute -top-[4px] -right-[6px] bg-[#221F20] text-white text-[10px] font-semibold min-w-[16px] h-[16px] px-[2px] rounded-full leading-none flex items-center justify-center shadow-sm select-none pointer-events-none">
                 {totalItems}
               </span>

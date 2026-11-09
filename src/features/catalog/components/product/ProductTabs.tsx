@@ -19,7 +19,7 @@ interface ProductTabsProps {
 function formatRawDescription(desc?: string): string {
   if (!desc) return "<p>Đang cập nhật thông tin sản phẩm...</p>";
 
-  // If already clean multi-paragraph HTML from IVY with model specs, use it
+  // If already clean multi-paragraph HTML with model specs, use it
   if (desc.includes("<p>") && (desc.includes("<strong>Chiều cao") || desc.includes("<strong>Thông tin mẫu"))) {
     return desc
       .replace(/<ul[^>]*>/gi, "")

@@ -18,28 +18,28 @@ const DEFAULT_FEATURED: FeaturedBanner[] = [
     title: "ĐẦM",
     subtitle: "Đầm dáng xòe & đầm công sở thanh lịch",
     targetUrl: "/danh-muc/dam-nu",
-    imageUrl: "/uploads/ivy/002eab5bd95091694139ae9e8f046007.webp",
+    imageUrl: "/uploads/products/002eab5bd95091694139ae9e8f046007.webp",
   },
   {
     id: 2,
     title: "ÁO NỮ",
     subtitle: "Áo sơ mi lụa & áo kiểu tinh tế",
     targetUrl: "/danh-muc/ao-nu",
-    imageUrl: "/uploads/ivy/f4a49449c18a61d9d49c0f976bc56606.webp",
+    imageUrl: "/uploads/products/f4a49449c18a61d9d49c0f976bc56606.webp",
   },
   {
     id: 3,
     title: "ÁO NAM",
     subtitle: "Áo polo & sơ mi chuẩn phom lịch lãm",
     targetUrl: "/danh-muc/ao-nam",
-    imageUrl: "/uploads/ivy/9278e16772c52fe0c41b035b775a2f9c.jpg",
+    imageUrl: "/uploads/products/9278e16772c52fe0c41b035b775a2f9c.jpg",
   },
   {
     id: 4,
     title: "SẢN PHẨM SALE",
     subtitle: "Ưu đãi hấp dẫn lên đến 50%",
     targetUrl: "/danh-muc/sale",
-    imageUrl: "/uploads/ivy/0284007651a63e1aa34493daa2754ba1.webp",
+    imageUrl: "/uploads/products/0284007651a63e1aa34493daa2754ba1.webp",
   },
 ];
 

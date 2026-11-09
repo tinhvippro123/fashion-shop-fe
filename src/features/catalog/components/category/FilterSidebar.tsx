@@ -195,7 +195,7 @@ export default function FilterSidebar({ onApply }: FilterSidebarProps) {
         </div>
       </div>
 
-      {/* Price Filter (Dual Range Slider matching IVY moda style) */}
+      {/* Price Filter (Dual Range Slider matching LUXE style) */}
       <div className="filter-group">
         <div
           className="flex justify-between items-center py-[16px] border-b border-[#e1e1e1] font-medium text-[14px] uppercase cursor-pointer select-none"

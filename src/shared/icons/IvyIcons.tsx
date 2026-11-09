@@ -9,6 +9,10 @@ export function IvyUserIcon({ className = "w-[20px] h-[20px]" }: { className?: s
     </svg>
   );
 }
+export const LuxeUserIcon = IvyUserIcon;
+export const LuxeBagIcon = IvyBagIcon;
+export const LuxeSearchIcon = IvySearchIcon;
+export const LuxeHeartIcon = IvyHeartIcon;
 
 export function IvyBagIcon({ className = "w-[22px] h-[22px]" }: { className?: string }) {
   return (
