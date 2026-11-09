@@ -37,6 +37,7 @@ export interface Order {
   customerPhone?: string;
   date: string;
   createdAt?: string;
+  updatedAt?: string;
   status: OrderStatus;
   paymentStatus?: string;
   paymentMethod?: string;

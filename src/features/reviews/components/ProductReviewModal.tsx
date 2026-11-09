@@ -6,17 +6,19 @@ import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { resolveImageUrl } from "@/shared/utils/format";
 
+export interface ReviewProductInfo {
+  productId: number;
+  name: string;
+  image?: string;
+  colorName?: string;
+  sizeName?: string;
+  variantInfo?: string;
+}
+
 interface ProductReviewModalProps {
   isOpen: boolean;
   onClose: () => void;
-  product: {
-    productId: number;
-    name: string;
-    image?: string;
-    colorName?: string;
-    sizeName?: string;
-    variantInfo?: string;
-  } | null;
+  product: ReviewProductInfo | null;
   onReviewSuccess?: (productId: number) => void;
 }
 
@@ -143,10 +145,10 @@ export default function ProductReviewModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="bg-[#111] px-6 py-4 text-white flex items-center justify-between">
+        <div className="bg-white px-6 py-4 border-b border-[#eee] text-[#222] flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <i className="fas fa-star text-amber-400 text-[16px]"></i>
-            <h3 className="font-bold text-[15px] uppercase tracking-wider text-white m-0">
+            <i className="fas fa-star text-amber-500 text-[16px]"></i>
+            <h3 className="font-bold text-[15px] uppercase tracking-wider text-[#222] m-0">
               Đánh giá sản phẩm
             </h3>
           </div>
@@ -154,7 +156,7 @@ export default function ProductReviewModal({
             type="button"
             onClick={onClose}
             disabled={submitting}
-            className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors text-sm cursor-pointer disabled:opacity-50"
+            className="w-8 h-8 rounded-full hover:bg-[#f3f4f6] text-[#666] hover:text-[#111] flex items-center justify-center transition-colors text-base cursor-pointer disabled:opacity-50"
             title="Đóng"
           >
             ✕

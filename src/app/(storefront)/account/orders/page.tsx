@@ -294,7 +294,7 @@ export default function OrdersPage() {
                         </div>
                         {order.status === "COMPLETED" && item.productId && (
                           <div className="shrink-0 my-0.5">
-                            {reviewedProductIds.has(item.productId) ? (
+                            {(item.isReviewed || (item.productId && reviewedProductIds.has(item.productId))) ? (
                               <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
                                 <i className="fas fa-check text-[10px]"></i> Đã đánh giá
                               </span>

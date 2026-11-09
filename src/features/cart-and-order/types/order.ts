@@ -13,6 +13,7 @@ export interface OrderItemDto {
   costPrice?: number;
   quantity: number;
   totalPrice: number;
+  isReviewed?: boolean;
 }
 
 export interface AppliedPromotionDto {
@@ -44,6 +45,7 @@ export interface OrderResponseDto {
   customerPhone: string;
   date: string;
   createdAt: string;
+  updatedAt?: string;
   status: string;
   paymentStatus: string;
   paymentMethod: string;

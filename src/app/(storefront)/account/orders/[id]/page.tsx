@@ -6,6 +6,9 @@ import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
+import ProductReviewModal, {
+  ReviewProductInfo,
+} from "@/features/reviews/components/ProductReviewModal";
 
 const STEP_ORDER = ["PENDING", "PROCESSING", "SHIPPING", "COMPLETED"];
 
@@ -19,6 +22,12 @@ export default function OrderDetailPage({
   const [order, setOrder] = useState<OrderResponseDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [selectedProductToReview, setSelectedProductToReview] =
+    useState<ReviewProductInfo | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewedProductIds, setReviewedProductIds] = useState<Set<number>>(
+    new Set()
+  );
 
   useEffect(() => {
     apiFetch<OrderResponseDto>(`/orders/${encodeURIComponent(decodedId)}`)
@@ -230,16 +239,42 @@ export default function OrderDetailPage({
                   </div>
                 </div>
 
-                {(item.productSlug || item.productId) && (
-                  <div className="mt-auto">
+                <div className="mt-auto flex flex-wrap items-center gap-2 pt-2">
+                  {(item.productSlug || item.productId) && (
                     <Link
                       href={`/product/${item.productSlug || item.productId}`}
-                      className="inline-block border border-[#222] text-[#222] text-[12px] md:text-[14px] px-[16px] md:px-[24px] py-[4px] rounded-full hover:bg-[#222] hover:text-white transition-colors uppercase font-medium"
+                      className="inline-block border border-[#222] text-[#222] text-[12px] md:text-[13px] px-[16px] md:px-[20px] py-[4px] rounded-full hover:bg-[#222] hover:text-white transition-colors uppercase font-medium"
                     >
                       Mua lại
                     </Link>
-                  </div>
-                )}
+                  )}
+                  {order.status === "COMPLETED" && item.productId && (
+                    (item.isReviewed || (item.productId && reviewedProductIds.has(item.productId))) ? (
+                      <span className="inline-flex items-center gap-1.5 text-[12px] md:text-[13px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-[14px] py-[4px] rounded-full">
+                        <i className="fas fa-check text-[11px]"></i> Đã đánh giá
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedProductToReview({
+                            productId: Number(item.productId),
+                            name: item.name,
+                            image: item.image,
+                            colorName: item.colorName,
+                            sizeName: item.sizeName,
+                            variantInfo: item.variantInfo,
+                          });
+                          setIsReviewModalOpen(true);
+                        }}
+                        className="inline-flex items-center gap-1.5 border border-[#222] bg-[#222] hover:bg-[#000] text-white text-[12px] md:text-[13px] px-[16px] md:px-[20px] py-[4px] rounded-full transition-colors uppercase font-medium cursor-pointer shadow-2xs"
+                      >
+                        <i className="fas fa-star text-amber-400 text-[11px]"></i>
+                        <span>Đánh giá</span>
+                      </button>
+                    )
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -320,6 +355,18 @@ export default function OrderDetailPage({
           </div>
         </div>
       </div>
+
+      <ProductReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false);
+          setSelectedProductToReview(null);
+        }}
+        product={selectedProductToReview}
+        onReviewSuccess={(productId) => {
+          setReviewedProductIds((prev) => new Set([...prev, productId]));
+        }}
+      />
     </div>
   );
 }

@@ -486,12 +486,14 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                     <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                   </div>
                   <div className="pt-1 flex-1">
-                    <h4 className="font-medium text-sm">
-                      Đơn hàng đã được tạo
-                    </h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {order.date}
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium text-sm">
+                        Đơn hàng đã được tạo
+                      </h4>
+                      <span className="text-xs text-muted-foreground">
+                        {order.createdAt || order.date}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -501,7 +503,14 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                       <Package className="h-6 w-6 text-blue-500" />
                     </div>
                     <div className="pt-1 flex-1">
-                      <h4 className="font-medium text-sm">Đang chuẩn bị hàng</h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">Đang chuẩn bị hàng</h4>
+                        {order.status === "PROCESSING" && (
+                          <span className="text-xs text-muted-foreground">
+                            {order.updatedAt || order.date}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Kho đã xác nhận và đóng gói sản phẩm
                       </p>
@@ -516,9 +525,16 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                       <Truck className="h-6 w-6 text-amber-500" />
                     </div>
                     <div className="pt-1 flex-1">
-                      <h4 className="font-medium text-sm">
-                        Đã giao cho Đơn vị vận chuyển
-                      </h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">
+                          Đã giao cho Đơn vị vận chuyển
+                        </h4>
+                        {order.status === "SHIPPING" && (
+                          <span className="text-xs text-muted-foreground">
+                            {order.updatedAt || order.date}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Đang trên đường giao đến địa chỉ khách hàng
                       </p>
@@ -532,9 +548,14 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                       <PackageCheck className="h-6 w-6 text-emerald-600" />
                     </div>
                     <div className="pt-1 flex-1">
-                      <h4 className="font-medium text-sm">
-                        Giao hàng thành công
-                      </h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm">
+                          Giao hàng thành công
+                        </h4>
+                        <span className="text-xs text-emerald-600 font-medium">
+                          {order.updatedAt || order.date}
+                        </span>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Khách đã nhận hàng và thanh toán hoàn tất
                       </p>
@@ -548,9 +569,14 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                       <AlertTriangle className="h-6 w-6 text-red-500" />
                     </div>
                     <div className="pt-1 flex-1">
-                      <h4 className="font-medium text-sm text-red-600">
-                        Đơn hàng đã bị hủy
-                      </h4>
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-medium text-sm text-red-600">
+                          Đơn hàng đã bị hủy
+                        </h4>
+                        <span className="text-xs text-red-500">
+                          {order.updatedAt || order.date}
+                        </span>
+                      </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Lý do: {order.cancelReason || "Không xác định"}
                       </p>
