@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useCartStore } from "@/features/cart-and-order/stores/cart.store";
 import { useAuthStore } from "@/features/users/stores/auth.store";
-import { IvyUserIcon, IvyBagIcon, IvySearchIcon } from "@/shared/icons/IvyIcons";
+import { LuxeUserIcon, LuxeBagIcon, LuxeSearchIcon } from "@/shared/icons/LuxeIcons";
 import { apiFetch } from "@/shared/lib/api";
 
 interface SubCategoryGroup {
@@ -388,7 +388,7 @@ export default function Header() {
                 className="bg-transparent border-none text-[#221F20] hover:text-[#000] p-0 mr-[10px] flex items-center justify-center cursor-pointer transition-colors"
                 aria-label="Tìm kiếm"
               >
-                <IvySearchIcon className="w-[16px] h-[16px]" />
+                <LuxeSearchIcon className="w-[16px] h-[16px]" />
               </button>
               <input
                 type="text"
@@ -409,7 +409,7 @@ export default function Header() {
                   title={unreadOrderCount > 0 ? `Tài khoản (${unreadOrderCount} thông báo mới)` : "Tài khoản"}
                   aria-label="Tài khoản"
                 >
-                  <IvyUserIcon className="w-[20px] h-[20px]" />
+                  <LuxeUserIcon className="w-[20px] h-[20px]" />
                   {unreadOrderCount > 0 && (
                     <span
                       className="absolute top-[2px] right-[2px] w-[8px] h-[8px] bg-[#e10600] rounded-full ring-2 ring-white animate-pulse pointer-events-none"
@@ -517,7 +517,7 @@ export default function Header() {
                 title="Đăng nhập"
                 aria-label="Đăng nhập"
               >
-                <IvyUserIcon className="w-[20px] h-[20px]" />
+                <LuxeUserIcon className="w-[20px] h-[20px]" />
               </Link>
             )}
 
@@ -527,7 +527,7 @@ export default function Header() {
               title="Giỏ hàng"
             >
               {/* LUXE exact SVG shopping bag icon */}
-              <IvyBagIcon className="w-[22px] h-[22px]" />
+              <LuxeBagIcon className="w-[22px] h-[22px]" />
 
               {/* Black circular badge with white count matching LUXE style */}
               <span className="absolute -top-[4px] -right-[6px] bg-[#221F20] text-white text-[10px] font-semibold min-w-[16px] h-[16px] px-[2px] rounded-full leading-none flex items-center justify-center shadow-sm select-none pointer-events-none">
@@ -724,7 +724,7 @@ export default function Header() {
                     onClick={toggleMobileMenu}
                     className="text-[#333] font-bold flex w-full text-[14px] no-underline uppercase items-center gap-2"
                   >
-                    <IvyUserIcon className="w-[18px] h-[18px]" />
+                    <LuxeUserIcon className="w-[18px] h-[18px]" />
                     <span>{user?.name || "TÀI KHOẢN CỦA TÔI"}</span>
                   </Link>
                   <Link
@@ -756,7 +756,7 @@ export default function Header() {
                   onClick={toggleMobileMenu}
                   className="text-[#333] font-bold flex w-full text-[14px] no-underline uppercase items-center gap-2"
                 >
-                  <IvyUserIcon className="w-[18px] h-[18px]" />
+                  <LuxeUserIcon className="w-[18px] h-[18px]" />
                   <span>ĐĂNG NHẬP / ĐĂNG KÝ</span>
                 </Link>
               )}

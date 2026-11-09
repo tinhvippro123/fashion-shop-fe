@@ -1,6 +1,6 @@
 import React from "react";
 
-export function IvyUserIcon({ className = "w-[20px] h-[20px]" }: { className?: string }) {
+export function LuxeUserIcon({ className = "w-[20px] h-[20px]" }: { className?: string }) {
   return (
     <svg viewBox="0 0 1024 1024" className={`${className} fill-current`} aria-hidden="true">
       <g transform="matrix(1 0 0 -1 0 960)">
@@ -9,12 +9,8 @@ export function IvyUserIcon({ className = "w-[20px] h-[20px]" }: { className?: s
     </svg>
   );
 }
-export const LuxeUserIcon = IvyUserIcon;
-export const LuxeBagIcon = IvyBagIcon;
-export const LuxeSearchIcon = IvySearchIcon;
-export const LuxeHeartIcon = IvyHeartIcon;
 
-export function IvyBagIcon({ className = "w-[22px] h-[22px]" }: { className?: string }) {
+export function LuxeBagIcon({ className = "w-[22px] h-[22px]" }: { className?: string }) {
   return (
     <svg viewBox="0 0 1024 1024" className={`${className} fill-current`} aria-hidden="true">
       <g transform="matrix(1 0 0 -1 0 960)">
@@ -24,7 +20,7 @@ export function IvyBagIcon({ className = "w-[22px] h-[22px]" }: { className?: st
   );
 }
 
-export function IvySearchIcon({ className = "w-[16px] h-[16px]" }: { className?: string }) {
+export function LuxeSearchIcon({ className = "w-[16px] h-[16px]" }: { className?: string }) {
   return (
     <svg viewBox="0 0 1024 1024" className={`${className} fill-current`} aria-hidden="true">
       <g transform="matrix(1 0 0 -1 0 960)">
@@ -34,7 +30,7 @@ export function IvySearchIcon({ className = "w-[16px] h-[16px]" }: { className?:
   );
 }
 
-export function IvyHeartIcon({ className = "w-[18px] h-[18px]", filled = false }: { className?: string; filled?: boolean }) {
+export function LuxeHeartIcon({ className = "w-[18px] h-[18px]", filled = false }: { className?: string; filled?: boolean }) {
   return (
     <svg viewBox="0 0 1024 1024" className={`${className} fill-current`} aria-hidden="true">
       <g transform="matrix(1 0 0 -1 0 960)">

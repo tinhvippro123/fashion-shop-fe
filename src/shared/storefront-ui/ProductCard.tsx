@@ -7,7 +7,7 @@ import { useAuthStore } from "@/features/users/stores/auth.store";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
-import { IvyBagIcon, IvyHeartIcon } from "@/shared/icons/IvyIcons";
+import { LuxeBagIcon, LuxeHeartIcon } from "@/shared/icons/LuxeIcons";
 import {
   ProductDetail,
   ProductColor as FullProductColor,
@@ -227,7 +227,7 @@ export default function ProductCard({
             aria-label="Yêu thích"
             title={liked ? "Bỏ yêu thích" : "Yêu thích"}
           >
-            <IvyHeartIcon className="w-[18px] h-[18px]" filled={liked} />
+            <LuxeHeartIcon className="w-[18px] h-[18px]" filled={liked} />
           </button>
         </div>
 
@@ -275,7 +275,7 @@ export default function ProductCard({
               aria-label="Thêm vào giỏ"
               title="Thêm vào giỏ"
             >
-              <IvyBagIcon className="w-[17px] h-[17px]" />
+              <LuxeBagIcon className="w-[17px] h-[17px]" />
             </button>
 
             {isQuickSizeOpen && availableVariants.length > 0 && (
