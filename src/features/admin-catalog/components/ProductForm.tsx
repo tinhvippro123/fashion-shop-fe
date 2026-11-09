@@ -85,6 +85,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const [loadedProductId, setLoadedProductId] = useState<string | null>(null);
   const loadingInitial =
     mode === "edit" && Boolean(productId) && loadedProductId !== productId;
+  const [activeTab, setActiveTab] = useState<string>("basic");
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [suggestions, setSuggestions] = useState<IOptionSuggestions>({
     names: ["Màu sắc", "Kích thước"],
@@ -437,6 +438,33 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     values: TProductPayload,
     status: "draft" | "published" = "published"
   ) {
+    if (status === "published") {
+      const colorImgs = values.colorImages
+        ? Object.values(values.colorImages).flat().filter(Boolean)
+        : [];
+      const baseImgs = (values.images || []).filter(Boolean);
+      const hasAnyImage = baseImgs.length > 0 || colorImgs.length > 0;
+
+      const variants = values.variants || [];
+      const hasVariants = variants.length > 0;
+
+      if (!hasAnyImage) {
+        toast.error(
+          "Vui lòng tải lên ít nhất 1 ảnh sản phẩm trong tab 'Phân loại & Biến thể' trước khi đăng bán! (Hoặc bấm 'Lưu nháp' nếu bạn chưa có ảnh)"
+        );
+        setActiveTab("variants");
+        return;
+      }
+
+      if (!hasVariants) {
+        toast.error(
+          "Vui lòng thiết lập thuộc tính và tạo biến thể (Màu sắc, Kích cỡ) trước khi đăng bán! (Hoặc bấm 'Lưu nháp' nếu muốn bổ sung sau)"
+        );
+        setActiveTab("variants");
+        return;
+      }
+    }
+
     startTransition(async () => {
       try {
         let finalImages = values.images || [];
@@ -784,21 +812,34 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
               disabled={isPending}
             >
               <Save className="h-4 w-4" />{" "}
-              {isPending ? "Đang lưu..." : "Lưu sản phẩm"}
+              {isPending
+                ? "Đang lưu..."
+                : mode === "create"
+                ? "Đăng bán sản phẩm"
+                : "Lưu & Cập nhật"}
             </Button>
           </div>
         </div>
 
-        <Tabs defaultValue="basic" className="w-full">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6 bg-muted">
             <TabsTrigger value="basic" className="data-[state=active]:bg-card">
               Thông tin cơ bản
             </TabsTrigger>
             <TabsTrigger
               value="variants"
-              className="data-[state=active]:bg-card"
+              className="data-[state=active]:bg-card flex items-center gap-2"
             >
-              Phân loại & Biến thể ({variantFields.length})
+              <span>Phân loại & Biến thể</span>
+              <Badge
+                variant={variantFields.length > 0 ? "secondary" : "outline"}
+                className={cn(
+                  "text-[11px] px-1.5 py-0 h-4.5 font-normal",
+                  variantFields.length === 0 && "text-muted-foreground border-dashed"
+                )}
+              >
+                {variantFields.length}
+              </Badge>
             </TabsTrigger>
           </TabsList>
 
