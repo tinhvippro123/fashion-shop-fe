@@ -46,11 +46,17 @@ export default function CheckoutPage() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [showVnPayModal, setShowVnPayModal] = useState(false);
-  const [vnPayModalData, setVnPayModalData] = useState<{
-    orderCode: string;
-    totalAmount: number;
-    paymentUrl?: string | null;
+  const [pendingOrderPayload, setPendingOrderPayload] = useState<{
+    recipientName: string;
+    recipientPhone: string;
+    recipientEmail?: string;
+    shippingAddress: string;
+    paymentMethod: string;
+    voucherCode?: string;
+    note?: string;
+    items: { variantId: number; quantity: number }[];
   } | null>(null);
+  const [vnPayAmount, setVnPayAmount] = useState<number>(0);
 
   // Vouchers
   const [showVoucherModal, setShowVoucherModal] = useState(false);
@@ -155,12 +161,6 @@ export default function CheckoutPage() {
   const submitFinalOrder = useCallback(async () => {
     if (submitting) return;
 
-    // If VNPay order already exists and user wants to continue paying for it
-    if (selectedPaymentMethod === "VNPAY" && vnPayModalData?.orderCode) {
-      setShowVnPayModal(true);
-      return;
-    }
-
     if (items.length === 0) {
       toast.error("Giỏ hàng của bạn đang trống");
       router.push("/cart");
@@ -213,6 +213,7 @@ export default function CheckoutPage() {
 
     // Tự động kiểm tra và áp dụng mã giảm giá nếu khách đã điền vào ô nhưng chưa bấm "ÁP DỤNG"
     let activeVoucherCode = appliedVoucher?.code;
+    let activeDiscount = appliedVoucher?.discount || 0;
     const pendingVoucher = voucherCode.trim().toUpperCase();
     if (pendingVoucher && (!appliedVoucher || appliedVoucher.code !== pendingVoucher)) {
       try {
@@ -222,11 +223,12 @@ export default function CheckoutPage() {
             method: "POST",
             body: JSON.stringify({
               code: pendingVoucher,
-              subtotal: totalAmount,
+              subtotal: totalPrice,
             }),
           }
         );
         activeVoucherCode = res.code;
+        activeDiscount = Number(res.discountAmount);
         setVoucherCode(res.code);
         setAppliedVoucher({
           code: res.code,
@@ -239,6 +241,27 @@ export default function CheckoutPage() {
       }
     }
 
+    if (selectedPaymentMethod === "VNPAY") {
+      const currentShippingFee = items.length > 0 ? 30000 : 0;
+      const currentFinalTotal = Math.max(0, totalPrice + currentShippingFee - activeDiscount);
+      setPendingOrderPayload({
+        recipientName: finalName,
+        recipientPhone: finalPhone,
+        recipientEmail: user?.email || undefined,
+        shippingAddress: finalAddress,
+        paymentMethod: "VNPAY",
+        voucherCode: activeVoucherCode || undefined,
+        note: note.trim() || undefined,
+        items: items.map((item) => ({
+          variantId: item.variant.id,
+          quantity: item.quantity,
+        })),
+      });
+      setVnPayAmount(currentFinalTotal);
+      setShowVnPayModal(true);
+      return;
+    }
+
     setSubmitting(true);
     try {
       const created = await apiFetch<OrderResponseDto>("/orders", {
@@ -248,7 +271,7 @@ export default function CheckoutPage() {
           recipientPhone: finalPhone,
           recipientEmail: user?.email || undefined,
           shippingAddress: finalAddress,
-          paymentMethod: selectedPaymentMethod,
+          paymentMethod: "COD",
           voucherCode: activeVoucherCode || undefined,
           note: note.trim() || undefined,
           items: items.map((item) => ({
@@ -260,16 +283,6 @@ export default function CheckoutPage() {
       if (isAuthenticated && user && !user.phone && finalPhone) {
         setUser({ ...user, phone: finalPhone });
       }
-      if (selectedPaymentMethod === "VNPAY") {
-        setVnPayModalData({
-          orderCode: created.orderCode || "",
-          totalAmount: created.totalAmount || totalPrice,
-          paymentUrl: created.paymentUrl,
-        });
-        setShowVnPayModal(true);
-        setSubmitting(false);
-        return;
-      }
       clearCart();
       toast.success("Đặt hàng thành công!");
       router.push(
@@ -277,6 +290,7 @@ export default function CheckoutPage() {
       );
     } catch (err) {
       toast.error((err as Error).message);
+    } finally {
       setSubmitting(false);
     }
   }, [
@@ -288,14 +302,16 @@ export default function CheckoutPage() {
     receiverName,
     receiverPhone,
     user,
+    setUser,
+    addresses.length,
+    voucherCode,
+    appliedVoucher,
     street,
     selectedWard,
     selectedDistrict,
     selectedProvince,
     selectedPaymentMethod,
-    appliedVoucher,
     note,
-    vnPayModalData,
     clearCart,
     router,
   ]);
@@ -496,52 +512,6 @@ export default function CheckoutPage() {
             </div>
           </div>
         </div>
-
-        {/* Banner if there is an active pending VNPay order */}
-        {vnPayModalData && (
-          <div className="max-w-[1200px] mx-auto mb-6 p-4 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-900 flex flex-col md:flex-row items-center justify-between gap-3 shadow-sm animate-fade-in">
-            <div className="flex items-center gap-3 text-[14px]">
-              <span className="text-2xl">⏳</span>
-              <div>
-                <div>
-                  Đơn hàng <strong className="font-mono text-[#222]">#{vnPayModalData.orderCode}</strong> đã được tạo ở trạng thái <span className="font-semibold text-amber-800">Chờ thanh toán (VNPay)</span>.
-                </div>
-                <div className="text-[12px] text-amber-700">
-                  Bạn có thể xem lại thông tin trên trang và mở lại cổng thanh toán bất cứ khi nào sẵn sàng.
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={() => setShowVnPayModal(true)}
-                className="px-4 py-2 bg-[#005baa] hover:bg-[#004a8c] text-white text-[12px] font-bold uppercase rounded-[6px] shadow transition-colors cursor-pointer"
-              >
-                Mở lại thanh toán
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  clearCart();
-                  router.push(
-                    `/order-success?code=${encodeURIComponent(vnPayModalData.orderCode)}`
-                  );
-                }}
-                className="px-3.5 py-2 border border-amber-300 hover:bg-amber-100 text-amber-900 text-[12px] font-medium rounded-[6px] transition-colors cursor-pointer"
-              >
-                Xem đơn hàng
-              </button>
-              <button
-                type="button"
-                onClick={() => setVnPayModalData(null)}
-                className="px-2.5 py-2 text-[12px] text-amber-700 hover:text-amber-950 underline transition-colors cursor-pointer"
-                title="Tạo đơn hàng mới nếu muốn đổi thông tin"
-              >
-                Tạo đơn mới
-              </button>
-            </div>
-          </div>
-        )}
 
         <form
           onSubmit={(e) => {
@@ -1408,24 +1378,37 @@ export default function CheckoutPage() {
         </div>
       )}
 
-      {showVnPayModal && vnPayModalData && (
+      {showVnPayModal && pendingOrderPayload && (
         <VnPayInAppModal
           isOpen={showVnPayModal}
-          orderCode={vnPayModalData.orderCode}
-          totalAmount={vnPayModalData.totalAmount}
-          paymentUrl={vnPayModalData.paymentUrl}
-          onSuccess={() => {
+          totalAmount={vnPayAmount}
+          onConfirmPayment={async () => {
+            const created = await apiFetch<OrderResponseDto>("/orders", {
+              method: "POST",
+              body: JSON.stringify(pendingOrderPayload),
+            });
+            if (isAuthenticated && user && !user.phone && pendingOrderPayload.recipientPhone) {
+              setUser({ ...user, phone: pendingOrderPayload.recipientPhone });
+            }
+            await apiFetch("/payment/direct-pay", {
+              method: "POST",
+              body: JSON.stringify({
+                orderCode: created.orderCode,
+                bankCode: "NCB",
+              }),
+            });
+            return created.orderCode;
+          }}
+          onSuccess={(orderCode) => {
             clearCart();
             setShowVnPayModal(false);
+            setPendingOrderPayload(null);
             router.push(
-              `/order-success?code=${encodeURIComponent(vnPayModalData.orderCode)}`
+              `/order-success?code=${encodeURIComponent(orderCode || "")}`
             );
           }}
           onClose={() => {
             setShowVnPayModal(false);
-            toast.info(
-              "Đã đóng cửa sổ VNPay. Đơn hàng của bạn đang ở trạng thái Chờ thanh toán!"
-            );
           }}
         />
       )}

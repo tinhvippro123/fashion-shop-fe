@@ -7,10 +7,11 @@ import { toast } from "sonner";
 
 interface VnPayInAppModalProps {
   isOpen: boolean;
-  orderCode: string;
+  orderCode?: string;
   totalAmount: number;
   paymentUrl?: string | null;
-  onSuccess: () => void;
+  onConfirmPayment?: () => Promise<string | void>;
+  onSuccess: (orderCode?: string) => void;
   onClose: () => void;
 }
 
@@ -18,6 +19,7 @@ export default function VnPayInAppModal({
   isOpen,
   orderCode,
   totalAmount,
+  onConfirmPayment,
   onSuccess,
   onClose,
 }: VnPayInAppModalProps) {
@@ -86,16 +88,24 @@ export default function VnPayInAppModal({
       // Realistic brief authentication delay (800ms)
       await new Promise((r) => setTimeout(r, 800));
 
-      await apiFetch("/payment/direct-pay", {
-        method: "POST",
-        body: JSON.stringify({
-          orderCode,
-          bankCode: "NCB",
-        }),
-      });
+      let code = orderCode;
+      if (onConfirmPayment) {
+        const result = await onConfirmPayment();
+        if (result) {
+          code = result;
+        }
+      } else if (orderCode) {
+        await apiFetch("/payment/direct-pay", {
+          method: "POST",
+          body: JSON.stringify({
+            orderCode,
+            bankCode: "NCB",
+          }),
+        });
+      }
 
       toast.success("Thanh toán đơn hàng qua VNPay thành công!");
-      onSuccess();
+      onSuccess(code);
     } catch (err) {
       toast.error((err as Error).message || "Thanh toán thất bại");
       setProcessing(false);
@@ -144,7 +154,7 @@ export default function VnPayInAppModal({
         <div className="bg-[#f8f9fa] border-b border-[#eee] px-5 py-2.5 flex items-center justify-between text-[13px]">
           <div>
             <span className="text-[#6c757d]">Đơn hàng:</span>{" "}
-            <strong className="text-[#222] font-mono">{orderCode}</strong>
+            <strong className="text-[#222] font-mono">{orderCode || "LUXE Fashion"}</strong>
           </div>
           <div>
             <span className="text-[#6c757d]">Số tiền:</span>{" "}
