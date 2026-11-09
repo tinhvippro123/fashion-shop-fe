@@ -46,6 +46,7 @@ import {
   TProductVariant,
 } from "../schemas/product.schema";
 import { getFashionColorHex, isColorAttribute } from "@/shared/utils/color";
+import { isSizeAttribute, getSizeSortOrder } from "@/shared/utils/size";
 import {
   AdminCategory,
   IOptionSuggestions,
@@ -522,9 +523,19 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
 
   const generateVariants = () => {
     const currentOptions = form.getValues("options") || [];
-    const validOptions = currentOptions.filter(
-      (opt) => opt.name && opt.values && opt.values.length > 0
-    );
+    const validOptions = currentOptions
+      .map((opt) => {
+        if (isSizeAttribute(opt.name)) {
+          return {
+            ...opt,
+            values: [...opt.values].sort(
+              (a, b) => getSizeSortOrder(a) - getSizeSortOrder(b)
+            ),
+          };
+        }
+        return opt;
+      })
+      .filter((opt) => opt.name && opt.values && opt.values.length > 0);
 
     if (validOptions.length === 0) {
       toast.error(
@@ -636,9 +647,13 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     const currentValues = currentOpt.values || [];
 
     if (!currentValues.includes(val)) {
+      const nextValues = [...currentValues, val];
+      if (isSizeAttribute(currentOpt.name)) {
+        nextValues.sort((a, b) => getSizeSortOrder(a) - getSizeSortOrder(b));
+      }
       updateOption(index, {
         name: currentOpt.name || "",
-        values: [...currentValues, val],
+        values: nextValues,
       });
     }
   };
@@ -657,9 +672,13 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       const currentValues = currentOpt.values || [];
 
       if (!currentValues.includes(val)) {
+        const nextValues = [...currentValues, val];
+        if (isSizeAttribute(currentOpt.name)) {
+          nextValues.sort((a, b) => getSizeSortOrder(a) - getSizeSortOrder(b));
+        }
         updateOption(index, {
           name: currentOpt.name || "",
-          values: [...currentValues, val],
+          values: nextValues,
         });
       }
       e.currentTarget.value = "";

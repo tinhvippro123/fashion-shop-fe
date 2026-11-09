@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ProductDetail, ProductColor } from "@/features/catalog/types/product";
 import SizeGuideModal from "./SizeGuideModal";
@@ -10,6 +10,7 @@ import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice } from "@/shared/utils/format";
 import { Ruler } from "lucide-react";
+import { getSizeSortOrder } from "@/shared/utils/size";
 
 interface ProductInfoProps {
   product: ProductDetail;
@@ -30,6 +31,14 @@ export default function ProductInfo({
   const [quantity, setQuantity] = useState<number>(1);
   const [sizeError, setSizeError] = useState(false);
   const [isSizeGuideOpen, setIsSizeGuideOpen] = useState(false);
+
+  const sortedVariants = useMemo(() => {
+    return [...(selectedColor?.variants || [])].sort((a, b) => {
+      const orderA = a.size?.sortOrder && a.size.sortOrder > 0 ? a.size.sortOrder : getSizeSortOrder(a.size?.name);
+      const orderB = b.size?.sortOrder && b.size.sortOrder > 0 ? b.size.sortOrder : getSizeSortOrder(b.size?.name);
+      return orderA - orderB;
+    });
+  }, [selectedColor]);
 
   const { items, addItem, showSuccessModal } = useCartStore();
   const { isAuthenticated, wishlistIds, setWishlistProductState, syncWishlist } =
@@ -230,7 +239,7 @@ export default function ProductInfo({
       <div className="mb-[24px]">
         <div className="mb-[16px]">
           <div className="flex flex-wrap gap-[8px]">
-            {(selectedColor?.variants || []).map((variant) => {
+            {sortedVariants.map((variant) => {
               const isOutOfStock = variant.stock <= 0;
               const isSelected = selectedVariantId === variant.id;
 

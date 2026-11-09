@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { PackageOpen } from "lucide-react";
 import { useCartStore } from "@/features/cart-and-order/stores/cart.store";
@@ -8,6 +8,7 @@ import { useAuthStore } from "@/features/users/stores/auth.store";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
+import { getSizeSortOrder } from "@/shared/utils/size";
 import { LuxeBagIcon, LuxeHeartIcon } from "@/shared/icons/LuxeIcons";
 import {
   ProductDetail,
@@ -141,7 +142,19 @@ export default function ProductCard({
     }
   };
 
-  const availableVariants = activeColor?.variants || [];
+  const availableVariants = useMemo(() => {
+    return [...(activeColor?.variants || [])].sort((a, b) => {
+      const orderA =
+        a.size?.sortOrder && a.size.sortOrder > 0
+          ? a.size.sortOrder
+          : getSizeSortOrder(a.size?.name);
+      const orderB =
+        b.size?.sortOrder && b.size.sortOrder > 0
+          ? b.size.sortOrder
+          : getSizeSortOrder(b.size?.name);
+      return orderA - orderB;
+    });
+  }, [activeColor]);
 
   return (
     <div className="mb-[30px] relative transition-all duration-300">
