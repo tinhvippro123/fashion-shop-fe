@@ -47,6 +47,10 @@ export interface OrderResponseDto {
   date: string;
   createdAt: string;
   updatedAt?: string;
+  confirmedAt?: string;
+  shippingAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
   status: string;
   paymentStatus: string;
   paymentMethod: string;

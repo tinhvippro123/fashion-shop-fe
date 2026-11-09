@@ -490,7 +490,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                       <h4 className="font-medium text-sm">
                         Đơn hàng đã được tạo
                       </h4>
-                      <span className="text-xs text-muted-foreground">
+                      <span className="text-xs text-muted-foreground font-mono">
                         {order.createdAt || order.date}
                       </span>
                     </div>
@@ -505,11 +505,9 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                     <div className="pt-1 flex-1">
                       <div className="flex items-center justify-between">
                         <h4 className="font-medium text-sm">Đang chuẩn bị hàng</h4>
-                        {order.status === "PROCESSING" && (
-                          <span className="text-xs text-muted-foreground">
-                            {order.updatedAt || order.date}
-                          </span>
-                        )}
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {order.confirmedAt || order.date}
+                        </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Kho đã xác nhận và đóng gói sản phẩm
@@ -529,11 +527,9 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                         <h4 className="font-medium text-sm">
                           Đã giao cho Đơn vị vận chuyển
                         </h4>
-                        {order.status === "SHIPPING" && (
-                          <span className="text-xs text-muted-foreground">
-                            {order.updatedAt || order.date}
-                          </span>
-                        )}
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {order.shippingAt || order.updatedAt || order.date}
+                        </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
                         Đang trên đường giao đến địa chỉ khách hàng
@@ -552,8 +548,8 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                         <h4 className="font-medium text-sm">
                           Giao hàng thành công
                         </h4>
-                        <span className="text-xs text-emerald-600 font-medium">
-                          {order.updatedAt || order.date}
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {order.completedAt || order.updatedAt || order.date}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">
@@ -573,8 +569,8 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                         <h4 className="font-medium text-sm text-red-600">
                           Đơn hàng đã bị hủy
                         </h4>
-                        <span className="text-xs text-red-500">
-                          {order.updatedAt || order.date}
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {order.cancelledAt || order.updatedAt || order.date}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground mt-0.5">

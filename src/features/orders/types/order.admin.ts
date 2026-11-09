@@ -38,6 +38,10 @@ export interface Order {
   date: string;
   createdAt?: string;
   updatedAt?: string;
+  confirmedAt?: string;
+  shippingAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
   status: OrderStatus;
   paymentStatus?: string;
   paymentMethod?: string;
