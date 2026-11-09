@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice } from "@/shared/utils/format";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
+import ProductReviewModal from "@/features/reviews/components/ProductReviewModal";
 
 const STATUS_OPTIONS = [
   { value: "ALL", label: "Tất cả", icon: "fas fa-layer-group", color: "text-[#6c757d]" },
@@ -21,6 +22,42 @@ export default function OrdersPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Reviews modal state
+  const [reviewedProductIds, setReviewedProductIds] = useState<Set<number>>(new Set());
+  const [selectedProductToReview, setSelectedProductToReview] = useState<{
+    productId: number;
+    name: string;
+    image?: string;
+    colorName?: string;
+    sizeName?: string;
+    variantInfo?: string;
+  } | null>(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+
+  const handleOpenReview = (item: {
+    productId?: number | null;
+    name: string;
+    image?: string;
+    colorName?: string;
+    sizeName?: string;
+    variantInfo?: string;
+  }) => {
+    if (!item?.productId) return;
+    setSelectedProductToReview({
+      productId: Number(item.productId),
+      name: item.name,
+      image: item.image,
+      colorName: item.colorName,
+      sizeName: item.sizeName,
+      variantInfo: item.variantInfo,
+    });
+    setIsReviewModalOpen(true);
+  };
+
+  const handleReviewSuccess = (productId: number) => {
+    setReviewedProductIds((prev) => new Set([...prev, productId]));
+  };
 
   useEffect(() => {
     apiFetch<OrderResponseDto[]>("/orders/my-orders")
@@ -246,13 +283,33 @@ export default function OrdersPage() {
                     {order.items.map((item, index) => (
                       <div
                         key={index}
-                        className="text-[12px] xl:text-[14px] mb-[4px] text-[#222]"
+                        className="flex flex-wrap items-center justify-between gap-2 text-[12px] xl:text-[14px] mb-[6px] last:mb-0 text-[#222] pb-1.5 last:pb-0 border-b border-dashed border-[#f0f0f0] last:border-none"
                       >
-                        <span>{item.quantity}x</span>{" "}
-                        <span className="font-medium">{item.name}</span>
-                        <span className="text-[#6c6d70]">
-                          , {item.colorName} ({item.sizeName})
-                        </span>
+                        <div className="flex-1 min-w-[180px]">
+                          <span>{item.quantity}x</span>{" "}
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-[#6c6d70]">
+                            , {item.colorName} ({item.sizeName})
+                          </span>
+                        </div>
+                        {order.status === "COMPLETED" && item.productId && (
+                          <div className="shrink-0 my-0.5">
+                            {reviewedProductIds.has(item.productId) ? (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                                <i className="fas fa-check text-[10px]"></i> Đã đánh giá
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => handleOpenReview(item)}
+                                className="inline-flex items-center gap-1.5 px-3 py-1 bg-white hover:bg-[#111] text-[#222] hover:text-white border border-[#222] text-[11.5px] font-semibold rounded-[6px] shadow-2xs transition-all cursor-pointer"
+                              >
+                                <i className="fas fa-star text-amber-500 text-[10px]"></i>
+                                <span>Đánh giá</span>
+                              </button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </td>
@@ -273,6 +330,16 @@ export default function OrdersPage() {
           </tbody>
         </table>
       </div>
+
+      <ProductReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => {
+          setIsReviewModalOpen(false);
+          setSelectedProductToReview(null);
+        }}
+        product={selectedProductToReview}
+        onReviewSuccess={handleReviewSuccess}
+      />
     </>
   );
 }
