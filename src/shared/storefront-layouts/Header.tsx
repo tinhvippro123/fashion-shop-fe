@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useCartStore } from "@/features/cart-and-order/stores/cart.store";
 import { useAuthStore } from "@/features/users/stores/auth.store";
 import { IvyUserIcon, IvyBagIcon, IvySearchIcon } from "@/shared/icons/IvyIcons";
@@ -119,8 +119,33 @@ export default function Header() {
     {}
   );
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [unreadOrderCount, setUnreadOrderCount] = useState<number>(0);
   const userMenuRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
+
+  const fetchUnreadCount = useCallback(async () => {
+    if (!isAuthenticated) {
+      setUnreadOrderCount(0);
+      return;
+    }
+    try {
+      const res = await apiFetch<{ unreadCount: number }>("/notifications/unread-count");
+      setUnreadOrderCount(res?.unreadCount || 0);
+    } catch {
+      // ignore
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 45000);
+    const handleFocus = () => fetchUnreadCount();
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [fetchUnreadCount]);
 
   useEffect(() => {
     apiFetch<ApiCategory[]>("/catalog/categories")
@@ -380,11 +405,17 @@ export default function Header() {
               <div className="hidden xl:block relative" ref={userMenuRef}>
                 <button
                   onClick={toggleUserMenu}
-                  className="bg-transparent border-none p-1 text-[#221F20] hover:text-[#000] cursor-pointer transition-colors flex items-center justify-center"
-                  title="Tài khoản"
+                  className="bg-transparent border-none p-1 text-[#221F20] hover:text-[#000] cursor-pointer transition-colors flex items-center justify-center relative"
+                  title={unreadOrderCount > 0 ? `Tài khoản (${unreadOrderCount} thông báo mới)` : "Tài khoản"}
                   aria-label="Tài khoản"
                 >
                   <IvyUserIcon className="w-[20px] h-[20px]" />
+                  {unreadOrderCount > 0 && (
+                    <span
+                      className="absolute top-[2px] right-[2px] w-[8px] h-[8px] bg-[#e10600] rounded-full ring-2 ring-white animate-pulse pointer-events-none"
+                      title={`Bạn có ${unreadOrderCount} thông báo đơn hàng mới`}
+                    />
+                  )}
                 </button>
 
                 <div
@@ -420,11 +451,28 @@ export default function Header() {
                     <li>
                       <Link
                         href="/account/orders"
-                        onClick={() => setIsUserMenuOpen(false)}
-                        className="block px-4 py-[10px] text-[14px] text-[#333] hover:bg-[#f8f9fa] transition-colors border-b border-[#f5f5f5]"
+                        onClick={async () => {
+                          setIsUserMenuOpen(false);
+                          if (unreadOrderCount > 0) {
+                            setUnreadOrderCount(0);
+                            try {
+                              await apiFetch("/notifications/mark-read", { method: "PUT" });
+                            } catch {
+                              // ignore
+                            }
+                          }
+                        }}
+                        className="flex items-center justify-between px-4 py-[10px] text-[14px] text-[#333] hover:bg-[#f8f9fa] transition-colors border-b border-[#f5f5f5]"
                       >
-                        <i className="fas fa-sync-alt w-[20px] text-center mr-3"></i>{" "}
-                        Quản lý đơn hàng
+                        <div className="flex items-center">
+                          <i className="fas fa-sync-alt w-[20px] text-center mr-3"></i>{" "}
+                          <span>Quản lý đơn hàng</span>
+                        </div>
+                        {unreadOrderCount > 0 && (
+                          <span className="bg-[#e10600] text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs leading-none">
+                            {unreadOrderCount}
+                          </span>
+                        )}
                       </Link>
                     </li>
                     <li>
@@ -670,14 +718,38 @@ export default function Header() {
             </li>
             <li className="pb-4 pt-2 border-t border-[#eee]">
               {isAuthenticated ? (
-                <Link
-                  href="/account/profile"
-                  onClick={toggleMobileMenu}
-                  className="text-[#333] font-bold flex w-full text-[14px] no-underline uppercase items-center gap-2"
-                >
-                  <IvyUserIcon className="w-[18px] h-[18px]" />
-                  <span>{user?.name || "TÀI KHOẢN CỦA TÔI"}</span>
-                </Link>
+                <div className="flex flex-col gap-2">
+                  <Link
+                    href="/account/profile"
+                    onClick={toggleMobileMenu}
+                    className="text-[#333] font-bold flex w-full text-[14px] no-underline uppercase items-center gap-2"
+                  >
+                    <IvyUserIcon className="w-[18px] h-[18px]" />
+                    <span>{user?.name || "TÀI KHOẢN CỦA TÔI"}</span>
+                  </Link>
+                  <Link
+                    href="/account/orders"
+                    onClick={async () => {
+                      toggleMobileMenu();
+                      if (unreadOrderCount > 0) {
+                        setUnreadOrderCount(0);
+                        try {
+                          await apiFetch("/notifications/mark-read", { method: "PUT" });
+                        } catch {
+                          // ignore
+                        }
+                      }
+                    }}
+                    className="text-[#555] font-semibold flex w-full text-[13px] no-underline items-center justify-between pl-6"
+                  >
+                    <span>Quản lý đơn hàng</span>
+                    {unreadOrderCount > 0 && (
+                      <span className="bg-[#e10600] text-white text-[11px] font-bold px-2 py-0.5 rounded-full">
+                        {unreadOrderCount}
+                      </span>
+                    )}
+                  </Link>
+                </div>
               ) : (
                 <Link
                   href="/login"
