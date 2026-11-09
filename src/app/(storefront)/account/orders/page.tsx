@@ -27,6 +27,8 @@ export default function OrdersPage() {
       .then(setOrders)
       .catch(() => setOrders([]))
       .finally(() => setLoading(false));
+
+    apiFetch("/notifications/mark-read", { method: "PUT" }).catch(() => {});
   }, []);
 
   useEffect(() => {
