@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
+import { PackageOpen } from "lucide-react";
 import { useCartStore } from "@/features/cart-and-order/stores/cart.store";
 import { useAuthStore } from "@/features/users/stores/auth.store";
 import { toast } from "react-toastify";
@@ -57,23 +58,43 @@ export default function ProductCard({
   const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const quickSizeRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
 
   const activeColor =
     product.productColors?.find((c) => c.id === activeColorId) ||
     product.productColors?.[0];
 
-  const mainImage =
-    activeColor && activeColor.images && activeColor.images.length > 0
-      ? resolveImageUrl(activeColor.images[0].imageUrl)
-      : "/uploads/03321697-61dc-4f30-8da7-d25085a78741.webp";
+  const hasImages = Boolean(activeColor?.images && activeColor.images.length > 0);
+
+  const mainImage = hasImages
+    ? resolveImageUrl(activeColor!.images[0].imageUrl)
+    : null;
 
   const hoverImage =
-    activeColor && activeColor.images && activeColor.images.length > 1
-      ? resolveImageUrl(activeColor.images[1].imageUrl)
+    hasImages && activeColor!.images.length > 1
+      ? resolveImageUrl(activeColor!.images[1].imageUrl)
       : null;
 
+  // Sync activeColorId if productColors update
   useEffect(() => {
-    setIsLoaded(false);
+    if (product.productColors && product.productColors.length > 0) {
+      if (!product.productColors.some((c) => c.id === activeColorId)) {
+        setActiveColorId(product.productColors[0].id);
+      }
+    }
+  }, [product, activeColorId]);
+
+  // Handle cached / fast image loads immediately so shimmer doesn't hang
+  useEffect(() => {
+    if (!mainImage) {
+      setIsLoaded(true);
+      return;
+    }
+    if (imgRef.current?.complete && imgRef.current?.naturalWidth > 0) {
+      setIsLoaded(true);
+    } else {
+      setIsLoaded(false);
+    }
     setHasError(false);
   }, [mainImage]);
 
@@ -159,28 +180,39 @@ export default function ProductCard({
 
       {/* Image container: Scoped hover so only hovering the image swaps it */}
       <div className="group relative overflow-hidden aspect-[2/3] bg-[#f8f9fa] rounded-[4px]">
-        {/* Shimmer skeleton while loading */}
-        {!isLoaded && (
-          <div className="absolute inset-0 bg-gradient-to-r from-[#f0f0f2] via-[#e4e4e7] to-[#f0f0f2] animate-pulse z-[1]" />
-        )}
+        {/* Shimmer skeleton while loading: non-blocking pointer-events-none and smooth fade */}
+        <div
+          className={`absolute inset-0 bg-gradient-to-r from-[#f0f0f2] via-[#e4e4e7] to-[#f0f0f2] animate-pulse pointer-events-none z-[1] transition-opacity duration-300 ${
+            isLoaded ? "opacity-0" : "opacity-100"
+          }`}
+        />
 
         <Link href={`/product/${product.slug || product.id}`} className="block w-full h-full">
-          {/* Main product image with smooth fade-in */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={hasError ? "/uploads/03321697-61dc-4f30-8da7-d25085a78741.webp" : mainImage}
-            alt={product.name}
-            loading="lazy"
-            decoding="async"
-            onLoad={() => setIsLoaded(true)}
-            onError={() => {
-              setHasError(true);
-              setIsLoaded(true);
-            }}
-            className={`w-full h-full object-cover transition-all duration-700 ease-out group-hover:scale-105 ${
-              isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
-            }`}
-          />
+          {mainImage ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              ref={imgRef}
+              src={hasError ? "/uploads/03321697-61dc-4f30-8da7-d25085a78741.webp" : mainImage}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              onLoad={() => setIsLoaded(true)}
+              onError={() => {
+                setHasError(true);
+                setIsLoaded(true);
+              }}
+              className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
+                isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
+              }`}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#f8f9fa] text-[#9ca3af] p-4 text-center select-none">
+              <PackageOpen className="w-9 h-9 mb-2 stroke-[1.2] text-[#b0b0b8]" />
+              <span className="text-[11px] uppercase tracking-wider font-medium text-[#7a7a85]">
+                Đang cập nhật ảnh
+              </span>
+            </div>
+          )}
 
           {/* Hover alternate image (only rendered if distinct from main image) */}
           {hoverImage && (
