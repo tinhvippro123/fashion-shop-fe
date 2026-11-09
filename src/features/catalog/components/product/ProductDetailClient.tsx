@@ -18,6 +18,8 @@ export default function ProductDetailClient({
   product,
 }: ProductDetailClientProps) {
   const defaultColorId =
+    product.productColors.find((c) => c.isActive && c.images && c.images.length > 0)?.id ||
+    product.productColors.find((c) => c.images && c.images.length > 0)?.id ||
     product.productColors.find((c) => c.isActive)?.id ||
     product.productColors[0]?.id;
   const [selectedColorId, setSelectedColorId] =

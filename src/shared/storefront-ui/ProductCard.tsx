@@ -50,10 +50,12 @@ export default function ProductCard({
   isLiked = false,
   onUnliked,
 }: ProductCardProps) {
+  const initialColor =
+    product.productColors?.find((c) => c.images && c.images.length > 0) ||
+    product.productColors?.[0];
+
   const [activeColorId, setActiveColorId] = useState<number | null>(
-    product.productColors && product.productColors.length > 0
-      ? product.productColors[0].id
-      : null
+    initialColor ? initialColor.id : null
   );
   const [isQuickSizeOpen, setIsQuickSizeOpen] = useState(false);
   const [hasError, setHasError] = useState(false);
@@ -61,24 +63,36 @@ export default function ProductCard({
 
   const activeColor =
     product.productColors?.find((c) => c.id === activeColorId) ||
-    product.productColors?.[0];
+    initialColor;
 
-  const hasImages = Boolean(activeColor?.images && activeColor.images.length > 0);
+  const colorWithImages =
+    product.productColors?.find((c) => c.images && c.images.length > 0);
+
+  // Fallback to any color that has images so storefront never displays a blank card unnecessarily
+  const displayColor =
+    activeColor?.images && activeColor.images.length > 0
+      ? activeColor
+      : colorWithImages || activeColor;
+
+  const hasImages = Boolean(displayColor?.images && displayColor.images.length > 0);
 
   const mainImage = hasImages
-    ? resolveImageUrl(activeColor!.images[0].imageUrl)
+    ? resolveImageUrl(displayColor!.images[0].imageUrl)
     : null;
 
   const hoverImage =
-    hasImages && activeColor!.images.length > 1
-      ? resolveImageUrl(activeColor!.images[1].imageUrl)
+    hasImages && displayColor!.images.length > 1
+      ? resolveImageUrl(displayColor!.images[1].imageUrl)
       : null;
 
   // Sync activeColorId if productColors update
   useEffect(() => {
     if (product.productColors && product.productColors.length > 0) {
       if (!product.productColors.some((c) => c.id === activeColorId)) {
-        setActiveColorId(product.productColors[0].id);
+        const preferred =
+          product.productColors.find((c) => c.images && c.images.length > 0) ||
+          product.productColors[0];
+        setActiveColorId(preferred.id);
       }
     }
   }, [product, activeColorId]);
