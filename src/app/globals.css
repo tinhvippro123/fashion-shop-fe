@@ -199,3 +199,10 @@ html {
   z-index: 999999 !important;
 }
 
+/* Ẩn con mắt hiển thị mật khẩu mặc định của Microsoft Edge / IE để tránh bị trùng lặp với nút mắt tùy chỉnh của website */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none !important;
+}
+
+
