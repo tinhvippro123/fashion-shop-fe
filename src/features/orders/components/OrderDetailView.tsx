@@ -423,7 +423,13 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4 shrink-0" />
                   <span className="truncate">
-                    {order.customer?.email || order.customerEmail}
+                    {(() => {
+                      const email = order.customer?.email || order.customerEmail;
+                      if (!email || email === "khachhang@luxe.vn" || email === "—") {
+                        return "Chưa cập nhật (Khách vãng lai)";
+                      }
+                      return email;
+                    })()}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 text-muted-foreground">

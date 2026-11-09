@@ -390,9 +390,18 @@ export function OrderTable({
                     <TableCell>
                       <div className="flex flex-col">
                         <span className="font-medium">{order.customerName}</span>
-                        <span className="text-xs text-muted-foreground">
-                          {order.customerEmail}
-                        </span>
+                        {order.customer?.type === "Khách vãng lai" ||
+                        !order.customerEmail ||
+                        order.customerEmail === "khachhang@luxe.vn" ||
+                        order.customerEmail === "—" ? (
+                          <span className="text-xs text-muted-foreground/80 italic">
+                            Khách vãng lai
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">
+                            {order.customerEmail}
+                          </span>
+                        )}
                       </div>
                     </TableCell>
                     <TableCell>{order.date}</TableCell>
