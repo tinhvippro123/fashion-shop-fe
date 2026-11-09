@@ -55,10 +55,8 @@ export default function ProductCard({
       : null
   );
   const [isQuickSizeOpen, setIsQuickSizeOpen] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [hasError, setHasError] = useState(false);
   const quickSizeRef = useRef<HTMLDivElement>(null);
-  const imgRef = useRef<HTMLImageElement>(null);
 
   const activeColor =
     product.productColors?.find((c) => c.id === activeColorId) ||
@@ -84,17 +82,7 @@ export default function ProductCard({
     }
   }, [product, activeColorId]);
 
-  // Handle cached / fast image loads immediately so shimmer doesn't hang
   useEffect(() => {
-    if (!mainImage) {
-      setIsLoaded(true);
-      return;
-    }
-    if (imgRef.current?.complete && imgRef.current?.naturalWidth > 0) {
-      setIsLoaded(true);
-    } else {
-      setIsLoaded(false);
-    }
     setHasError(false);
   }, [mainImage]);
 
@@ -180,30 +168,16 @@ export default function ProductCard({
 
       {/* Image container: Scoped hover so only hovering the image swaps it */}
       <div className="group relative overflow-hidden aspect-[2/3] bg-[#f8f9fa] rounded-[4px]">
-        {/* Shimmer skeleton while loading: non-blocking pointer-events-none and smooth fade */}
-        <div
-          className={`absolute inset-0 bg-gradient-to-r from-[#f0f0f2] via-[#e4e4e7] to-[#f0f0f2] animate-pulse pointer-events-none z-[1] transition-opacity duration-300 ${
-            isLoaded ? "opacity-0" : "opacity-100"
-          }`}
-        />
-
         <Link href={`/product/${product.slug || product.id}`} className="block w-full h-full">
           {mainImage ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              ref={imgRef}
               src={hasError ? "/uploads/03321697-61dc-4f30-8da7-d25085a78741.webp" : mainImage}
               alt={product.name}
               loading="lazy"
               decoding="async"
-              onLoad={() => setIsLoaded(true)}
-              onError={() => {
-                setHasError(true);
-                setIsLoaded(true);
-              }}
-              className={`w-full h-full object-cover transition-all duration-500 ease-out group-hover:scale-105 ${
-                isLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
-              }`}
+              onError={() => setHasError(true)}
+              className="w-full h-full object-cover transition-transform duration-300 ease-out group-hover:scale-105"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center bg-[#f8f9fa] text-[#9ca3af] p-4 text-center select-none">
