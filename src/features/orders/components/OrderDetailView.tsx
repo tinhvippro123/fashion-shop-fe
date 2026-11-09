@@ -139,7 +139,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
           <BackButton />
@@ -290,9 +290,9 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
         </div>
       )}
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-12">
         {/* Cột trái: Chi tiết sản phẩm và tổng tiền */}
-        <div className="md:col-span-2 flex flex-col gap-6">
+        <div className="lg:col-span-7 flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Sản phẩm đã đặt</CardTitle>
@@ -386,7 +386,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
         </div>
 
         {/* Cột phải: Thông tin khách hàng & Giao hàng */}
-        <div className="flex flex-col gap-6">
+        <div className="lg:col-span-5 flex flex-col gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Khách hàng</CardTitle>
@@ -482,15 +482,15 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                 <div className="absolute top-2 bottom-2 left-2.75 w-0.5 bg-muted z-0"></div>
 
                 <div className="flex gap-4 relative z-10">
-                  <div className="bg-card rounded-full p-0.5">
+                  <div className="bg-card rounded-full p-0.5 shrink-0">
                     <CheckCircle2 className="h-6 w-6 text-emerald-500" />
                   </div>
-                  <div className="pt-1 flex-1">
-                    <div className="flex items-center justify-between">
-                      <h4 className="font-medium text-sm">
+                  <div className="pt-0.5 flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                      <h4 className="font-medium text-sm whitespace-nowrap">
                         Đơn hàng đã được tạo
                       </h4>
-                      <span className="text-xs text-muted-foreground font-mono">
+                      <span className="text-xs text-muted-foreground font-mono whitespace-nowrap shrink-0">
                         {order.createdAt || order.date}
                       </span>
                     </div>
@@ -499,13 +499,13 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
 
                 {order.status !== "PENDING" && order.status !== "CANCELLED" && (
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-card rounded-full p-0.5">
+                    <div className="bg-card rounded-full p-0.5 shrink-0">
                       <Package className="h-6 w-6 text-blue-500" />
                     </div>
-                    <div className="pt-1 flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">Đang chuẩn bị hàng</h4>
-                        <span className="text-xs text-muted-foreground font-mono">
+                    <div className="pt-0.5 flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                        <h4 className="font-medium text-sm whitespace-nowrap">Đang chuẩn bị hàng</h4>
+                        <span className="text-xs text-muted-foreground font-mono whitespace-nowrap shrink-0">
                           {order.confirmedAt || order.date}
                         </span>
                       </div>
@@ -519,15 +519,15 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                 {(order.status === "SHIPPING" ||
                   order.status === "COMPLETED") && (
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-card rounded-full p-0.5">
+                    <div className="bg-card rounded-full p-0.5 shrink-0">
                       <Truck className="h-6 w-6 text-amber-500" />
                     </div>
-                    <div className="pt-1 flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">
+                    <div className="pt-0.5 flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                        <h4 className="font-medium text-sm whitespace-nowrap">
                           Đã giao cho Đơn vị vận chuyển
                         </h4>
-                        <span className="text-xs text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono whitespace-nowrap shrink-0">
                           {order.shippingAt || order.updatedAt || order.date}
                         </span>
                       </div>
@@ -540,15 +540,15 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
 
                 {order.status === "COMPLETED" && (
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-card rounded-full p-0.5">
+                    <div className="bg-card rounded-full p-0.5 shrink-0">
                       <PackageCheck className="h-6 w-6 text-emerald-600" />
                     </div>
-                    <div className="pt-1 flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm">
+                    <div className="pt-0.5 flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                        <h4 className="font-medium text-sm whitespace-nowrap">
                           Giao hàng thành công
                         </h4>
-                        <span className="text-xs text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono whitespace-nowrap shrink-0">
                           {order.completedAt || order.updatedAt || order.date}
                         </span>
                       </div>
@@ -561,15 +561,15 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
 
                 {order.status === "CANCELLED" && (
                   <div className="flex gap-4 relative z-10">
-                    <div className="bg-card rounded-full p-0.5">
+                    <div className="bg-card rounded-full p-0.5 shrink-0">
                       <AlertTriangle className="h-6 w-6 text-red-500" />
                     </div>
-                    <div className="pt-1 flex-1">
-                      <div className="flex items-center justify-between">
-                        <h4 className="font-medium text-sm text-red-600">
+                    <div className="pt-0.5 flex-1 min-w-0">
+                      <div className="flex items-center justify-between gap-3 flex-wrap sm:flex-nowrap">
+                        <h4 className="font-medium text-sm text-red-600 whitespace-nowrap">
                           Đơn hàng đã bị hủy
                         </h4>
-                        <span className="text-xs text-muted-foreground font-mono">
+                        <span className="text-xs text-muted-foreground font-mono whitespace-nowrap shrink-0">
                           {order.cancelledAt || order.updatedAt || order.date}
                         </span>
                       </div>

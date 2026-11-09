@@ -8,12 +8,12 @@ import { OrderResponseDto } from "@/features/cart-and-order/types/order";
 import ProductReviewModal from "@/features/reviews/components/ProductReviewModal";
 
 const STATUS_OPTIONS = [
-  { value: "ALL", label: "Tất cả", icon: "fas fa-layer-group", color: "text-[#6c757d]" },
-  { value: "PENDING", label: "Chờ xử lý", icon: "fas fa-clock", color: "text-[#f59e0b]" },
-  { value: "PROCESSING", label: "Đang chuẩn bị", icon: "fas fa-box", color: "text-[#3b82f6]" },
-  { value: "SHIPPING", label: "Đang giao", icon: "fas fa-truck", color: "text-[#06b6d4]" },
-  { value: "COMPLETED", label: "Đã giao", icon: "fas fa-check-circle", color: "text-[#10b981]" },
-  { value: "CANCELLED", label: "Đã hủy", icon: "fas fa-ban", color: "text-[#ef4444]" },
+  { value: "ALL", label: "Tất cả" },
+  { value: "PENDING", label: "Chờ xử lý" },
+  { value: "PROCESSING", label: "Đang chuẩn bị" },
+  { value: "SHIPPING", label: "Đang giao" },
+  { value: "COMPLETED", label: "Đã giao" },
+  { value: "CANCELLED", label: "Đã hủy" },
 ];
 
 export default function OrdersPage() {
@@ -156,31 +156,28 @@ export default function OrdersPage() {
               type="button"
               onClick={() => setIsDropdownOpen((prev) => !prev)}
               aria-expanded={isDropdownOpen}
-              className={`flex items-center justify-between gap-3 min-w-[195px] h-[40px] px-3.5 py-2 bg-white border rounded-[10px] text-[13.5px] text-[#222] font-medium transition-all duration-200 outline-none shadow-xs hover:border-[#222] ${
+              className={`flex items-center justify-between gap-3 min-w-[170px] h-[38px] px-3.5 py-1.5 bg-white border rounded-[8px] text-[13.5px] text-[#222] font-medium transition-all duration-200 outline-none shadow-xs hover:border-[#222] ${
                 isDropdownOpen
                   ? "border-[#222] ring-2 ring-black/5"
                   : "border-[#e5e7eb]"
               }`}
             >
-              <div className="flex items-center gap-2 truncate">
-                <i className={`${selectedOption.icon} ${selectedOption.color} text-[13px] shrink-0`} />
-                <span className="truncate">{selectedOption.label}</span>
-              </div>
+              <span className="truncate">{selectedOption.label}</span>
               <div className="flex items-center gap-2 shrink-0">
-                <span className="text-[11px] px-1.5 py-0.5 rounded-full bg-[#f1f2f4] text-[#6c6d70] font-semibold">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#f1f2f4] text-[#6c6d70] font-semibold">
                   {counts[statusFilter] ?? 0}
                 </span>
                 <i
-                  className={`fas fa-chevron-down text-[11px] text-[#888] transition-transform duration-300 ease-out ${
+                  className={`fas fa-chevron-down text-[10px] text-[#888] transition-transform duration-200 ${
                     isDropdownOpen ? "rotate-180 text-[#222]" : ""
                   }`}
                 />
               </div>
             </button>
 
-            {/* Floating Dropdown Menu with rounded corners and smooth animation */}
+            {/* Floating Dropdown Menu */}
             <div
-              className={`absolute right-0 top-[calc(100%+6px)] z-50 w-[220px] p-1.5 bg-white border border-[#eaeaea] rounded-[14px] shadow-[0_12px_32px_rgba(0,0,0,0.12),0_2px_6px_rgba(0,0,0,0.06)] transition-all duration-200 origin-top-right transform ${
+              className={`absolute right-0 top-[calc(100%+6px)] z-50 w-[190px] p-1.5 bg-white border border-[#eaeaea] rounded-[10px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] transition-all duration-200 origin-top-right transform ${
                 isDropdownOpen
                   ? "opacity-100 scale-100 translate-y-0 pointer-events-auto"
                   : "opacity-0 scale-95 -translate-y-2 pointer-events-none"
@@ -198,31 +195,23 @@ export default function OrdersPage() {
                         setStatusFilter(opt.value);
                         setIsDropdownOpen(false);
                       }}
-                      className={`group flex items-center justify-between w-full px-3 py-2 rounded-[8px] text-[13.5px] transition-all duration-150 text-left cursor-pointer outline-none ${
+                      className={`group flex items-center justify-between w-full px-3 py-2 rounded-[6px] text-[13.5px] transition-colors text-left cursor-pointer outline-none ${
                         isSelected
                           ? "bg-[#f4f4f5] text-[#111] font-semibold"
                           : "text-[#4b5563] hover:bg-[#f8f9fa] hover:text-[#111]"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 truncate">
-                        <i className={`${opt.icon} ${opt.color} text-[13px] w-[16px] text-center shrink-0`} />
-                        <span className="truncate">{opt.label}</span>
-                      </div>
+                      <span className="truncate">{opt.label}</span>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span
-                          className={`text-[11px] px-2 py-0.5 rounded-full font-medium transition-colors ${
-                            isSelected
-                              ? "bg-[#222] text-white"
-                              : "bg-[#f3f4f6] text-[#6b7280] group-hover:bg-[#e5e7eb]"
-                          }`}
-                        >
-                          {count}
-                        </span>
-                        {isSelected && (
-                          <i className="fas fa-check text-[11px] text-[#222]" />
-                        )}
-                      </div>
+                      <span
+                        className={`text-[11px] px-2 py-0.5 rounded-full font-medium transition-colors ${
+                          isSelected
+                            ? "bg-[#222] text-white"
+                            : "bg-[#f3f4f6] text-[#6b7280] group-hover:bg-[#e5e7eb]"
+                        }`}
+                      >
+                        {count}
+                      </span>
                     </button>
                   );
                 })}
