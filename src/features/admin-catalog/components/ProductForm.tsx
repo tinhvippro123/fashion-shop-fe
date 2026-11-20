@@ -574,13 +574,23 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   };
 
   const applyFashionPreset = () => {
+    const existingOpts = form.getValues("options") || [];
+    const existingColor = existingOpts.find((o) => isColorAttribute(o.name));
+    const existingSize = existingOpts.find((o) => isSizeAttribute(o.name));
+
     const defaultOptions: TProductOption[] = [
-      { name: "Màu sắc", values: ["Đen", "Trắng"] },
-      { name: "Kích thước", values: ["S", "M", "L"] },
+      { name: "Màu sắc", values: existingColor?.values || [] },
+      {
+        name: "Kích thước",
+        values:
+          existingSize?.values && existingSize.values.length > 0
+            ? existingSize.values
+            : ["S", "M", "L"],
+      },
     ];
     replaceOptions(defaultOptions);
     syncVariantsFromOptions(defaultOptions);
-    toast.success("Đã áp dụng Mẫu Thời Trang (Đen, Trắng × S, M, L)");
+    toast.success("Đã khởi tạo nhóm Màu sắc & Kích thước (S, M, L). Hãy chọn màu cho sản phẩm!");
   };
 
   const handleQuickAddPresetOption = (name: string) => {
@@ -1243,25 +1253,27 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
             {/* MÀU SẮC, KÍCH CỠ */}
             <Card id="section-options" className="scroll-mt-40 sm:scroll-mt-36">
               <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <CardTitle>Phân loại (Màu sắc & Kích cỡ)</CardTitle>
                   <CardDescription>
                     Chọn màu sắc và kích cỡ — khung ảnh theo màu và bảng biến thể sẽ tự động cập nhật.
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex items-center gap-2 shrink-0 flex-nowrap">
                   <Button
                     variant="secondary"
                     size="sm"
                     type="button"
+                    className="whitespace-nowrap"
                     onClick={applyFashionPreset}
                   >
-                    Mẫu Thời Trang
+                    Khởi tạo Màu & Size
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     type="button"
+                    className="whitespace-nowrap"
                     onClick={() => appendOption({ name: "", values: [] })}
                   >
                     <Plus className="h-4 w-4 mr-1.5" /> Thêm nhóm
@@ -1282,7 +1294,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                         size="sm"
                         onClick={applyFashionPreset}
                       >
-                        Dùng Mẫu Thời Trang (Đen, Trắng × S, M, L)
+                        Khởi tạo Màu & Size (Size S, M, L)
                       </Button>
                       <Button
                         type="button"
