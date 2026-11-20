@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Badge } from "@/shared/ui/badge";
+import { StatusBadge } from "@/shared/ui/status-badge";
 import {
   Search,
   MoreHorizontal,
@@ -193,25 +193,13 @@ export function VoucherTable({
 
   const renderStatusBadge = (voucher: Voucher) => {
     if (voucher.status === "Đang diễn ra") {
-      return (
-        <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-none">
-          Đang diễn ra
-        </Badge>
-      );
+      return <StatusBadge tone="success">Đang diễn ra</StatusBadge>;
     }
     if (voucher.status === "Sắp diễn ra") {
-      return (
-        <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-none">
-          Sắp diễn ra
-        </Badge>
-      );
+      return <StatusBadge tone="dark">Sắp diễn ra</StatusBadge>;
     }
     if (voucher.status === "Đã hủy") {
-      return (
-        <Badge className="bg-red-50 text-red-600 hover:bg-red-100 border border-red-200">
-          Đã hủy
-        </Badge>
-      );
+      return <StatusBadge tone="danger">Đã hủy</StatusBadge>;
     }
 
     const [usedStr, totalStr] = voucher.quantity.split(" / ");
@@ -219,18 +207,10 @@ export function VoucherTable({
     const total = parseInt(totalStr || "0", 10);
 
     if (total > 0 && used >= total) {
-      return (
-        <Badge className="bg-orange-100 text-orange-700 hover:bg-orange-200 border-none">
-          Hết lượt sử dụng
-        </Badge>
-      );
+      return <StatusBadge tone="warning">Hết lượt sử dụng</StatusBadge>;
     }
 
-    return (
-      <Badge className="bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border-none">
-        Đã kết thúc
-      </Badge>
-    );
+    return <StatusBadge tone="neutral">Đã kết thúc</StatusBadge>;
   };
 
   return (

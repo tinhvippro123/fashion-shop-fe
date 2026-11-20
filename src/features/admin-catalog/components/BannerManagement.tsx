@@ -10,7 +10,7 @@ import {
   RefreshCw,
   ExternalLink,
   Layers,
-  Sparkles,
+  LayoutGrid,
   UploadCloud,
   CheckCircle2,
 } from "lucide-react";
@@ -18,7 +18,7 @@ import { toast } from "sonner";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { Label } from "@/shared/ui/label";
-import { Badge } from "@/shared/ui/badge";
+import { StatusBadge } from "@/shared/ui/status-badge";
 import { Switch } from "@/shared/ui/switch";
 import {
   Card,
@@ -233,7 +233,7 @@ export function BannerManagement() {
             Quản lý Banner & Trang chủ
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Tùy biến các slide banner đầu trang (HERO) và 3 thẻ danh mục nổi bật (FEATURED) hiển thị trên storefront
+            Tùy biến các slide banner đầu trang và danh mục nổi bật hiển thị trên trang chủ
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -259,8 +259,8 @@ export function BannerManagement() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Banner đầu trang (HERO)</CardTitle>
-            <Layers className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-sm font-medium">Banner đầu trang</CardTitle>
+            <Layers className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{heroCount}</div>
@@ -272,13 +272,13 @@ export function BannerManagement() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Danh mục nổi bật (FEATURED)</CardTitle>
-            <Sparkles className="h-4 w-4 text-emerald-500" />
+            <CardTitle className="text-sm font-medium">Danh mục nổi bật</CardTitle>
+            <LayoutGrid className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{featuredCount}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Hiển thị tối đa 4 thẻ danh mục trọng tâm trên trang chủ (khuyên dùng 4 thẻ)
+              Hiển thị tối đa 4 thẻ danh mục trọng tâm trên trang chủ
             </p>
           </CardContent>
         </Card>
@@ -286,7 +286,7 @@ export function BannerManagement() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Đang kích hoạt</CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-green-500" />
+            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
@@ -387,19 +387,9 @@ export function BannerManagement() {
 
                     <TableCell>
                       {banner.position === "HERO" ? (
-                        <Badge
-                          variant="secondary"
-                          className="bg-blue-50 text-blue-700 border-blue-200"
-                        >
-                          Đầu trang (HERO)
-                        </Badge>
+                        <StatusBadge tone="dark">Banner đầu trang</StatusBadge>
                       ) : (
-                        <Badge
-                          variant="secondary"
-                          className="bg-emerald-50 text-emerald-700 border-emerald-200"
-                        >
-                          Danh mục (FEATURED)
-                        </Badge>
+                        <StatusBadge tone="neutral">Danh mục nổi bật</StatusBadge>
                       )}
                     </TableCell>
 
@@ -484,7 +474,7 @@ export function BannerManagement() {
                       : "border-border hover:bg-muted/50"
                   }`}
                 >
-                  <div className="font-semibold text-sm">Banner Đầu Trang (HERO)</div>
+                  <div className="font-semibold text-sm">Banner đầu trang</div>
                   <div className="text-xs text-muted-foreground mt-1">
                     Slider lớn đầu trang chủ (~ 2.5:1, vd: 1920x768px)
                   </div>
@@ -501,7 +491,7 @@ export function BannerManagement() {
                       : "border-border hover:bg-muted/50"
                   }`}
                 >
-                  <div className="font-semibold text-sm">Danh Mục Nổi Bật (FEATURED)</div>
+                  <div className="font-semibold text-sm">Danh mục nổi bật</div>
                   <div className="text-xs text-muted-foreground mt-1">
                     Tối đa 4 thẻ danh mục trang chủ (~ 3:4, vd: 600x800px)
                   </div>

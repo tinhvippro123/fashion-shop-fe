@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Badge } from "@/shared/ui/badge";
+import { StatusBadge } from "@/shared/ui/status-badge";
 import {
   Search,
   MoreHorizontal,
@@ -312,30 +312,22 @@ export function CustomerTable({
                     </TableCell>
                     <TableCell>
                       {cus.accountStatus === "BANNED" ? (
-                        <Badge variant="destructive" className="border-none">
-                          Bị khóa
-                        </Badge>
+                        <StatusBadge tone="danger">Bị khóa</StatusBadge>
                       ) : (
-                        <Badge className="bg-emerald-100 text-emerald-700 hover:bg-emerald-200 border-none">
-                          Hoạt động
-                        </Badge>
+                        <StatusBadge tone="success">Hoạt động</StatusBadge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={
+                      <StatusBadge
+                        tone={
                           cus.tier === "Kim cương" || cus.tier === "Vàng"
-                            ? "default"
-                            : "secondary"
+                            ? "dark"
+                            : "neutral"
                         }
-                        className={
-                          cus.tier === "Kim cương" || cus.tier === "Vàng"
-                            ? "bg-amber-100 text-amber-700 hover:bg-amber-200 border-none"
-                            : ""
-                        }
+                        dot={false}
                       >
                         {cus.tier}
-                      </Badge>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell
                       className="text-right"

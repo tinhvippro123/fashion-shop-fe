@@ -15,7 +15,13 @@ export default function AdminRootLayout({
     >
       <div className="admin-theme min-h-screen bg-background text-foreground font-sans">
         {children}
-        <Toaster richColors position="top-right" />
+        <Toaster
+          position="bottom-right"
+          toastOptions={{
+            className:
+              "!bg-white dark:!bg-neutral-900 !text-neutral-900 dark:!text-neutral-100 !border !border-neutral-200 dark:!border-neutral-800 !shadow-md !rounded-lg",
+          }}
+        />
       </div>
     </ThemeProvider>
   );

@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Badge } from "@/shared/ui/badge";
+import { StatusBadge, StatusTone } from "@/shared/ui/status-badge";
 import {
   MoreHorizontal,
   Search,
@@ -155,19 +155,19 @@ export function ProductTable({
     }
   };
 
-  const getStatusDisplay = (product: AdminProduct) => {
+  const getStatusDisplay = (product: AdminProduct): { text: string; tone: StatusTone } => {
     if (!product.isActive) {
-      return { text: "Ngừng KD", color: "bg-muted text-muted-foreground" };
+      return { text: "Ngừng KD", tone: "neutral" };
     }
     if (product.stock === 0) {
       return {
         text: "Hết hàng",
-        color: "bg-amber-500 hover:bg-amber-600 text-white",
+        tone: "danger",
       };
     }
     return {
       text: "Đang bán",
-      color: "bg-emerald-500 hover:bg-emerald-600 text-white",
+      tone: "success",
     };
   };
 
@@ -386,19 +386,19 @@ export function ProductTable({
                           <div className="flex items-center gap-2">
                             <span
                               className={cn(
-                                "font-bold text-sm font-mono",
+                                "font-semibold text-sm font-mono",
                                 product.stock === 0
-                                  ? "text-red-600 font-extrabold"
+                                  ? "text-[#b5121b]"
                                   : product.stock <= 5
-                                  ? "text-amber-600 font-bold"
+                                  ? "text-amber-700 dark:text-amber-400"
                                   : "text-foreground"
                               )}
                             >
                               Tổng: {product.stock}
                             </span>
                             {product.stock === 0 && (
-                              <span className="inline-block text-[9.5px] font-bold text-red-600 bg-red-500/15 px-1 py-0.2 rounded border border-red-500/30">
-                                Hết hàng
+                              <span className="text-[11px] font-medium text-[#b5121b]">
+                                · Hết hàng
                               </span>
                             )}
                           </div>
@@ -409,16 +409,16 @@ export function ProductTable({
                               {product.lowStockVariants.slice(0, 3).map((lv) => (
                                 <div
                                   key={lv.sku}
-                                  className={cn(
-                                    "inline-flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded border leading-tight w-fit font-medium",
-                                    lv.stock === 0
-                                      ? "bg-red-500/15 text-red-700 dark:text-red-400 border-red-500/35 font-semibold"
-                                      : "bg-amber-500/15 text-amber-800 dark:text-amber-300 border-amber-500/35"
-                                  )}
+                                  className="inline-flex items-center gap-1.5 text-[11px] px-1.5 py-0.5 rounded border border-neutral-200 dark:border-neutral-800 bg-neutral-50 dark:bg-neutral-900 leading-tight w-fit text-neutral-700 dark:text-neutral-300"
                                   title={`Mã SKU: ${lv.sku}`}
                                 >
-                                  <AlertTriangle className="h-3 w-3 shrink-0 text-amber-600 dark:text-amber-400" />
-                                  <span className="font-semibold">{lv.label}</span>
+                                  <span
+                                    className={cn(
+                                      "h-1.5 w-1.5 rounded-full shrink-0",
+                                      lv.stock === 0 ? "bg-[#b5121b]" : "bg-amber-600"
+                                    )}
+                                  />
+                                  <span className="font-medium">{lv.label}</span>
                                 </div>
                               ))}
                               {product.lowStockVariants.length > 3 && (
@@ -447,7 +447,7 @@ export function ProductTable({
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={status.color}>{status.text}</Badge>
+                        <StatusBadge tone={status.tone}>{status.text}</StatusBadge>
                       </TableCell>
                       <TableCell
                         className="text-right"
@@ -527,9 +527,14 @@ export function ProductTable({
                           {product.lowStockVariants.slice(0, 2).map((lv) => (
                             <span
                               key={lv.sku}
-                              className="text-[10px] font-semibold text-amber-800 bg-amber-500/15 border border-amber-500/35 px-1.5 py-0.5 rounded flex items-center gap-1"
+                              className="text-[10px] font-medium text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 px-1.5 py-0.5 rounded flex items-center gap-1"
                             >
-                              <AlertTriangle className="h-2.5 w-2.5 text-amber-600" />
+                              <span
+                                className={cn(
+                                  "h-1.5 w-1.5 rounded-full shrink-0",
+                                  lv.stock === 0 ? "bg-[#b5121b]" : "bg-amber-600"
+                                )}
+                              />
                               {lv.label}
                             </span>
                           ))}
@@ -545,9 +550,9 @@ export function ProductTable({
                       <span className="font-bold text-foreground">
                         {product.price}
                       </span>
-                      <Badge className={cn("text-[10px] px-1.5 py-0", status.color)}>
+                      <StatusBadge tone={status.tone} size="sm">
                         {status.text}
-                      </Badge>
+                      </StatusBadge>
                     </div>
                   </div>
                   <div className="absolute top-3 right-2">

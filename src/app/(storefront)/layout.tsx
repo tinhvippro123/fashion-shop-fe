@@ -24,9 +24,10 @@ export default function StorefrontLayout({
         newestOnTop
         closeOnClick
         pauseOnHover
-        theme="colored"
-        style={{ zIndex: 999999 }}
-        className="!z-[999999]"
+        theme="light"
+        style={{ zIndex: 999999, top: "78px" }}
+        className="luxe-toast-container !z-[999999]"
+        toastClassName="luxe-toast"
       />
     </div>
   );

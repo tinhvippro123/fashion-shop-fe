@@ -4,7 +4,6 @@ export const API_BASE_URL =
 export interface ApiEnvelope<T> {
   success: boolean;
   code?: string;
-  errorCode?: string;
   message?: string;
   data: T;
 }
@@ -64,7 +63,7 @@ export async function apiRequestWithMeta<T>(
   if (!res.ok || (payload && payload.success === false)) {
     const errorMsg =
       payload?.message || `Yêu cầu thất bại (HTTP ${res.status})`;
-    const errorCode = payload?.code || payload?.errorCode;
+    const errorCode = payload?.code;
     throw new ApiError(errorMsg, errorCode, res.status);
   }
 

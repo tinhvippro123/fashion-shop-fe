@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 import { TableSkeleton } from "@/shared/ui/table-skeleton";
-import { Badge } from "@/shared/ui/badge";
+import { StatusBadge } from "@/shared/ui/status-badge";
 import {
   MoreHorizontal,
   Search,
@@ -306,8 +306,8 @@ export function ReviewTable({
                     <TableCell className="max-w-[300px]">
                       <p className="text-sm line-clamp-2">{review.comment}</p>
                       {review.reply && (
-                        <div className="mt-1 flex items-start gap-1 text-xs text-emerald-700 bg-emerald-50 p-1.5 rounded-sm">
-                          <MessageSquareReply className="h-3 w-3 shrink-0 mt-0.5" />
+                        <div className="mt-1 flex items-start gap-1.5 text-xs text-neutral-700 dark:text-neutral-300 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 px-2 py-1 rounded">
+                          <MessageSquareReply className="h-3 w-3 shrink-0 mt-0.5 text-muted-foreground" />
                           <span className="line-clamp-1">
                             Shop: {review.reply}
                           </span>
@@ -316,36 +316,16 @@ export function ReviewTable({
                     </TableCell>
                     <TableCell>
                       {review.isHidden ? (
-                        <Badge
-                          variant="secondary"
-                          className="bg-muted text-muted-foreground"
-                        >
-                          Đã ẩn
-                        </Badge>
+                        <StatusBadge tone="neutral">Đã ẩn</StatusBadge>
                       ) : (
-                        <Badge
-                          variant="outline"
-                          className="text-emerald-700 border-emerald-200 bg-emerald-50"
-                        >
-                          Đang hiển thị
-                        </Badge>
+                        <StatusBadge tone="success">Đang hiển thị</StatusBadge>
                       )}
                     </TableCell>
                     <TableCell>
                       {review.reply ? (
-                        <Badge
-                          variant="outline"
-                          className="text-emerald-700 border-emerald-200 bg-emerald-50"
-                        >
-                          Đã trả lời
-                        </Badge>
+                        <StatusBadge tone="success">Đã trả lời</StatusBadge>
                       ) : (
-                        <Badge
-                          variant="outline"
-                          className="text-orange-600 border-orange-200 bg-orange-50"
-                        >
-                          Chưa trả lời
-                        </Badge>
+                        <StatusBadge tone="warning">Chưa trả lời</StatusBadge>
                       )}
                     </TableCell>
                     <TableCell

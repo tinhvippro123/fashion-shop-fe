@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/shared/ui/table";
 import { Badge } from "@/shared/ui/badge";
+import { StatusBadge, StatusTone } from "@/shared/ui/status-badge";
 import {
   Search,
   Filter,
@@ -78,7 +79,7 @@ function OrderTableActions({
         {order.status === "PENDING" && (
           <DropdownMenuItem
             onClick={() => onQuickStatus(order, "PROCESSING")}
-            className="text-blue-600 cursor-pointer"
+            className="cursor-pointer"
           >
             <CheckCircle className="h-4 w-4 mr-2" /> Duyệt đơn
           </DropdownMenuItem>
@@ -87,7 +88,7 @@ function OrderTableActions({
         {order.status === "PROCESSING" && (
           <DropdownMenuItem
             onClick={() => onQuickStatus(order, "SHIPPING")}
-            className="text-purple-600 cursor-pointer"
+            className="cursor-pointer"
           >
             <Truck className="h-4 w-4 mr-2" /> Giao vận chuyển
           </DropdownMenuItem>
@@ -96,7 +97,7 @@ function OrderTableActions({
         {order.status === "SHIPPING" && (
           <DropdownMenuItem
             onClick={() => onQuickStatus(order, "COMPLETED")}
-            className="text-green-600 cursor-pointer"
+            className="cursor-pointer"
           >
             <CheckCircle className="h-4 w-4 mr-2" /> Đã giao hàng
           </DropdownMenuItem>
@@ -108,7 +109,7 @@ function OrderTableActions({
               toast.info(`Đang tạo hóa đơn cho đơn hàng ${order.id}...`);
               setTimeout(() => window.print(), 400);
             }}
-            className="cursor-pointer text-blue-600"
+            className="cursor-pointer"
           >
             <Printer className="h-4 w-4 mr-2" /> In hóa đơn
           </DropdownMenuItem>
@@ -117,7 +118,7 @@ function OrderTableActions({
         {(order.status === "PENDING" || order.status === "PROCESSING") && (
           <DropdownMenuItem
             onClick={() => onOpenCancel([order.id])}
-            className="text-red-600 cursor-pointer"
+            className="text-destructive cursor-pointer"
           >
             <XCircle className="h-4 w-4 mr-2" /> Hủy đơn
           </DropdownMenuItem>
@@ -198,22 +199,35 @@ export function OrderTable({
     }
   };
 
-  const getStatusColor = (status: OrderStatus) => {
+  const getStatusTone = (status: OrderStatus): StatusTone => {
     switch (status) {
       case "PENDING":
-        return "bg-amber-100 text-amber-700 hover:bg-amber-200";
+        return "warning";
       case "PROCESSING":
-        return "bg-blue-100 text-blue-700 hover:bg-blue-200";
+        return "dark";
       case "SHIPPING":
-        return "bg-purple-100 text-purple-700 hover:bg-purple-200";
+        return "info";
       case "COMPLETED":
-        return "bg-green-100 text-green-700 hover:bg-green-200";
+        return "success";
       case "CANCELLED":
-        return "bg-red-100 text-red-700 hover:bg-red-200";
+        return "danger";
       default:
-        return "bg-muted text-foreground";
+        return "neutral";
     }
   };
+
+  const getPaymentTone = (order: Order): StatusTone => {
+    if (order.paymentStatus === "PAID" || order.payment?.includes("Đã thanh toán")) {
+      return "success";
+    }
+    if (order.paymentStatus === "REFUNDED" || order.payment?.includes("hoàn tiền")) {
+      return "neutral";
+    }
+    return "warning";
+  };
+
+  const formatPaymentLabel = (label: string) =>
+    label.replace(/\s*\(([^)]+)\)/g, " · $1");
 
   const getStatusText = (status: OrderStatus) => {
     switch (status) {
@@ -406,20 +420,14 @@ export function OrderTable({
                     </TableCell>
                     <TableCell>{order.date}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant="default"
-                        className={cn(getStatusColor(order.status), "border-none")}
-                      >
+                      <StatusBadge tone={getStatusTone(order.status)}>
                         {getStatusText(order.status)}
-                      </Badge>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="secondary"
-                        className={cn(order.paymentBg, "border-none text-xs")}
-                      >
-                        {order.payment}
-                      </Badge>
+                      <StatusBadge tone={getPaymentTone(order)}>
+                        {formatPaymentLabel(order.payment)}
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="font-medium">{order.total}</TableCell>
                     <TableCell

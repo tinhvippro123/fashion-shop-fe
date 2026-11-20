@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Badge } from "@/shared/ui/badge";
+import { StatusBadge } from "@/shared/ui/status-badge";
 import { Button } from "@/shared/ui/button";
 import { Avatar, AvatarFallback } from "@/shared/ui/avatar";
 import {
@@ -54,39 +54,33 @@ export function DashboardOverview() {
     switch (status) {
       case "pending":
         return (
-          <Badge variant="secondary" className="text-[10px] px-2 py-0 h-5">
+          <StatusBadge tone="warning" size="sm">
             Chờ xử lý
-          </Badge>
+          </StatusBadge>
         );
       case "processing":
         return (
-          <Badge
-            variant="outline"
-            className="text-[10px] px-2 py-0 h-5 border-blue-500 text-blue-600"
-          >
+          <StatusBadge tone="dark" size="sm">
             Đang chuẩn bị
-          </Badge>
+          </StatusBadge>
         );
       case "completed":
         return (
-          <Badge className="bg-emerald-500 hover:bg-emerald-600 text-[10px] px-2 py-0 h-5 text-white">
+          <StatusBadge tone="success" size="sm">
             Đã giao
-          </Badge>
+          </StatusBadge>
         );
       case "shipping":
         return (
-          <Badge
-            variant="outline"
-            className="text-[10px] px-2 py-0 h-5 border-primary text-primary"
-          >
+          <StatusBadge tone="info" size="sm">
             Đang giao
-          </Badge>
+          </StatusBadge>
         );
       case "cancelled":
         return (
-          <Badge variant="destructive" className="text-[10px] px-2 py-0 h-5">
+          <StatusBadge tone="danger" size="sm">
             Đã hủy
-          </Badge>
+          </StatusBadge>
         );
       default:
         return null;
@@ -265,7 +259,9 @@ export function DashboardOverview() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{item.category}</Badge>
+                      <StatusBadge tone="neutral" dot={false} size="sm">
+                        {item.category}
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="text-right font-medium">
                       {item.sold.toLocaleString("vi-VN")}
@@ -320,16 +316,12 @@ export function DashboardOverview() {
                       {v.colorName} / {v.size?.name || "-"}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Badge
-                        variant={v.stock === 0 ? "destructive" : "outline"}
-                        className={
-                          v.stock > 0
-                            ? "text-amber-700 border-amber-300 bg-amber-50"
-                            : ""
-                        }
+                      <StatusBadge
+                        tone={v.stock === 0 ? "danger" : "warning"}
+                        size="sm"
                       >
-                        {v.stock === 0 ? "Hết hàng (0)" : `Còn ${v.stock}`}
-                      </Badge>
+                        {v.stock === 0 ? "Hết hàng" : `Còn ${v.stock}`}
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

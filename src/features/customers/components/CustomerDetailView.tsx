@@ -20,6 +20,7 @@ import {
   CardDescription,
 } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
+import { StatusBadge } from "@/shared/ui/status-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/shared/ui/avatar";
 import {
   Table,
@@ -108,18 +109,16 @@ export function CustomerDetailView({ customerId }: { customerId: string }) {
                 </Avatar>
                 <h3 className="text-xl font-bold mb-1">{customer.name}</h3>
                 <div className="flex items-center gap-2">
-                  <Badge
-                    className={
-                      customer.accountStatus === "BANNED"
-                        ? "bg-red-500 hover:bg-red-600 text-white"
-                        : "bg-emerald-500 hover:bg-emerald-600 text-white"
-                    }
+                  <StatusBadge
+                    tone={customer.accountStatus === "BANNED" ? "danger" : "success"}
                   >
                     {customer.accountStatus === "BANNED"
                       ? "Bị khóa"
                       : "Đang hoạt động"}
-                  </Badge>
-                  <Badge variant="secondary">{customer.tier}</Badge>
+                  </StatusBadge>
+                  <StatusBadge tone="neutral" dot={false}>
+                    {customer.tier}
+                  </StatusBadge>
                 </div>
               </div>
 
@@ -361,16 +360,12 @@ export function CustomerDetailView({ customerId }: { customerId: string }) {
                             {rev.comment}
                           </p>
                           <div className="flex gap-2">
-                            <Badge
-                              variant="outline"
-                              className={
-                                rev.isHidden
-                                  ? "bg-muted text-muted-foreground"
-                                  : "bg-green-100 text-green-700 border-none font-normal"
-                              }
+                            <StatusBadge
+                              tone={rev.isHidden ? "neutral" : "success"}
+                              size="sm"
                             >
                               {rev.isHidden ? "Đã ẩn" : "Đang hiển thị"}
-                            </Badge>
+                            </StatusBadge>
                           </div>
                         </div>
                       ))}

@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/shared/ui/card";
 import { Badge } from "@/shared/ui/badge";
+import { StatusBadge, StatusTone } from "@/shared/ui/status-badge";
 import { Separator } from "@/shared/ui/separator";
 import {
   Printer,
@@ -27,7 +28,6 @@ import {
   CheckCircle,
   XCircle,
 } from "lucide-react";
-import { cn } from "@/shared/utils/utils";
 import { OrderStatus } from "@/features/orders/types/order.admin";
 import { useOrderDetail } from "@/features/orders/hooks/useOrderDetail";
 import { useState } from "react";
@@ -65,20 +65,20 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
     );
   }
 
-  const getStatusColor = (status: OrderStatus) => {
+  const getStatusTone = (status: OrderStatus): StatusTone => {
     switch (status) {
       case "PENDING":
-        return "bg-amber-100 text-amber-700 hover:bg-amber-200";
+        return "warning";
       case "PROCESSING":
-        return "bg-blue-100 text-blue-700 hover:bg-blue-200";
+        return "dark";
       case "SHIPPING":
-        return "bg-purple-100 text-purple-700 hover:bg-purple-200";
+        return "info";
       case "COMPLETED":
-        return "bg-green-100 text-green-700 hover:bg-green-200";
+        return "success";
       case "CANCELLED":
-        return "bg-red-100 text-red-700 hover:bg-red-200";
+        return "danger";
       default:
-        return "bg-muted text-foreground";
+        return "neutral";
     }
   };
 
@@ -148,12 +148,9 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
               <h2 className="text-2xl font-bold tracking-tight">
                 Đơn hàng #{order.id}
               </h2>
-              <Badge
-                variant="default"
-                className={cn(getStatusColor(order.status), "border-none ml-2")}
-              >
+              <StatusBadge tone={getStatusTone(order.status)} className="ml-2">
                 {getStatusText(order.status)}
-              </Badge>
+              </StatusBadge>
             </div>
             <p className="text-muted-foreground text-sm mt-1 flex items-center gap-1">
               <Clock className="h-3 w-3" /> Ngày đặt: {order.date}
@@ -275,14 +272,14 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
       </div>
 
       {order.status === "CANCELLED" && (
-        <div className="bg-red-50 border border-red-200 rounded-md p-4 flex gap-3 items-start">
-          <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
+        <div className="bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 border-l-2 border-l-[#b5121b] rounded-md p-4 flex gap-3 items-start">
+          <AlertTriangle className="h-4 w-4 text-[#b5121b] mt-0.5 shrink-0" />
           <div>
-            <h4 className="text-red-800 font-medium">
+            <h4 className="text-foreground font-medium text-sm">
               Đơn hàng đã bị hủy và đã hoàn trả tồn kho
             </h4>
             <div className="flex flex-col gap-0.5 mt-1">
-              <p className="text-red-600 text-sm">
+              <p className="text-muted-foreground text-sm">
                 Lý do: {order.cancelReason || "Khách hàng / Quản trị viên hủy"}
               </p>
             </div>
@@ -355,14 +352,11 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
                     >
                       <span className="text-muted-foreground flex items-center gap-1">
                         Giảm giá{" "}
-                        <Badge
-                          variant="outline"
-                          className="h-5 px-1.5 text-[10px] bg-emerald-50 text-emerald-700 border-emerald-200"
-                        >
+                        <StatusBadge tone="neutral" dot={false} size="sm" className="font-mono">
                           {promo.code}
-                        </Badge>
+                        </StatusBadge>
                       </span>
-                      <span className="font-medium text-emerald-600">
+                      <span className="font-medium text-foreground">
                         -{Number(promo.discountAmount || 0).toLocaleString("vi-VN")}đ
                       </span>
                     </div>

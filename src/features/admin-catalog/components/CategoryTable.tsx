@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/shared/ui/table";
-import { Badge } from "@/shared/ui/badge";
+import { StatusBadge } from "@/shared/ui/status-badge";
 import { Search, Filter, MoreHorizontal, X, EyeOff, Eye, Trash2, Pencil } from "lucide-react";
 import {
   DropdownMenu,
@@ -331,16 +331,9 @@ export function CategoryTable({
                     </TableCell>
                     <TableCell>{cat.productCount}</TableCell>
                     <TableCell>
-                      <Badge
-                        variant={cat.isActive ? "default" : "secondary"}
-                        className={
-                          cat.isActive
-                            ? "bg-green-100 text-green-700 hover:bg-green-200 border-none"
-                            : ""
-                        }
-                      >
+                      <StatusBadge tone={cat.isActive ? "success" : "neutral"}>
                         {cat.isActive ? "Hoạt động" : "Đã ẩn"}
-                      </Badge>
+                      </StatusBadge>
                     </TableCell>
                     <TableCell className="text-right">
                       <CategoryTableActions
@@ -398,16 +391,9 @@ export function CategoryTable({
                   </span>
                 </div>
                 <div className="mt-2 pl-8">
-                  <Badge
-                    variant={cat.isActive ? "default" : "secondary"}
-                    className={
-                      cat.isActive
-                        ? "bg-green-100 text-green-700 hover:bg-green-200 border-none text-[10px] px-2 py-0"
-                        : "text-[10px] px-2 py-0"
-                    }
-                  >
+                  <StatusBadge tone={cat.isActive ? "success" : "neutral"} size="sm">
                     {cat.isActive ? "Hoạt động" : "Đã ẩn"}
-                  </Badge>
+                  </StatusBadge>
                 </div>
                 <div className="absolute top-3 right-2">
                   <CategoryTableActions
