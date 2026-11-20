@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ProductDetail } from "@/features/catalog/types/product";
 import ProductDetailClient from "@/features/catalog/components/product/ProductDetailClient";
+import RecentlyViewedProducts from "@/features/catalog/components/product/RecentlyViewedProducts";
 import { apiFetch } from "@/shared/lib/api";
 
 export default function ProductDetailPage({
@@ -104,6 +105,8 @@ export default function ProductDetailPage({
       <div className="container-luxe px-[15px] min-[1200px]:px-[85px] mx-auto mb-[60px]">
         <ProductDetailClient product={product} />
       </div>
+
+      <RecentlyViewedProducts currentProductId={product.id} />
     </div>
   );
 }
