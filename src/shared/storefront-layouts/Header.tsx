@@ -358,15 +358,21 @@ export default function Header() {
 
               <Link
                 href="/order/tracking"
-                className="text-[12px] font-semibold text-[#333] hover:text-[#000] py-[10px] mr-[16px] uppercase tracking-[0.5px] transition-colors whitespace-nowrap"
+                className="text-[12px] font-semibold text-[#333] hover:text-[#000] py-[10px] mr-[14px] uppercase tracking-[0.5px] transition-colors whitespace-nowrap"
               >
                 TRA CỨU ĐƠN
               </Link>
               <Link
                 href="/pages/ve-chung-toi"
-                className="text-[12px] font-semibold text-[#333] hover:text-[#000] py-[10px] uppercase tracking-[0.5px] transition-colors whitespace-nowrap"
+                className="text-[12px] font-semibold text-[#333] hover:text-[#000] py-[10px] mr-[14px] uppercase tracking-[0.5px] transition-colors whitespace-nowrap"
               >
                 VỀ CHÚNG TÔI
+              </Link>
+              <Link
+                href="/contact"
+                className="text-[12px] font-semibold text-[#333] hover:text-[#000] py-[10px] uppercase tracking-[0.5px] transition-colors whitespace-nowrap"
+              >
+                LIÊN HỆ
               </Link>
             </nav>
           </div>
@@ -518,7 +524,7 @@ export default function Header() {
                     </li>
                     <li>
                       <Link
-                        href="/pages/chinh-sach-doi-tra"
+                        href="/contact"
                         onClick={() => setIsUserMenuOpen(false)}
                         className="group/item flex items-center gap-[14px] px-[16px] py-[10px] rounded-[4px] text-[14px] font-medium text-[#5c636a] hover:text-[#111] hover:bg-[#fafafa] transition-colors"
                       >
@@ -750,6 +756,17 @@ export default function Header() {
                   className="text-[#333] font-bold block w-full text-[14px] no-underline uppercase"
                 >
                   VỀ CHÚNG TÔI
+                </Link>
+              </div>
+            </li>
+            <li>
+              <div className="flex justify-between items-center mb-4">
+                <Link
+                  href="/contact"
+                  onClick={toggleMobileMenu}
+                  className="text-[#333] font-bold block w-full text-[14px] no-underline uppercase"
+                >
+                  LIÊN HỆ
                 </Link>
               </div>
             </li>

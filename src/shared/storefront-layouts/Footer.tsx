@@ -241,6 +241,14 @@ export default function Footer() {
                     68 Nguyễn Huệ, Q.1, TP.HCM
                   </Link>
                 </li>
+                <li className="mb-[16px]">
+                  <Link
+                    href="/contact"
+                    className="text-[#221F20] font-medium block py-[2px] transition-all duration-200 hover:text-[#000] hover:pl-[5px]"
+                  >
+                    Gửi yêu cầu liên hệ →
+                  </Link>
+                </li>
               </ul>
             </div>
           </div>

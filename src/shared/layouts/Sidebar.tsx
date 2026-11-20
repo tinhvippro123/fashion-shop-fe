@@ -15,6 +15,7 @@ import {
   Palette,
   ImageIcon,
   ExternalLink,
+  Mail,
 } from "lucide-react";
 import Image from "next/image";
 
@@ -28,6 +29,7 @@ const navGroups = [
       { name: "Nhập kho", href: "/admin/stock-imports", icon: PackageOpen },
       { name: "Khách hàng", href: "/admin/customers", icon: Users },
       { name: "Đánh giá", href: "/admin/reviews", icon: Star },
+      { name: "Liên hệ", href: "/admin/contacts", icon: Mail },
     ],
   },
   {
