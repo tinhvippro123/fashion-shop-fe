@@ -21,13 +21,22 @@ import {
   CardTitle,
   CardDescription,
 } from "@/shared/ui/card";
-import { UploadCloud, Plus, Trash2, Save, X, Check, Settings, Boxes, PackagePlus, AlertTriangle } from "lucide-react";
+import { UploadCloud, Plus, Trash2, Save, X, Check, Settings, Boxes, PackagePlus, ArrowRight } from "lucide-react";
 import { BackButton } from "@/shared/ui/back-button";
 import { cn } from "@/shared/utils/utils";
 import { formatPrice } from "@/shared/utils/format";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Badge } from "@/shared/ui/badge";
+import { StatusBadge } from "@/shared/ui/status-badge";
 import { Switch } from "@/shared/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog";
 import dynamic from "next/dynamic";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -88,6 +97,10 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const loadingInitial =
     mode === "edit" && Boolean(productId) && loadedProductId !== productId;
   const [activeTab, setActiveTab] = useState<string>("basic");
+  const [createdProductPrompt, setCreatedProductPrompt] = useState<{
+    id: string | number;
+    name: string;
+  } | null>(null);
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [suggestions, setSuggestions] = useState<IOptionSuggestions>({
     names: ["Màu sắc", "Kích thước"],
@@ -452,62 +465,91 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     values: TProductPayload,
     status: "draft" | "published" = "published"
   ) {
-    if (status === "published") {
-      const colorImgs = values.colorImages
-        ? Object.values(values.colorImages).flat().filter(Boolean)
-        : [];
-      const baseImgs = (values.images || []).filter(Boolean);
-      const hasAnyImage = baseImgs.length > 0 || colorImgs.length > 0;
+    const colorOption = (values.options || []).find((opt) =>
+      isColorAttribute(opt.name)
+    );
+    const activeColorValues = (colorOption?.values || []).filter(Boolean);
 
+    if (status === "published") {
       const variants = values.variants || [];
       const hasVariants = variants.length > 0;
 
-      if (!hasAnyImage) {
+      if (!hasVariants) {
         toast.error(
-          "Vui lòng tải lên ít nhất 1 ảnh sản phẩm trong tab 'Phân loại & Biến thể' trước khi đăng bán! (Hoặc bấm 'Lưu nháp' nếu bạn chưa có ảnh)"
+          "Vui lòng tạo ít nhất 1 biến thể sản phẩm trước khi đăng bán (hoặc bấm Lưu nháp)."
         );
         setActiveTab("variants");
         return;
       }
 
-      if (!hasVariants) {
-        toast.error(
-          "Vui lòng thiết lập thuộc tính và tạo biến thể (Màu sắc, Kích cỡ) trước khi đăng bán! (Hoặc bấm 'Lưu nháp' nếu muốn bổ sung sau)"
-        );
-        setActiveTab("variants");
-        return;
+      if (activeColorValues.length > 0) {
+        const missingColors = activeColorValues.filter((cName) => {
+          const imgs = values.colorImages?.[cName] || [];
+          return imgs.filter(Boolean).length === 0;
+        });
+        if (missingColors.length > 0) {
+          toast.error(
+            `Màu ${missingColors.join(", ")} chưa có ảnh. Vui lòng tải ảnh cho từng màu (hoặc bấm Lưu nháp).`
+          );
+          setActiveTab("variants");
+          return;
+        }
+      } else {
+        const baseImgs = (values.images || []).filter(Boolean);
+        if (baseImgs.length === 0) {
+          toast.error(
+            "Vui lòng tải lên ít nhất 1 ảnh sản phẩm trước khi đăng bán (hoặc bấm Lưu nháp)."
+          );
+          setActiveTab("variants");
+          return;
+        }
       }
     }
 
     startTransition(async () => {
       try {
-        let finalImages = values.images || [];
-        if (values.colorImages && Object.keys(values.colorImages).length > 0) {
-          const colorOpt = (values.options || []).find((opt) =>
-            isColorAttribute(opt.name)
-          );
-          const firstColor =
-            colorOpt?.values?.[0] || Object.keys(values.colorImages)[0];
-          const firstColorImgs = values.colorImages[firstColor] || [];
-          if (firstColorImgs.length > 0) {
-            finalImages = [firstColorImgs[0]];
-          } else {
-            const anyImg = Object.values(values.colorImages).flat()[0];
-            if (anyImg) finalImages = [anyImg];
+        let finalImages = (values.images || []).filter(Boolean);
+        let normalizedColorImages = values.colorImages || {};
+
+        if (activeColorValues.length > 0) {
+          // Đảm bảo gửi đầy đủ key cho từng màu (kể cả màu chưa có ảnh khi lưu nháp)
+          // và không đẩy ảnh màu này sang màu khác
+          const nextMap: Record<string, string[]> = {};
+          for (const cName of activeColorValues) {
+            nextMap[cName] = (values.colorImages?.[cName] || []).filter(Boolean);
           }
+          normalizedColorImages = nextMap;
+          finalImages = [];
         }
-        const payload = { ...values, images: finalImages, status };
+
+        const payload = {
+          ...values,
+          images: finalImages,
+          colorImages: normalizedColorImages,
+          status,
+        };
         if (mode === "create") {
-          await apiFetch("/admin/products", {
-            method: "POST",
-            body: JSON.stringify(payload),
-          });
-          toast.success(
-            status === "published"
-              ? "Đã thêm sản phẩm mới thành công!"
-              : "Đã lưu nháp sản phẩm!"
+          const created = await apiFetch<{ id?: number | string; name?: string }>(
+            "/admin/products",
+            {
+              method: "POST",
+              body: JSON.stringify(payload),
+            }
           );
-          router.push("/admin/products");
+          if (status === "published" && created?.id) {
+            toast.success("Đã tạo sản phẩm mới thành công");
+            setCreatedProductPrompt({
+              id: created.id,
+              name: created.name || values.name,
+            });
+          } else {
+            toast.success(
+              status === "published"
+                ? "Đã thêm sản phẩm mới thành công!"
+                : "Đã lưu nháp sản phẩm!"
+            );
+            router.push("/admin/products");
+          }
         } else {
           await apiFetch(`/admin/products/${productId}`, {
             method: "PUT",
@@ -1014,18 +1056,18 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                         (watchedPrice * (100 - watchedDiscount)) / 100
                       );
                       return (
-                        <div className="col-span-full p-3 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-md text-xs text-emerald-800 dark:text-emerald-200 flex flex-wrap items-center justify-between gap-2">
+                        <div className="col-span-full p-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md text-xs text-neutral-700 dark:text-neutral-300 flex flex-wrap items-center justify-between gap-2">
                           <div>
                             <span>
                               Giá bán sau giảm <b>{watchedDiscount}%</b>:{" "}
                             </span>
-                            <span className="text-sm font-bold text-red-600 dark:text-red-400">
+                            <span className="text-sm font-bold text-[#b5121b] dark:text-red-400">
                               {formatPrice(effective)}
                             </span>
                           </div>
                           <span>
                             Tiết kiệm:{" "}
-                            <b>{formatPrice(watchedPrice - effective)}</b>
+                            <b className="text-foreground">{formatPrice(watchedPrice - effective)}</b>
                           </span>
                         </div>
                       );
@@ -1098,7 +1140,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               )}
                             </div>
                             <p className="text-[11px] text-muted-foreground">
-                              💡 Số lượng kho được quản lý tự động qua chứng từ{" "}
+                              Số lượng kho được quản lý tự động qua chứng từ{" "}
                               <strong className="text-foreground">Nhập kho</strong>{" "}
                               để đảm bảo lưu vết xuất xứ và tính giá vốn bình quân kế toán.
                             </p>
@@ -1259,6 +1301,21 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                     />
                   </CardContent>
                 </Card>
+
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => {
+                      setActiveTab("variants");
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }}
+                  >
+                    <span>Tiếp tục: Phân loại & Tải ảnh</span>
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           </TabsContent>
@@ -1495,8 +1552,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                         );
                                       })}
                                     </div>
-                                    <p className="text-[11px] text-muted-foreground italic pt-1">
-                                      💡 Bấm vào dấu <span className="font-semibold text-destructive">×</span> trên từng ô để xóa kích cỡ hoặc màu sắc.
+                                    <p className="text-[11px] text-muted-foreground pt-1">
+                                      Bấm vào dấu <span className="font-semibold text-destructive">×</span> trên từng ô để xóa kích cỡ hoặc màu sắc.
                                     </p>
                                   </div>
                                 )}
@@ -1649,8 +1706,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   isDefaultColor={colorIdx === 0}
                                 />
                               ) : (
-                                <p className="text-xs text-muted-foreground italic">
-                                  Chưa có ảnh riêng cho màu {colorName} (sẽ sử dụng ảnh chung của sản phẩm).
+                                <p className="text-xs text-muted-foreground">
+                                  Chưa có ảnh cho màu {colorName}. Mỗi màu cần ít nhất 1 ảnh riêng khi đăng bán.
                                 </p>
                               )}
 
@@ -1723,17 +1780,27 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <CardTitle>Danh sách Biến thể</CardTitle>
-                        {variantFields.some((v, idx) => (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5) && (
-                          <Badge variant="outline" className="bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/40 text-xs font-semibold gap-1">
-                            <AlertTriangle className="h-3 w-3" />
-                            {variantFields.filter((v, idx) => (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5).length} biến thể sắp hết (≤ 5)
-                          </Badge>
-                        )}
+                        {mode === "edit" &&
+                          variantFields.some(
+                            (v, idx) => (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5
+                          ) && (
+                            <StatusBadge tone="warning" size="sm">
+                              {
+                                variantFields.filter(
+                                  (v, idx) =>
+                                    (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5
+                                ).length
+                              }{" "}
+                              biến thể sắp hết
+                            </StatusBadge>
+                          )}
                       </div>
                       <CardDescription>
-                        Quản lý giá và kho cho từng phân loại. Hệ thống cảnh báo khi tồn kho ≤ 5 sản phẩm.
+                        {mode === "edit"
+                          ? "Quản lý giá bán, SKU và theo dõi tồn kho của từng phân loại."
+                          : "Quản lý giá bán và SKU cho từng phân loại. Tồn kho ban đầu là 0."}
                       </CardDescription>
                     </div>
                     <Button
@@ -1788,8 +1855,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               Nhập kho các biến thể
                             </Link>
                           ) : (
-                            <span className="text-[11px] text-muted-foreground italic">
-                              💡 Tồn kho khởi tạo = 0. Sau khi tạo sản phẩm, vui lòng tạo Phiếu nhập kho.
+                            <span className="text-[11px] text-muted-foreground">
+                              Tồn kho khởi tạo bằng 0. Sau khi tạo sản phẩm, bạn có thể lập Phiếu nhập kho.
                             </span>
                           )}
                         </div>
@@ -1857,31 +1924,43 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   {(() => {
                                     const stockVal = watchedVariants?.[i]?.stock ?? v.stock ?? 0;
                                     if (stockVal === 0) {
+                                      if (mode === "create") {
+                                        return (
+                                          <span
+                                            className="font-mono text-xs text-muted-foreground px-2 py-1.5 rounded bg-muted/50 border border-border w-full text-center"
+                                            title="Tồn kho ban đầu là 0, sẽ cập nhật sau khi nhập kho"
+                                          >
+                                            0
+                                          </span>
+                                        );
+                                      }
                                       return (
-                                        <span
-                                          className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-red-500/15 text-red-600 dark:text-red-400 border border-red-500/40 w-full text-center flex items-center justify-center gap-1 shadow-2xs"
-                                          title="Hết hàng (0 SP). Vui lòng lập phiếu nhập kho!"
+                                        <StatusBadge
+                                          tone="danger"
+                                          size="sm"
+                                          className="w-full justify-center py-1.5 font-mono"
+                                          title="Hết hàng (0 SP). Vui lòng lập phiếu nhập kho."
                                         >
-                                          <span>0</span>
-                                          <span className="text-[9px] px-1 py-0.5 rounded bg-red-600 text-white font-semibold uppercase leading-none">Hết</span>
-                                        </span>
+                                          0 · Hết
+                                        </StatusBadge>
                                       );
                                     }
                                     if (stockVal <= 5) {
                                       return (
-                                        <span
-                                          className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-400 border border-amber-500/40 w-full text-center flex items-center justify-center gap-1 shadow-2xs"
-                                          title={`Cảnh báo sắp hết hàng: Còn ${stockVal} sản phẩm (Ngưỡng cảnh báo: ≤ 5 SP)`}
+                                        <StatusBadge
+                                          tone="warning"
+                                          size="sm"
+                                          className="w-full justify-center py-1.5 font-mono"
+                                          title={`Sắp hết hàng: còn ${stockVal} sản phẩm`}
                                         >
-                                          <span>{stockVal}</span>
-                                          <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0" />
-                                        </span>
+                                          {stockVal} · Ít
+                                        </StatusBadge>
                                       );
                                     }
                                     return (
                                       <span
-                                        className="font-mono text-xs font-bold px-2 py-1.5 rounded bg-muted/80 text-foreground border w-full text-center"
-                                        title={`Tồn kho an toàn: ${stockVal} sản phẩm`}
+                                        className="font-mono text-xs font-medium px-2 py-1.5 rounded bg-muted/60 text-foreground border border-border w-full text-center"
+                                        title={`Tồn kho: ${stockVal} sản phẩm`}
                                       >
                                         {stockVal}
                                       </span>
@@ -1955,6 +2034,55 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           </TabsContent>
         </Tabs>
       </form>
+
+      {/* Post-create Stock Import Prompt */}
+      <Dialog
+        open={Boolean(createdProductPrompt)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCreatedProductPrompt(null);
+            router.push("/admin/products");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Đã tạo sản phẩm thành công</DialogTitle>
+            <DialogDescription className="pt-1 leading-relaxed">
+              Sản phẩm{" "}
+              <strong className="text-foreground">
+                {createdProductPrompt?.name}
+              </strong>{" "}
+              hiện có tồn kho bằng 0. Bạn có muốn lập phiếu nhập kho ngay cho các
+              biến thể vừa tạo không?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setCreatedProductPrompt(null);
+                router.push("/admin/products");
+              }}
+            >
+              Để sau
+            </Button>
+            <Button
+              type="button"
+              className="gap-2"
+              onClick={() => {
+                const targetId = createdProductPrompt?.id;
+                setCreatedProductPrompt(null);
+                router.push(`/admin/stock-imports?productId=${targetId}`);
+              }}
+            >
+              <PackagePlus className="h-4 w-4" />
+              Nhập kho ngay
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Form>
   );
 }

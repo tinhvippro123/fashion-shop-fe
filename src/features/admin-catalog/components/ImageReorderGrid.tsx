@@ -2,9 +2,8 @@
 
 import React, { useState } from "react";
 import { resolveImageUrl } from "@/shared/utils/format";
-import { Badge } from "@/shared/ui/badge";
-import { Star, Eye, ChevronLeft, ChevronRight, X, GripVertical } from "lucide-react";
-import { toast } from "react-toastify";
+import { ChevronLeft, ChevronRight, X, GripVertical } from "lucide-react";
+import { toast } from "sonner";
 
 interface ImageReorderGridProps {
   images: string[];
@@ -35,8 +34,8 @@ export function ImageReorderGrid({
     onReorder(reordered);
     toast.success(
       colorName
-        ? `Đã chọn làm Ảnh đại diện cho màu ${colorName}!`
-        : "Đã chọn làm Ảnh đại diện sản phẩm!"
+        ? `Đã đặt làm ảnh chính cho màu ${colorName}`
+        : "Đã đặt làm ảnh chính sản phẩm"
     );
   };
 
@@ -48,8 +47,8 @@ export function ImageReorderGrid({
     onReorder(reordered);
     toast.success(
       colorName
-        ? `Đã chọn làm Ảnh hover khi lướt chuột cho màu ${colorName}!`
-        : "Đã chọn làm Ảnh hover khi lướt chuột!"
+        ? `Đã đặt làm ảnh hover cho màu ${colorName}`
+        : "Đã đặt làm ảnh hover sản phẩm"
     );
   };
 
@@ -112,16 +111,16 @@ export function ImageReorderGrid({
   };
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <div className="flex items-center justify-between text-[11px] text-muted-foreground px-0.5">
         <span className="flex items-center gap-1">
           <GripVertical className="h-3 w-3 text-muted-foreground/70" />
-          Kéo thả chuột để đổi vị trí, hoặc dùng các nút thao tác nhanh bên dưới:
+          Kéo thả để sắp xếp thứ tự, hoặc rê chuột vào ảnh để chọn ảnh chính / ảnh hover.
         </span>
         <span className="font-medium text-foreground/80">{images.length} ảnh</span>
       </div>
 
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
         {images.map((imgUrl, imgIdx) => {
           const isDragging = draggedIndex === imgIdx;
           const isDragOver = dragOverIndex === imgIdx && draggedIndex !== imgIdx;
@@ -135,12 +134,12 @@ export function ImageReorderGrid({
               onDragLeave={() => handleDragLeave(imgIdx)}
               onDrop={(e) => handleDrop(e, imgIdx)}
               onDragEnd={handleDragEnd}
-              className={`relative aspect-2/3 rounded-md overflow-hidden border bg-muted group cursor-grab active:cursor-grabbing transition-all select-none ${
+              className={`relative aspect-3/4 rounded-md overflow-hidden border bg-muted group cursor-grab active:cursor-grabbing transition-all select-none ${
                 isDragging
-                  ? "opacity-40 scale-95 border-dashed border-primary"
+                  ? "opacity-40 scale-95 border-dashed border-foreground"
                   : isDragOver
-                  ? "ring-2 ring-primary ring-offset-2 scale-102 border-primary"
-                  : "hover:shadow-md hover:border-foreground/30"
+                  ? "ring-2 ring-foreground ring-offset-2 border-foreground"
+                  : "border-neutral-200 dark:border-neutral-800 hover:border-neutral-400"
               }`}
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -151,12 +150,13 @@ export function ImageReorderGrid({
                 loading="lazy"
               />
 
-              {/* Top Left: Drag handle badge */}
+              {/* Top Left: Index / Drag indicator */}
               <div
-                className="absolute top-1 left-1 bg-black/60 text-white/90 rounded px-1 py-0.5 opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center pointer-events-none shadow"
+                className="absolute top-1.5 left-1.5 bg-white/90 text-neutral-800 border border-neutral-200/80 rounded px-1.5 py-0.5 text-[10px] font-mono font-medium z-10 flex items-center gap-0.5 pointer-events-none shadow-2xs"
                 title="Kéo thả đổi vị trí"
               >
-                <GripVertical className="h-3 w-3" />
+                <GripVertical className="h-2.5 w-2.5 text-neutral-500" />
+                <span>#{imgIdx + 1}</span>
               </div>
 
               {/* Top Right: Delete button */}
@@ -166,78 +166,78 @@ export function ImageReorderGrid({
                   e.stopPropagation();
                   onRemove(imgUrl);
                 }}
-                className="absolute top-1 right-1 bg-black/70 hover:bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all z-20 shadow cursor-pointer"
+                className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-neutral-900 hover:text-white text-neutral-700 border border-neutral-200/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all z-20 shadow-2xs cursor-pointer"
                 title="Xóa ảnh này"
               >
                 <X className="h-3 w-3" />
               </button>
 
-              {/* Bottom Badge: Avatar / Hover / Index */}
-              {imgIdx === 0 ? (
-                <Badge className="absolute bottom-1.5 left-1.5 bg-black/90 text-amber-300 text-[10px] px-1.5 py-0.5 border border-amber-400/40 shadow-md flex items-center gap-1 font-semibold pointer-events-none z-10">
-                  <Star className="h-3 w-3 fill-amber-300 text-amber-300" />
-                  <span>Ảnh đại diện</span>
-                </Badge>
-              ) : imgIdx === 1 ? (
-                <Badge className="absolute bottom-1.5 left-1.5 bg-blue-900/90 text-blue-200 text-[10px] px-1.5 py-0.5 border border-blue-400/40 shadow-md flex items-center gap-1 font-semibold pointer-events-none z-10">
-                  <Eye className="h-3 w-3 text-blue-300" />
-                  <span>Ảnh hover</span>
-                </Badge>
-              ) : (
-                <span className="absolute bottom-1.5 left-1.5 bg-black/65 text-white/90 text-[10px] font-mono px-1.5 py-0.5 rounded shadow pointer-events-none z-10">
-                  #{imgIdx + 1}
+              {/* Default bottom role tag (hidden on hover so toolbar has full clean space) */}
+              {imgIdx === 0 && (
+                <span className="absolute bottom-1.5 left-1.5 bg-neutral-900/90 text-white text-[10px] font-medium px-2 py-0.5 rounded pointer-events-none z-10 group-hover:opacity-0 transition-opacity">
+                  Ảnh chính
+                </span>
+              )}
+              {imgIdx === 1 && (
+                <span className="absolute bottom-1.5 left-1.5 bg-white/95 text-neutral-900 border border-neutral-300 text-[10px] font-medium px-2 py-0.5 rounded pointer-events-none z-10 group-hover:opacity-0 transition-opacity">
+                  Ảnh hover
                 </span>
               )}
 
-              {/* Action Toolbar on Hover */}
+              {/* Hover Action Overlay: 2 clean rows, never overflows */}
               <div
-                className="absolute inset-x-1 bottom-7 flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-all z-20"
+                className="absolute inset-x-0 bottom-0 p-1.5 pt-6 bg-gradient-to-t from-black/80 via-black/45 to-transparent flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
                 onClick={(e) => e.stopPropagation()}
               >
-                {imgIdx > 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleMoveLeft(imgIdx)}
-                    className="bg-black/80 hover:bg-black text-white p-1 rounded text-xs shadow-md transition-transform hover:scale-110 cursor-pointer"
-                    title="Dịch sang trái"
-                  >
-                    <ChevronLeft className="h-3.5 w-3.5" />
-                  </button>
+                {/* Row 1: Set Primary / Hover */}
+                {(imgIdx !== 0 || images.length >= 2) && (
+                  <div className="flex items-center gap-1 w-full">
+                    {imgIdx !== 0 && (
+                      <button
+                        type="button"
+                        onClick={() => handleSetAvatar(imgIdx)}
+                        className="flex-1 bg-white hover:bg-neutral-100 text-neutral-900 px-1.5 py-1 rounded text-[10px] font-medium text-center truncate cursor-pointer transition-colors"
+                        title="Đặt làm ảnh chính (vị trí #1)"
+                      >
+                        Đặt chính
+                      </button>
+                    )}
+
+                    {imgIdx !== 1 && images.length >= 2 && (
+                      <button
+                        type="button"
+                        onClick={() => handleSetHover(imgIdx)}
+                        className="flex-1 bg-neutral-900/90 hover:bg-black text-white border border-white/25 px-1.5 py-1 rounded text-[10px] font-medium text-center truncate cursor-pointer transition-colors"
+                        title="Đặt làm ảnh hover (vị trí #2)"
+                      >
+                        Đặt hover
+                      </button>
+                    )}
+                  </div>
                 )}
 
-                {imgIdx !== 0 && (
-                  <button
-                    type="button"
-                    onClick={() => handleSetAvatar(imgIdx)}
-                    className="bg-amber-600 hover:bg-amber-500 text-white px-1.5 py-1 rounded text-[10px] font-medium flex items-center gap-0.5 shadow-md transition-transform hover:scale-105 cursor-pointer"
-                    title="Đặt làm Ảnh đại diện (đưa lên vị trí #1)"
-                  >
-                    <Star className="h-3 w-3 fill-white" />
-                    <span>Đại diện</span>
-                  </button>
-                )}
-
-                {imgIdx !== 1 && images.length >= 2 && (
-                  <button
-                    type="button"
-                    onClick={() => handleSetHover(imgIdx)}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-1.5 py-1 rounded text-[10px] font-medium flex items-center gap-0.5 shadow-md transition-transform hover:scale-105 cursor-pointer"
-                    title="Đặt làm Ảnh hover khi lướt chuột (đưa vào vị trí #2)"
-                  >
-                    <Eye className="h-3 w-3" />
-                    <span>Hover</span>
-                  </button>
-                )}
-
-                {imgIdx < images.length - 1 && (
-                  <button
-                    type="button"
-                    onClick={() => handleMoveRight(imgIdx)}
-                    className="bg-black/80 hover:bg-black text-white p-1 rounded text-xs shadow-md transition-transform hover:scale-110 cursor-pointer"
-                    title="Dịch sang phải"
-                  >
-                    <ChevronRight className="h-3.5 w-3.5" />
-                  </button>
+                {/* Row 2: Move Left / Right */}
+                {images.length > 1 && (
+                  <div className="flex items-center justify-between gap-1 w-full">
+                    <button
+                      type="button"
+                      disabled={imgIdx === 0}
+                      onClick={() => handleMoveLeft(imgIdx)}
+                      className="flex-1 flex items-center justify-center bg-white/15 hover:bg-white/30 disabled:opacity-30 disabled:cursor-not-allowed text-white py-0.5 rounded cursor-pointer transition-colors"
+                      title="Dịch sang trái"
+                    >
+                      <ChevronLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={imgIdx === images.length - 1}
+                      onClick={() => handleMoveRight(imgIdx)}
+                      className="flex-1 flex items-center justify-center bg-white/15 hover:bg-white/30 disabled:opacity-30 disabled:cursor-not-allowed text-white py-0.5 rounded cursor-pointer transition-colors"
+                      title="Dịch sang phải"
+                    >
+                      <ChevronRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
