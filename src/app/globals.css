@@ -194,6 +194,10 @@ html {
 /* Ensure Toast notifications always stay above all modals, drawers, and overlays */
 :root {
   --toastify-z-index: 999999;
+  --toastify-icon-color-success: #16a34a;
+  --toastify-icon-color-error: #dc2626;
+  --toastify-icon-color-warning: #d97706;
+  --toastify-icon-color-info: #2563eb;
 }
 .Toastify__toast-container {
   z-index: 999999 !important;
@@ -221,6 +225,32 @@ html {
 .luxe-toast-container .Toastify__close-button:hover {
   color: #111111 !important;
   opacity: 1;
+}
+
+/* Admin Sonner Toast: clean card with semantic icon color only */
+.admin-sonner-toast[data-type="success"] [data-icon] {
+  color: #16a34a !important;
+}
+.admin-sonner-toast[data-type="error"] [data-icon] {
+  color: #dc2626 !important;
+}
+.admin-sonner-toast[data-type="warning"] [data-icon] {
+  color: #d97706 !important;
+}
+.admin-sonner-toast[data-type="info"] [data-icon] {
+  color: #2563eb !important;
+}
+.dark .admin-sonner-toast[data-type="success"] [data-icon] {
+  color: #4ade80 !important;
+}
+.dark .admin-sonner-toast[data-type="error"] [data-icon] {
+  color: #f87171 !important;
+}
+.dark .admin-sonner-toast[data-type="warning"] [data-icon] {
+  color: #fbbf24 !important;
+}
+.dark .admin-sonner-toast[data-type="info"] [data-icon] {
+  color: #60a5fa !important;
 }
 
 /* Ẩn con mắt hiển thị mật khẩu mặc định của Microsoft Edge / IE để tránh bị trùng lặp với nút mắt tùy chỉnh của website */
