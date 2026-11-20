@@ -150,43 +150,43 @@ export function ImageReorderGrid({
                 loading="lazy"
               />
 
-              {/* Top Left: Index / Drag indicator */}
+              {/* Top Left: Index + Role badge (always visible, never collides with bottom controls) */}
               <div
-                className="absolute top-1.5 left-1.5 bg-white/90 text-neutral-800 border border-neutral-200/80 rounded px-1.5 py-0.5 text-[10px] font-mono font-medium z-10 flex items-center gap-0.5 pointer-events-none shadow-2xs"
+                className={`absolute top-1.5 left-1.5 rounded px-1.5 py-0.5 text-[10px] font-medium z-10 flex items-center gap-1 pointer-events-none shadow-2xs ${
+                  imgIdx === 0
+                    ? "bg-neutral-900/90 text-white"
+                    : imgIdx === 1
+                    ? "bg-white/95 text-neutral-900 border border-neutral-300"
+                    : "bg-white/90 text-neutral-800 border border-neutral-200/80"
+                }`}
                 title="Kéo thả đổi vị trí"
               >
-                <GripVertical className="h-2.5 w-2.5 text-neutral-500" />
-                <span>#{imgIdx + 1}</span>
+                <GripVertical
+                  className={`h-2.5 w-2.5 shrink-0 ${
+                    imgIdx === 0 ? "text-white/75" : "text-neutral-500"
+                  }`}
+                />
+                <span className="font-mono">#{imgIdx + 1}</span>
+                {imgIdx === 0 && <span>· Chính</span>}
+                {imgIdx === 1 && <span>· Hover</span>}
               </div>
 
-              {/* Top Right: Delete button */}
+              {/* Top Right: Delete button (always visible on touch devices, hover-reveal on mouse) */}
               <button
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   onRemove(imgUrl);
                 }}
-                className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-neutral-900 hover:text-white text-neutral-700 border border-neutral-200/80 rounded-full p-1 opacity-0 group-hover:opacity-100 transition-all z-20 shadow-2xs cursor-pointer"
+                className="absolute top-1.5 right-1.5 bg-white/90 hover:bg-neutral-900 hover:text-white text-neutral-700 border border-neutral-200/80 rounded-full p-1 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-all z-20 shadow-2xs cursor-pointer"
                 title="Xóa ảnh này"
               >
                 <X className="h-3 w-3" />
               </button>
 
-              {/* Default bottom role tag (hidden on hover so toolbar has full clean space) */}
-              {imgIdx === 0 && (
-                <span className="absolute bottom-1.5 left-1.5 bg-neutral-900/90 text-white text-[10px] font-medium px-2 py-0.5 rounded pointer-events-none z-10 group-hover:opacity-0 transition-opacity">
-                  Ảnh chính
-                </span>
-              )}
-              {imgIdx === 1 && (
-                <span className="absolute bottom-1.5 left-1.5 bg-white/95 text-neutral-900 border border-neutral-300 text-[10px] font-medium px-2 py-0.5 rounded pointer-events-none z-10 group-hover:opacity-0 transition-opacity">
-                  Ảnh hover
-                </span>
-              )}
-
-              {/* Hover Action Overlay: 2 clean rows, never overflows */}
+              {/* Action Overlay: always accessible on touch devices, hover-reveal on desktop mouse */}
               <div
-                className="absolute inset-x-0 bottom-0 p-1.5 pt-6 bg-gradient-to-t from-black/80 via-black/45 to-transparent flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-20"
+                className="absolute inset-x-0 bottom-0 p-1.5 pt-5 bg-gradient-to-t from-black/80 via-black/45 to-transparent flex flex-col gap-1 opacity-100 [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 transition-opacity z-20"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Row 1: Set Primary / Hover */}

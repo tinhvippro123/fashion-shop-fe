@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, KeyboardEvent, useEffect } from "react";
+import { useState, useTransition, KeyboardEvent, DragEvent, useEffect } from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -21,11 +21,24 @@ import {
   CardTitle,
   CardDescription,
 } from "@/shared/ui/card";
-import { UploadCloud, Plus, Trash2, Save, X, Check, Settings, Boxes, PackagePlus, ArrowRight } from "lucide-react";
+import {
+  UploadCloud,
+  Plus,
+  Trash2,
+  Save,
+  X,
+  Check,
+  Settings,
+  Boxes,
+  PackagePlus,
+  ChevronDown,
+  ChevronUp,
+  Loader2,
+  RefreshCw,
+} from "lucide-react";
 import { BackButton } from "@/shared/ui/back-button";
 import { cn } from "@/shared/utils/utils";
 import { formatPrice } from "@/shared/utils/format";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
 import { Badge } from "@/shared/ui/badge";
 import { StatusBadge } from "@/shared/ui/status-badge";
 import { Switch } from "@/shared/ui/switch";
@@ -40,7 +53,7 @@ import {
 import dynamic from "next/dynamic";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm, useFieldArray, useWatch } from "react-hook-form";
+import { useForm, useFieldArray, useWatch, FieldErrors } from "react-hook-form";
 import {
   Form,
   FormControl,
@@ -51,6 +64,7 @@ import {
 } from "@/shared/ui/form";
 import {
   ProductSchema,
+  TProductOption,
   TProductPayload,
   TProductVariant,
 } from "../schemas/product.schema";
@@ -62,14 +76,7 @@ import {
   RawProductResponseDto,
   getCategoryFullPath,
 } from "../types/catalog.admin";
-import {
-  getAdminColors,
-  deleteAdminColor,
-  getAdminSizes,
-  deleteAdminSize,
-} from "../api/attributes.api";
 import { apiFetch } from "@/shared/lib/api";
-import { resolveImageUrl } from "@/shared/utils/format";
 import { ImageReorderGrid } from "./ImageReorderGrid";
 
 const RichTextEditor = dynamic(
@@ -78,7 +85,7 @@ const RichTextEditor = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="h-[250px] w-full animate-pulse bg-muted rounded-md flex items-center justify-center text-muted-foreground">
+      <div className="h-[220px] w-full animate-pulse bg-muted rounded-md flex items-center justify-center text-muted-foreground text-sm">
         Đang tải bộ soạn thảo...
       </div>
     ),
@@ -90,17 +97,109 @@ interface ProductFormProps {
   mode?: "create" | "edit";
 }
 
+const GENERAL_UPLOAD_KEY = "__general__";
+
+function buildSkuSuffix(combo: Record<string, string>): string {
+  return Object.values(combo)
+    .map((val) => {
+      const cleaned = val.trim();
+      if (cleaned.length <= 3) return cleaned.toUpperCase();
+      return cleaned
+        .split(/\s+/)
+        .map((w) => w[0]?.toUpperCase() || "")
+        .join("");
+    })
+    .filter(Boolean)
+    .join("-");
+}
+
+function buildVariantCombinations(
+  options: TProductOption[],
+  existingVariants: TProductVariant[],
+  basePrice: number,
+  baseSku: string
+): TProductVariant[] {
+  const validOptions = options
+    .map((opt) => {
+      if (isSizeAttribute(opt.name)) {
+        return {
+          ...opt,
+          values: [...(opt.values || [])].sort(
+            (a, b) => getSizeSortOrder(a) - getSizeSortOrder(b)
+          ),
+        };
+      }
+      return opt;
+    })
+    .filter((opt) => opt.name?.trim() && opt.values && opt.values.length > 0);
+
+  if (validOptions.length === 0) return [];
+
+  let combinations: Record<string, string>[] = [{}];
+  for (const opt of validOptions) {
+    const nextCombinations: Record<string, string>[] = [];
+    for (const combo of combinations) {
+      for (const val of opt.values) {
+        nextCombinations.push({ ...combo, [opt.name]: val });
+      }
+    }
+    combinations = nextCombinations;
+  }
+
+  const skuPrefix = baseSku?.trim() || `LUXE-${Date.now() % 10000}`;
+
+  return combinations.map((combo, i) => {
+    const matched = existingVariants.find((ev) => {
+      const evOpts = ev.options || {};
+      const comboEntries = Object.entries(combo);
+      return (
+        Object.keys(evOpts).length === comboEntries.length &&
+        comboEntries.every(
+          ([k, v]) => (evOpts[k] || "").toLowerCase() === (v || "").toLowerCase()
+        )
+      );
+    });
+
+    const suffix = buildSkuSuffix(combo);
+
+    return {
+      id: matched?.id,
+      sku: matched?.sku || `${skuPrefix}-${suffix || i + 1}`,
+      price: matched?.price ?? basePrice,
+      costPrice: matched?.costPrice,
+      stock: matched?.stock ?? 0,
+      options: combo,
+      image: matched?.image,
+    };
+  });
+}
+
+function scrollToSection(id: string) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+}
+
 export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [loadedProductId, setLoadedProductId] = useState<string | null>(null);
   const loadingInitial =
     mode === "edit" && Boolean(productId) && loadedProductId !== productId;
-  const [activeTab, setActiveTab] = useState<string>("basic");
+
+  const [showCareEditor, setShowCareEditor] = useState(false);
+  const [uploadingTargets, setUploadingTargets] = useState<Record<string, boolean>>({});
+  const [dragActiveTarget, setDragActiveTarget] = useState<string | null>(null);
+  const [generalUrlInput, setGeneralUrlInput] = useState("");
+  const [colorUrlInputs, setColorUrlInputs] = useState<Record<string, string>>({});
+  const [batchPrice, setBatchPrice] = useState("");
+
   const [createdProductPrompt, setCreatedProductPrompt] = useState<{
     id: string | number;
     name: string;
   } | null>(null);
+
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [suggestions, setSuggestions] = useState<IOptionSuggestions>({
     names: ["Màu sắc", "Kích thước"],
@@ -115,7 +214,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     defaultValues: {
       name: "",
       description: "",
-      price: 450000,
+      price: 0,
       discountPercent: 0,
       isNew: true,
       isBestSeller: false,
@@ -136,9 +235,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   useEffect(() => {
     Promise.all([
       apiFetch<AdminCategory[]>("/admin/categories").catch(() => []),
-      apiFetch<IOptionSuggestions>("/admin/options/suggestions").catch(
-        () => null
-      ),
+      apiFetch<IOptionSuggestions>("/admin/options/suggestions").catch(() => null),
     ]).then(([cats, sugg]) => {
       if (cats && cats.length > 0) {
         setCategories(cats);
@@ -159,7 +256,6 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       .then((prod) => {
         if (!active) return;
 
-        // Trích xuất bộ sưu tập ảnh cho từng màu: ưu tiên prod.colorImages, fallback sang prod.productColors
         const resolvedColorImages: Record<string, string[]> = {};
         if (prod.colorImages && Object.keys(prod.colorImages).length > 0) {
           Object.assign(resolvedColorImages, prod.colorImages);
@@ -172,19 +268,20 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                 !resolvedColorImages[cName] ||
                 resolvedColorImages[cName].length === 0
               ) {
-                resolvedColorImages[cName] = pc.images.map(
-                  (img) => img.imageUrl
-                );
+                resolvedColorImages[cName] = pc.images.map((img) => img.imageUrl);
               }
             }
           });
         }
 
-        // Chỉ chọn 1 ảnh làm ảnh bìa đại diện duy nhất (Primary Cover Photo), không gom tất cả ảnh vào bìa
         const primaryCover =
           prod.images?.[0] ||
           Object.values(resolvedColorImages)[0]?.[0] ||
           "";
+
+        if (prod.careInstructions && prod.careInstructions.trim().length > 0) {
+          setShowCareEditor(true);
+        }
 
         form.reset({
           name: prod.name || "",
@@ -248,39 +345,118 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     name: "variants",
   });
 
-  const watchedImages = useWatch({
-    control: form.control,
-    name: "images",
-  });
+  const watchedName = useWatch({ control: form.control, name: "name" }) || "";
+  const watchedCategory = useWatch({ control: form.control, name: "category" }) || "";
+  const watchedImages = useWatch({ control: form.control, name: "images" });
   const currentImages = watchedImages || [];
-  const watchedOptions = useWatch({
-    control: form.control,
-    name: "options",
-  });
-  const watchedVariants = useWatch({
-    control: form.control,
-    name: "variants",
-  });
-  const watchedPrice =
-    useWatch({
-      control: form.control,
-      name: "price",
-    }) || 0;
+  const watchedOptions = useWatch({ control: form.control, name: "options" });
+  const watchedVariants = useWatch({ control: form.control, name: "variants" });
+  const watchedPrice = useWatch({ control: form.control, name: "price" }) || 0;
   const watchedDiscount =
-    useWatch({
+    useWatch({ control: form.control, name: "discountPercent" }) || 0;
+  const watchedCare = useWatch({ control: form.control, name: "careInstructions" }) || "";
+  const watchedColorImages =
+    (useWatch({
       control: form.control,
-      name: "discountPercent",
-    }) || 0;
+      name: "colorImages",
+    }) as Record<string, string[]>) || {};
 
-  const [generalUrlInput, setGeneralUrlInput] = useState("");
+  // Auto-sync variants whenever options change, keeping existing prices/SKUs/stocks intact
+  const syncVariantsFromOptions = (nextOptions: TProductOption[]) => {
+    const basePrice = form.getValues("price") || 0;
+    const baseSku = form.getValues("sku") || "";
+    const existingVariants = form.getValues("variants") || [];
+    const synced = buildVariantCombinations(
+      nextOptions,
+      existingVariants,
+      basePrice,
+      baseSku
+    );
+    replaceVariants(synced);
+  };
+
+  const uploadImageFiles = async (files: FileList | File[], targetKey: string) => {
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    if (imageFiles.length === 0) {
+      toast.error("Vui lòng chọn tệp hình ảnh hợp lệ (JPG, PNG, WEBP...).");
+      return;
+    }
+
+    setUploadingTargets((prev) => ({ ...prev, [targetKey]: true }));
+    try {
+      const formData = new FormData();
+      for (const file of imageFiles) {
+        formData.append("file", file);
+      }
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Không thể tải ảnh lên");
+      }
+
+      const newUrls: string[] = data.urls || (data.url ? [data.url] : []);
+      if (newUrls.length > 0) {
+        if (targetKey === GENERAL_UPLOAD_KEY) {
+          const prev = form.getValues("images") || [];
+          form.setValue("images", Array.from(new Set([...prev, ...newUrls])), {
+            shouldDirty: true,
+          });
+          toast.success(`Đã tải lên ${newUrls.length} ảnh sản phẩm`);
+        } else {
+          const currentMap = form.getValues("colorImages") || {};
+          const prevImgs = currentMap[targetKey] || [];
+          form.setValue(
+            "colorImages",
+            {
+              ...currentMap,
+              [targetKey]: Array.from(new Set([...prevImgs, ...newUrls])),
+            },
+            { shouldDirty: true }
+          );
+          toast.success(`Đã tải lên ${newUrls.length} ảnh cho màu ${targetKey}`);
+        }
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Tải ảnh thất bại";
+      toast.error(message);
+    } finally {
+      setUploadingTargets((prev) => ({ ...prev, [targetKey]: false }));
+    }
+  };
+
+  const handleFileInputChange = async (
+    targetKey: string,
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    await uploadImageFiles(files, targetKey);
+    e.target.value = "";
+  };
+
+  const handleDropFiles = async (targetKey: string, e: DragEvent<HTMLElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActiveTarget(null);
+    if (uploadingTargets[targetKey]) return;
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      await uploadImageFiles(files, targetKey);
+    }
+  };
 
   const handleAddGeneralImage = (url: string) => {
     const trimmed = url.trim();
     if (!trimmed) return;
     const prev = form.getValues("images") || [];
     if (!prev.includes(trimmed)) {
-      form.setValue("images", [...prev, trimmed]);
-      toast.success("Đã thêm ảnh sản phẩm!");
+      form.setValue("images", [...prev, trimmed], { shouldDirty: true });
+      toast.success("Đã thêm ảnh sản phẩm");
     }
     setGeneralUrlInput("");
   };
@@ -289,56 +465,14 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     const prev = form.getValues("images") || [];
     form.setValue(
       "images",
-      prev.filter((i) => i !== url)
+      prev.filter((i) => i !== url),
+      { shouldDirty: true }
     );
   };
 
-  const handleGeneralFileUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    try {
-      const formData = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        formData.append("file", files[i]);
-      }
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Không thể tải ảnh lên");
-      }
-
-      const newUrls: string[] = data.urls || (data.url ? [data.url] : []);
-      if (newUrls.length > 0) {
-        const prev = form.getValues("images") || [];
-        form.setValue(
-          "images",
-          Array.from(new Set([...prev, ...newUrls]))
-        );
-        toast.success(`Đã thêm ${newUrls.length} ảnh!`);
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Tải ảnh thất bại";
-      toast.error(message);
-    } finally {
-      e.target.value = "";
-    }
+  const handleReorderGeneralImages = (newImages: string[]) => {
+    form.setValue("images", newImages, { shouldDirty: true });
   };
-
-  const watchedColorImages =
-    (useWatch({
-      control: form.control,
-      name: "colorImages",
-    }) as Record<string, string[]>) || {};
-
-  const [colorUrlInputs, setColorUrlInputs] = useState<Record<string, string>>({});
 
   const handleAddColorImage = (colorName: string, imgUrl: string) => {
     const trimmed = imgUrl.trim();
@@ -346,11 +480,15 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     const currentMap = form.getValues("colorImages") || {};
     const prevImgs = currentMap[colorName] || [];
     if (!prevImgs.includes(trimmed)) {
-      form.setValue("colorImages", {
-        ...currentMap,
-        [colorName]: [...prevImgs, trimmed],
-      });
-      toast.success(`Đã thêm ảnh cho màu ${colorName}!`);
+      form.setValue(
+        "colorImages",
+        {
+          ...currentMap,
+          [colorName]: [...prevImgs, trimmed],
+        },
+        { shouldDirty: true }
+      );
+      toast.success(`Đã thêm ảnh cho màu ${colorName}`);
     }
     setColorUrlInputs((prev) => ({ ...prev, [colorName]: "" }));
   };
@@ -358,72 +496,32 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const handleRemoveColorImage = (colorName: string, imgUrl: string) => {
     const currentMap = form.getValues("colorImages") || {};
     const prevImgs = currentMap[colorName] || [];
-    form.setValue("colorImages", {
-      ...currentMap,
-      [colorName]: prevImgs.filter((i) => i !== imgUrl),
-    }, { shouldDirty: true });
+    form.setValue(
+      "colorImages",
+      {
+        ...currentMap,
+        [colorName]: prevImgs.filter((i) => i !== imgUrl),
+      },
+      { shouldDirty: true }
+    );
   };
 
   const handleReorderColorImages = (colorName: string, newImages: string[]) => {
     const currentMap = form.getValues("colorImages") || {};
-    form.setValue("colorImages", {
-      ...currentMap,
-      [colorName]: newImages,
-    }, { shouldDirty: true });
+    form.setValue(
+      "colorImages",
+      {
+        ...currentMap,
+        [colorName]: newImages,
+      },
+      { shouldDirty: true }
+    );
   };
 
-  const handleReorderGeneralImages = (newImages: string[]) => {
-    form.setValue("images", newImages, { shouldDirty: true });
-  };
-
-  const handleColorFileUpload = async (
-    colorName: string,
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    try {
-      const formData = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        formData.append("file", files[i]);
-      }
-
-      const res = await fetch("/api/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Không thể tải ảnh lên");
-      }
-
-      const newUrls: string[] = data.urls || (data.url ? [data.url] : []);
-      if (newUrls.length > 0) {
-        const currentMap = form.getValues("colorImages") || {};
-        const prevImgs = currentMap[colorName] || [];
-        const combined = Array.from(new Set([...prevImgs, ...newUrls]));
-        form.setValue("colorImages", {
-          ...currentMap,
-          [colorName]: combined,
-        });
-        toast.success(`Đã thêm ${newUrls.length} ảnh cho màu ${colorName}!`);
-      }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Tải ảnh thất bại";
-      toast.error(message);
-    } finally {
-      e.target.value = "";
-    }
-  };
-
-  const [batchPrice, setBatchPrice] = useState("");
-
-  const applyBatchPrice = () => {
-    const p = Number(batchPrice);
-    if (isNaN(p) || p < 0) {
-      toast.error("Vui lòng nhập giá hợp lệ");
+  const applyBatchPrice = (customValue?: number) => {
+    const p = customValue !== undefined ? customValue : Number(batchPrice);
+    if (isNaN(p) || p <= 0) {
+      toast.error("Vui lòng nhập giá bán lớn hơn 0");
       return;
     }
     const current = form.getValues("variants") || [];
@@ -434,9 +532,9 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     const updated = current.map((v) => ({ ...v, price: p }));
     replaceVariants(updated);
     toast.success(
-      `Đã áp dụng giá ${formatPrice(p)} cho tất cả ${current.length} biến thể!`
+      `Đã áp dụng giá ${formatPrice(p)} cho tất cả ${current.length} biến thể`
     );
-    setBatchPrice("");
+    if (customValue === undefined) setBatchPrice("");
   };
 
   const setDefaultColor = (colorName: string) => {
@@ -454,11 +552,154 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           values: reordered,
         };
         replaceOptions(updatedOpts);
-        toast.success(
-          `Đã chọn "${colorName}" làm màu mặc định (hiển thị có dấu tick đầu tiên)!`
-        );
+        syncVariantsFromOptions(updatedOpts);
+        toast.success(`Đã đặt "${colorName}" làm màu mặc định`);
       }
     }
+  };
+
+  const handleManualSyncVariants = () => {
+    const currentOptions = form.getValues("options") || [];
+    const hasValid = currentOptions.some(
+      (opt) => opt.name?.trim() && opt.values && opt.values.length > 0
+    );
+    if (!hasValid) {
+      toast.error("Vui lòng thêm ít nhất 1 thuộc tính và giá trị trước.");
+      scrollToSection("section-options");
+      return;
+    }
+    syncVariantsFromOptions(currentOptions);
+    const count = (form.getValues("variants") || []).length;
+    toast.success(`Đã đồng bộ ${count} biến thể`);
+  };
+
+  const applyFashionPreset = () => {
+    const defaultOptions: TProductOption[] = [
+      { name: "Màu sắc", values: ["Đen", "Trắng"] },
+      { name: "Kích thước", values: ["S", "M", "L"] },
+    ];
+    replaceOptions(defaultOptions);
+    syncVariantsFromOptions(defaultOptions);
+    toast.success("Đã áp dụng Mẫu Thời Trang (Đen, Trắng × S, M, L)");
+  };
+
+  const handleQuickAddPresetOption = (name: string) => {
+    const currentOpts = form.getValues("options") || [];
+    const exists = currentOpts.some(
+      (opt) => opt.name.trim().toLowerCase() === name.toLowerCase()
+    );
+    if (exists) {
+      toast.info(`Đã có nhóm "${name}" rồi`);
+      return;
+    }
+    appendOption({ name, values: [] });
+  };
+
+  const handleQuickSetName = (index: number, name: string) => {
+    const currentOpts = [...(form.getValues("options") || [])];
+    const currentOpt = currentOpts[index];
+    const updatedOpt = { name, values: currentOpt?.values || [] };
+    updateOption(index, updatedOpt);
+    currentOpts[index] = updatedOpt;
+    syncVariantsFromOptions(currentOpts);
+  };
+
+  const handleQuickAddValue = (index: number, val: string) => {
+    const currentOpts = [...(form.getValues("options") || [])];
+    const currentOpt = currentOpts[index];
+    if (!currentOpt) return;
+    const currentValues = currentOpt.values || [];
+
+    if (!currentValues.includes(val)) {
+      const nextValues = [...currentValues, val];
+      if (isSizeAttribute(currentOpt.name)) {
+        nextValues.sort((a, b) => getSizeSortOrder(a) - getSizeSortOrder(b));
+      }
+      const updatedOpt = { name: currentOpt.name || "", values: nextValues };
+      updateOption(index, updatedOpt);
+      currentOpts[index] = updatedOpt;
+      syncVariantsFromOptions(currentOpts);
+    }
+  };
+
+  const handleAddOptionValue = (
+    index: number,
+    e: KeyboardEvent<HTMLInputElement>
+  ) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const val = e.currentTarget.value.trim();
+      if (!val) return;
+      handleQuickAddValue(index, val);
+      e.currentTarget.value = "";
+    }
+  };
+
+  const handleRemoveOptionValue = (optIndex: number, valToRemove: string) => {
+    const currentOpts = [...(form.getValues("options") || [])];
+    const currentOpt = currentOpts[optIndex];
+    if (!currentOpt) return;
+    const optName = currentOpt.name || "";
+    const nextValues = (currentOpt.values || []).filter((v) => v !== valToRemove);
+
+    const updatedOpt = { name: optName, values: nextValues };
+    updateOption(optIndex, updatedOpt);
+    currentOpts[optIndex] = updatedOpt;
+    syncVariantsFromOptions(currentOpts);
+
+    if (isColorAttribute(optName)) {
+      const currentMap = form.getValues("colorImages") || {};
+      if (currentMap[valToRemove]) {
+        const nextMap = { ...currentMap };
+        delete nextMap[valToRemove];
+        form.setValue("colorImages", nextMap, { shouldDirty: true });
+      }
+    }
+  };
+
+  const handleRemoveOption = (index: number) => {
+    const currentOpts = [...(form.getValues("options") || [])];
+    const optName = currentOpts[index]?.name || "";
+    removeOption(index);
+    const nextOpts = currentOpts.filter((_, idx) => idx !== index);
+    syncVariantsFromOptions(nextOpts);
+
+    if (isColorAttribute(optName)) {
+      form.setValue("colorImages", {}, { shouldDirty: true });
+    }
+  };
+
+  const onInvalid = (errors: FieldErrors<TProductPayload>) => {
+    if (errors.name?.message) {
+      toast.error(String(errors.name.message));
+      scrollToSection("section-basic");
+      return;
+    }
+    if (errors.price?.message || errors.discountPercent?.message) {
+      toast.error(
+        String(errors.price?.message || errors.discountPercent?.message)
+      );
+      scrollToSection("section-pricing");
+      return;
+    }
+    if (errors.category?.message) {
+      toast.error(String(errors.category.message));
+      scrollToSection("section-classification");
+      return;
+    }
+    if (errors.options) {
+      toast.error(
+        "Mỗi nhóm thuộc tính cần có tên và ít nhất 1 giá trị (hoặc xóa nhóm đang để trống)."
+      );
+      scrollToSection("section-options");
+      return;
+    }
+    if (errors.variants) {
+      toast.error("Vui lòng kiểm tra lại giá bán và mã SKU của các biến thể.");
+      scrollToSection("section-variants-table");
+      return;
+    }
+    toast.error("Vui lòng kiểm tra lại các thông tin bắt buộc còn thiếu.");
   };
 
   function onSubmit(
@@ -471,14 +712,21 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     const activeColorValues = (colorOption?.values || []).filter(Boolean);
 
     if (status === "published") {
-      const variants = values.variants || [];
-      const hasVariants = variants.length > 0;
+      if (!values.price || values.price <= 0) {
+        form.setError("price", {
+          message: "Giá niêm yết phải lớn hơn 0 khi đăng bán",
+        });
+        toast.error("Vui lòng nhập giá niêm yết lớn hơn 0 (hoặc bấm Lưu nháp).");
+        scrollToSection("section-pricing");
+        return;
+      }
 
-      if (!hasVariants) {
+      const variants = values.variants || [];
+      if (variants.length === 0) {
         toast.error(
-          "Vui lòng tạo ít nhất 1 biến thể sản phẩm trước khi đăng bán (hoặc bấm Lưu nháp)."
+          "Vui lòng chọn ít nhất 1 màu sắc/kích cỡ để tạo biến thể trước khi đăng bán (hoặc bấm Lưu nháp)."
         );
-        setActiveTab("variants");
+        scrollToSection("section-options");
         return;
       }
 
@@ -489,9 +737,9 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
         });
         if (missingColors.length > 0) {
           toast.error(
-            `Màu ${missingColors.join(", ")} chưa có ảnh. Vui lòng tải ảnh cho từng màu (hoặc bấm Lưu nháp).`
+            `Màu ${missingColors.join(", ")} chưa có ảnh. Vui lòng tải ít nhất 1 ảnh cho từng màu (hoặc bấm Lưu nháp).`
           );
-          setActiveTab("variants");
+          scrollToSection("section-media");
           return;
         }
       } else {
@@ -500,7 +748,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           toast.error(
             "Vui lòng tải lên ít nhất 1 ảnh sản phẩm trước khi đăng bán (hoặc bấm Lưu nháp)."
           );
-          setActiveTab("variants");
+          scrollToSection("section-media");
           return;
         }
       }
@@ -512,8 +760,6 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
         let normalizedColorImages = values.colorImages || {};
 
         if (activeColorValues.length > 0) {
-          // Đảm bảo gửi đầy đủ key cho từng màu (kể cả màu chưa có ảnh khi lưu nháp)
-          // và không đẩy ảnh màu này sang màu khác
           const nextMap: Record<string, string[]> = {};
           for (const cName of activeColorValues) {
             nextMap[cName] = (values.colorImages?.[cName] || []).filter(Boolean);
@@ -522,12 +768,19 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           finalImages = [];
         }
 
+        const normalizedVariants = (values.variants || []).map((v) => ({
+          ...v,
+          price: v.price > 0 ? v.price : values.price,
+        }));
+
         const payload = {
           ...values,
+          variants: normalizedVariants,
           images: finalImages,
           colorImages: normalizedColorImages,
           status,
         };
+
         if (mode === "create") {
           const created = await apiFetch<{ id?: number | string; name?: string }>(
             "/admin/products",
@@ -545,8 +798,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           } else {
             toast.success(
               status === "published"
-                ? "Đã thêm sản phẩm mới thành công!"
-                : "Đã lưu nháp sản phẩm!"
+                ? "Đã thêm sản phẩm mới thành công"
+                : "Đã lưu nháp sản phẩm"
             );
             router.push("/admin/products");
           }
@@ -557,281 +810,81 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           });
           toast.success(
             status === "published"
-              ? "Đã cập nhật sản phẩm thành công!"
-              : "Đã cập nhật bản nháp!"
+              ? "Đã cập nhật sản phẩm thành công"
+              : "Đã cập nhật bản nháp"
           );
           router.push("/admin/products");
         }
       } catch (error) {
         toast.error(
-          error instanceof Error
-            ? error.message
-            : "Lỗi kết nối đến máy chủ!"
+          error instanceof Error ? error.message : "Lỗi kết nối đến máy chủ!"
         );
       }
     });
   }
 
   const onDraft = () => {
-    form.handleSubmit((values) => onSubmit(values, "draft"))();
+    form.handleSubmit((values) => onSubmit(values, "draft"), onInvalid)();
   };
 
-  const generateVariants = () => {
-    const currentOptions = form.getValues("options") || [];
-    const validOptions = currentOptions
-      .map((opt) => {
-        if (isSizeAttribute(opt.name)) {
-          return {
-            ...opt,
-            values: [...opt.values].sort(
-              (a, b) => getSizeSortOrder(a) - getSizeSortOrder(b)
-            ),
-          };
-        }
-        return opt;
-      })
-      .filter((opt) => opt.name && opt.values && opt.values.length > 0);
+  // Derived states for Checklist & Media Gallery
+  const colorOption = (watchedOptions || []).find((opt) =>
+    isColorAttribute(opt.name)
+  );
+  const activeColorValues = (colorOption?.values || []).filter(Boolean);
 
-    if (validOptions.length === 0) {
-      toast.error(
-        "Vui lòng thêm ít nhất 1 thuộc tính và giá trị trước khi sinh biến thể."
-      );
-      return;
-    }
-
-    let combinations: Record<string, string>[] = [{}];
-    for (const opt of validOptions) {
-      const nextCombinations: Record<string, string>[] = [];
-      for (const combo of combinations) {
-        for (const val of opt.values) {
-          nextCombinations.push({ ...combo, [opt.name]: val });
-        }
-      }
-      combinations = nextCombinations;
-    }
-
-    const basePrice = form.getValues("price") || 0;
-    const baseStock = form.getValues("stock") || 0;
-    const baseSku = form.getValues("sku") || `LUXE-${Date.now() % 10000}`;
-    const existingVariants = form.getValues("variants") || [];
-
-    const newVariants: TProductVariant[] = combinations.map((combo, i) => {
-      const matched = existingVariants.find((ev) => {
-        const evOpts = ev.options || {};
-        return Object.entries(combo).every(
-          ([k, v]) =>
-            (evOpts[k] || "").toLowerCase() === (v || "").toLowerCase()
-        );
-      });
-      const skuSuffix = Object.values(combo)
-        .map((val) =>
-          val.length <= 3
-            ? val.toUpperCase()
-            : val
-              .split(/\s+/)
-              .map((w) => w[0]?.toUpperCase() || "")
-              .join("")
+  const hasBasicAndPrice =
+    watchedName.trim().length > 0 && Number(watchedPrice) > 0;
+  const hasCategory = Boolean(watchedCategory);
+  const hasAllImages =
+    activeColorValues.length > 0
+      ? activeColorValues.every(
+          (cName) => (watchedColorImages?.[cName] || []).filter(Boolean).length > 0
         )
-        .join("-");
+      : currentImages.filter(Boolean).length > 0;
+  const hasVariants = variantFields.length > 0;
 
-      return {
-        id: matched?.id,
-        sku: matched?.sku || `${baseSku}-${skuSuffix || i + 1}`,
-        price: matched?.price ?? basePrice,
-        costPrice: matched?.costPrice,
-        stock: matched?.stock ?? baseStock,
-        options: combo,
-        image: matched?.image,
-      };
-    });
+  const checklistItems = [
+    {
+      label: "Thông tin & Giá bán",
+      done: hasBasicAndPrice,
+      target: watchedName.trim().length === 0 ? "section-basic" : "section-pricing",
+      hint:
+        watchedName.trim().length === 0
+          ? "Chưa nhập tên"
+          : Number(watchedPrice) <= 0
+          ? "Chưa nhập giá"
+          : formatPrice(Number(watchedPrice)),
+    },
+    {
+      label: "Danh mục sản phẩm",
+      done: hasCategory,
+      target: "section-classification",
+      hint: hasCategory ? "Đã chọn" : "Chưa chọn",
+    },
+    {
+      label: "Màu sắc & Hình ảnh",
+      done: hasAllImages,
+      target: "section-media",
+      hint:
+        activeColorValues.length > 0
+          ? `${
+              activeColorValues.filter(
+                (c) => (watchedColorImages?.[c] || []).filter(Boolean).length > 0
+              ).length
+            }/${activeColorValues.length} màu có ảnh`
+          : `${currentImages.length} ảnh`,
+    },
+    {
+      label: "Danh sách Biến thể",
+      done: hasVariants,
+      target: hasVariants ? "section-variants-table" : "section-options",
+      hint: `${variantFields.length} SKU`,
+    },
+  ];
 
-    replaceVariants(newVariants);
-    toast.success(`Đã tự động tạo ${newVariants.length} biến thể!`);
-  };
-
-  const applyFashionPreset = () => {
-    const defaultOptions = [
-      { name: "Màu sắc", values: ["Đen", "Trắng"] },
-      { name: "Kích thước", values: ["S", "M", "L"] },
-    ];
-    replaceOptions(defaultOptions);
-
-    const basePrice = form.getValues("price") || 0;
-    const baseSku = form.getValues("sku") || `LX-${Date.now() % 10000}`;
-    const existingVariants = form.getValues("variants") || [];
-
-    const combinations: Record<string, string>[] = [];
-    defaultOptions[0].values.forEach((c) => {
-      defaultOptions[1].values.forEach((s) => {
-        combinations.push({ "Màu sắc": c, "Kích thước": s });
-      });
-    });
-
-    const newVariants: TProductVariant[] = combinations.map((combo, i) => {
-      const matched = existingVariants.find((ev) => {
-        const evOpts = ev.options || {};
-        return Object.entries(combo).every(
-          ([k, v]) =>
-            (evOpts[k] || "").toLowerCase() === (v || "").toLowerCase()
-        );
-      });
-      const colorCode = combo["Màu sắc"] === "Đen" ? "C1" : "C2";
-      return {
-        id: matched?.id,
-        sku: matched?.sku || `${baseSku}-${colorCode}-${combo["Kích thước"]}`,
-        price: matched?.price ?? basePrice,
-        costPrice: matched?.costPrice,
-        stock: matched?.stock ?? 0,
-        options: combo,
-        image: matched?.image,
-      };
-    });
-
-    replaceVariants(newVariants);
-    toast.success("Đã áp dụng mẫu Thời trang & tự động sinh 6 biến thể (Đen, Trắng × S, M, L)!");
-  };
-
-  const handleQuickSetName = (index: number, name: string) => {
-    const currentOpt = form.getValues(`options.${index}`);
-    updateOption(index, { name, values: currentOpt?.values || [] });
-  };
-
-  const handleQuickAddValue = (index: number, val: string) => {
-    const currentOpt = form.getValues(`options.${index}`);
-    if (!currentOpt) return;
-    const currentValues = currentOpt.values || [];
-
-    if (!currentValues.includes(val)) {
-      const nextValues = [...currentValues, val];
-      if (isSizeAttribute(currentOpt.name)) {
-        nextValues.sort((a, b) => getSizeSortOrder(a) - getSizeSortOrder(b));
-      }
-      updateOption(index, {
-        name: currentOpt.name || "",
-        values: nextValues,
-      });
-    }
-  };
-
-  const handleAddOptionValue = (
-    index: number,
-    e: KeyboardEvent<HTMLInputElement>
-  ) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const val = e.currentTarget.value.trim();
-      if (!val) return;
-
-      const currentOpt = form.getValues(`options.${index}`);
-      if (!currentOpt) return;
-      const currentValues = currentOpt.values || [];
-
-      if (!currentValues.includes(val)) {
-        const nextValues = [...currentValues, val];
-        if (isSizeAttribute(currentOpt.name)) {
-          nextValues.sort((a, b) => getSizeSortOrder(a) - getSizeSortOrder(b));
-        }
-        updateOption(index, {
-          name: currentOpt.name || "",
-          values: nextValues,
-        });
-      }
-      e.currentTarget.value = "";
-    }
-  };
-
-  const handleDeleteSuggestion = async (
-    attrName: string,
-    valToRemove: string
-  ) => {
-    try {
-      if (isColorAttribute(attrName)) {
-        const allColors = await getAdminColors();
-        const match = allColors.find(
-          (c) => c.name.toLowerCase() === valToRemove.toLowerCase()
-        );
-        if (match) {
-          await deleteAdminColor(match.id);
-          toast.success(`Đã xóa màu "${valToRemove}" khỏi danh mục hệ thống`);
-        }
-      } else {
-        const allSizes = await getAdminSizes();
-        const match = allSizes.find(
-          (s) => s.name.toUpperCase() === valToRemove.toUpperCase()
-        );
-        if (match) {
-          await deleteAdminSize(match.id);
-          toast.success(`Đã xóa kích thước "${valToRemove}" khỏi danh mục hệ thống`);
-        }
-      }
-      setSuggestions((prev) => ({
-        ...prev,
-        values: {
-          ...prev.values,
-          [attrName]: (prev.values[attrName] || []).filter(
-            (v) => v !== valToRemove
-          ),
-        },
-      }));
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error ? err.message : `Không thể xóa "${valToRemove}"`;
-      toast.error(msg);
-    }
-  };
-
-  const handleRemoveOptionValue = (optIndex: number, valToRemove: string) => {
-    const currentOpt = form.getValues(`options.${optIndex}`);
-    if (!currentOpt) return;
-    const currentValues = currentOpt.values || [];
-    const optName = currentOpt.name || "";
-
-    updateOption(optIndex, {
-      name: optName,
-      values: currentValues.filter((v) => v !== valToRemove),
-    });
-
-    // Tự động dọn dẹp các biến thể đang chứa giá trị vừa xóa
-    if (optName) {
-      const currentVars = form.getValues("variants") || [];
-      const updatedVars = currentVars.filter((v) => {
-        return v.options?.[optName] !== valToRemove;
-      });
-      if (updatedVars.length !== currentVars.length) {
-        replaceVariants(updatedVars);
-      }
-    }
-
-    // Nếu xóa giá trị màu sắc, xóa luôn bộ ảnh của màu đó trong colorImages
-    if (isColorAttribute(optName)) {
-      const currentMap = form.getValues("colorImages") || {};
-      if (currentMap[valToRemove]) {
-        const nextMap = { ...currentMap };
-        delete nextMap[valToRemove];
-        form.setValue("colorImages", nextMap);
-      }
-    }
-  };
-
-  const handleRemoveOption = (index: number) => {
-    const opt = form.getValues(`options.${index}`);
-    const optName = opt?.name || "";
-    removeOption(index);
-
-    if (optName) {
-      const currentVars = form.getValues("variants") || [];
-      const updatedVars = currentVars.map((v) => {
-        const newOpts = { ...v.options };
-        delete newOpts[optName];
-        return { ...v, options: newOpts };
-      });
-      replaceVariants(updatedVars);
-
-      if (isColorAttribute(optName)) {
-        form.setValue("colorImages", {});
-      }
-    }
-  };
+  const completedChecklistCount = checklistItems.filter((i) => i.done).length;
+  const isAnyUploading = Object.values(uploadingTargets).some(Boolean);
 
   if (loadingInitial) {
     return (
@@ -844,787 +897,809 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit((values) => onSubmit(values, "published"))}
-        className="flex flex-col gap-6 max-w-5xl mx-auto w-full pb-10"
+        onSubmit={form.handleSubmit(
+          (values) => onSubmit(values, "published"),
+          onInvalid
+        )}
+        className="flex flex-col gap-6 w-full pb-12"
       >
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <BackButton />
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-                {mode === "edit" ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                {mode === "edit"
-                  ? "Cập nhật thông tin và biến thể của sản phẩm."
-                  : "Tạo mới một sản phẩm để đăng bán."}
-              </p>
+        {/* Sticky Top Action Bar */}
+        <div className="sticky top-16 z-30 -mx-4 sm:-mx-6 -mt-4 sm:-mt-6 px-4 sm:px-6 py-2.5 sm:py-3.5 bg-background/95 backdrop-blur-sm border-b">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3">
+            <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+              <BackButton />
+              <div className="min-w-0">
+                <h2 className="text-base sm:text-xl font-bold tracking-tight truncate">
+                  {mode === "edit" ? "Chỉnh sửa sản phẩm" : "Thêm sản phẩm mới"}
+                </h2>
+                <p className="hidden sm:block text-xs sm:text-sm text-muted-foreground truncate">
+                  {mode === "edit"
+                    ? "Cập nhật thông tin, hình ảnh theo màu và bảng biến thể."
+                    : "Điền thông tin từ trên xuống: Thông tin → Giá → Màu & Ảnh → Biến thể."}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
-            <Link
-              href="/admin/products"
-              className={cn(
-                buttonVariants({ variant: "outline" }),
-                "flex-1 sm:flex-none hidden sm:inline-flex"
-              )}
-            >
-              Hủy bỏ
-            </Link>
-            <Button
-              type="button"
-              variant="secondary"
-              className="flex-1 sm:flex-none"
-              onClick={onDraft}
-              disabled={isPending}
-            >
-              Lưu nháp
-            </Button>
-            <Button
-              type="submit"
-              className="gap-2 flex-1 sm:flex-none"
-              disabled={isPending}
-            >
-              <Save className="h-4 w-4" />{" "}
-              {isPending
-                ? "Đang lưu..."
-                : mode === "create"
-                ? "Đăng bán sản phẩm"
-                : "Lưu & Cập nhật"}
-            </Button>
+
+            <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+              <Link
+                href="/admin/products"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "sm" }),
+                  "hidden sm:inline-flex"
+                )}
+              >
+                Hủy bỏ
+              </Link>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                className="flex-1 sm:flex-none"
+                onClick={onDraft}
+                disabled={isPending || isAnyUploading}
+              >
+                Lưu nháp
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="gap-1.5 flex-1 sm:flex-none"
+                disabled={isPending || isAnyUploading}
+              >
+                <Save className="h-4 w-4" />
+                {isPending
+                  ? "Đang lưu..."
+                  : mode === "create"
+                  ? "Đăng bán sản phẩm"
+                  : "Lưu & Cập nhật"}
+              </Button>
+            </div>
           </div>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="mb-6 bg-muted">
-            <TabsTrigger value="basic" className="data-[state=active]:bg-card">
-              Thông tin cơ bản
-            </TabsTrigger>
-            <TabsTrigger
-              value="variants"
-              className="data-[state=active]:bg-card flex items-center gap-2"
-            >
-              <span>Phân loại & Biến thể</span>
-              <Badge
-                variant={variantFields.length > 0 ? "secondary" : "outline"}
-                className={cn(
-                  "text-[11px] px-1.5 py-0 h-4.5 font-normal",
-                  variantFields.length === 0 && "text-muted-foreground border-dashed"
-                )}
-              >
-                {variantFields.length}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
+        {/* Main 2-Column Single-Page Layout (1 col on Mobile/iPad Mini/iPad Pro portrait, 2 cols on Desktop >= 1280px) */}
+        <div className="max-w-6xl mx-auto w-full grid gap-5 sm:gap-6 xl:grid-cols-12 items-start">
+          {/* LEFT COLUMN (2/3 on Desktop) */}
+          <div className="xl:col-span-8 flex flex-col gap-5 sm:gap-6 min-w-0">
+            {/* THÔNG TIN CƠ BẢN */}
+            <Card id="section-basic" className="scroll-mt-40 sm:scroll-mt-36">
+              <CardHeader>
+                <CardTitle>Thông tin sản phẩm</CardTitle>
+                <CardDescription>
+                  Tên hiển thị và mô tả chi tiết cho sản phẩm.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-5">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Tên sản phẩm <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="VD: Áo sơ mi cổ đức dáng suông..."
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-          <TabsContent value="basic" className="mt-0">
-            <div className="grid gap-6 md:grid-cols-3">
-              {/* Cột trái: Form thông tin */}
-              <div className="md:col-span-2 flex flex-col gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Thông tin cơ bản</CardTitle>
-                    <CardDescription>
-                      Nhập tên và mô tả cho sản phẩm
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Tên sản phẩm <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="VD: Váy đầm dạ hội nữ..."
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Mô tả chi tiết (Tab Giới thiệu)</FormLabel>
-                          <FormControl>
-                            <div className="rounded-md border flex flex-col bg-card">
-                              <RichTextEditor
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                placeholder="Mô tả chất liệu, kiểu dáng..."
-                                editorClassName="min-h-[250px] border-none"
-                              />
-                            </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="careInstructions"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Hướng dẫn bảo quản (Tab Bảo quản)</FormLabel>
-                          <FormControl>
-                            <div className="rounded-md border flex flex-col bg-card">
-                              <RichTextEditor
-                                value={field.value || ""}
-                                onChange={field.onChange}
-                                placeholder="Nhập lưu ý giặt ủi, in đậm, gạch đầu dòng..."
-                                editorClassName="min-h-[160px] border-none"
-                              />
-                            </div>
-                          </FormControl>
-                          <p className="text-xs text-muted-foreground">
-                            Nếu để trống, hệ thống sẽ tự động hiển thị hướng dẫn bảo quản trang phục tiêu chuẩn của thương hiệu.
-                          </p>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Giá và Kho</CardTitle>
-                  </CardHeader>
-                  <CardContent className="grid gap-6 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="price"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>
-                            Giá niêm yết (VNĐ){" "}
-                            <span className="text-red-500">*</span>
-                          </FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              placeholder="VD: 1500000"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(Number(e.target.value))
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="discountPercent"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Khuyến mãi (% giảm giá)</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              min={0}
-                              max={100}
-                              placeholder="0"
-                              {...field}
-                              value={field.value ?? 0}
-                              onChange={(e) =>
-                                field.onChange(
-                                  Math.min(
-                                    100,
-                                    Math.max(0, Number(e.target.value) || 0)
-                                  )
-                                )
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    {(() => {
-                      if (watchedDiscount <= 0 || watchedPrice <= 0) return null;
-                      const effective = Math.round(
-                        (watchedPrice * (100 - watchedDiscount)) / 100
-                      );
-                      return (
-                        <div className="col-span-full p-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md text-xs text-neutral-700 dark:text-neutral-300 flex flex-wrap items-center justify-between gap-2">
-                          <div>
-                            <span>
-                              Giá bán sau giảm <b>{watchedDiscount}%</b>:{" "}
-                            </span>
-                            <span className="text-sm font-bold text-[#b5121b] dark:text-red-400">
-                              {formatPrice(effective)}
-                            </span>
-                          </div>
-                          <span>
-                            Tiết kiệm:{" "}
-                            <b className="text-foreground">{formatPrice(watchedPrice - effective)}</b>
-                          </span>
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Mô tả chi tiết (Tab Giới thiệu)</FormLabel>
+                      <FormControl>
+                        <div className="rounded-md border flex flex-col bg-card">
+                          <RichTextEditor
+                            value={field.value || ""}
+                            onChange={field.onChange}
+                            placeholder="Mô tả phom dáng, chất liệu, điểm nhấn thiết kế..."
+                            editorClassName="min-h-[220px] border-none"
+                          />
                         </div>
-                      );
-                    })()}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-                    <FormField
-                      control={form.control}
-                      name="sku"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Mã SKU gốc</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="VD: VDH-001"
-                              {...field}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="stock"
-                      render={({ field }) => {
-                        const totalVarStock = (watchedVariants || []).reduce(
-                          (acc, v) => acc + (Number(v.stock) || 0),
-                          0
-                        );
-                        const displayStock =
-                          variantFields.length > 0
-                            ? totalVarStock
-                            : field.value || 0;
-                        return (
-                          <FormItem>
-                            <FormLabel className="flex items-center justify-between">
-                              <span className="flex items-center gap-1.5 font-semibold">
-                                <Boxes className="h-4 w-4 text-primary" />
-                                Tồn kho hiện tại (Chỉ đọc)
-                              </span>
-                              {variantFields.length > 0 && (
-                                <Badge
-                                  variant="secondary"
-                                  className="text-[11px] font-mono font-bold"
-                                >
-                                  {totalVarStock} SP
-                                </Badge>
-                              )}
-                            </FormLabel>
-                            <div className="flex items-center gap-2">
-                              <FormControl>
-                                <Input
-                                  type="number"
-                                  readOnly
-                                  disabled
-                                  value={displayStock}
-                                  className="bg-muted/50 cursor-not-allowed font-bold text-foreground"
-                                />
-                              </FormControl>
-                              {productId && (
-                                <Link
-                                  href={`/admin/stock-imports?productId=${productId}`}
-                                  className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-medium shrink-0 transition-colors shadow-xs"
-                                  title="Mở phiếu nhập kho cho sản phẩm này"
-                                >
-                                  <PackagePlus className="h-4 w-4" />
-                                  Nhập kho
-                                </Link>
-                              )}
-                            </div>
-                            <p className="text-[11px] text-muted-foreground">
-                              Số lượng kho được quản lý tự động qua chứng từ{" "}
-                              <strong className="text-foreground">Nhập kho</strong>{" "}
-                              để đảm bảo lưu vết xuất xứ và tính giá vốn bình quân kế toán.
-                            </p>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Cột phải: Phân loại */}
-              <div className="flex flex-col gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Phân loại & Thuộc tính</CardTitle>
-                    <CardDescription>
-                      Thiết lập danh mục, nhãn hiệu và các nhãn ưu tiên hiển thị cho sản phẩm.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="grid gap-6">
-                    <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => {
-                        const selectedCat = categories.find((c) => c.slug === field.value);
-                        const formattedCategories = categories
-                          .map((c) => ({
-                            ...c,
-                            fullPath: getCategoryFullPath(c, categories),
-                          }))
-                          .sort((a, b) => a.fullPath.localeCompare(b.fullPath, "vi"));
-
-                        return (
-                          <FormItem>
-                            <FormLabel>
-                              Danh mục chính{" "}
-                              <span className="text-red-500">*</span>
-                            </FormLabel>
-                            <Select
-                              onValueChange={field.onChange}
-                              value={field.value}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="w-full max-w-full min-w-0">
-                                  <SelectValue placeholder="Chọn danh mục" className="truncate">
-                                    {selectedCat
-                                      ? getCategoryFullPath(selectedCat, categories)
-                                      : field.value || "Chọn danh mục"}
-                                  </SelectValue>
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent className="max-h-72">
-                                {formattedCategories.length > 0 ? (
-                                  formattedCategories.map((cat) => (
-                                    <SelectItem key={cat.id} value={cat.slug}>
-                                      {cat.fullPath}
-                                    </SelectItem>
-                                  ))
-                                ) : (
-                                  <>
-                                    <SelectItem value="ao-so-mi-nu">
-                                      Áo sơ mi nữ
-                                    </SelectItem>
-                                    <SelectItem value="dam-cong-so">
-                                      Đầm công sở
-                                    </SelectItem>
-                                    <SelectItem value="ao-vest-blazer">
-                                      Áo Vest & Blazer
-                                    </SelectItem>
-                                  </>
-                                )}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        );
-                      }}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="brand"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nhãn hiệu</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="LUXE"
-                              {...field}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="material"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Chất liệu vải (Tab Chi tiết)</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="VD: Vải Tuytsi, Lụa tơ tằm, Cotton..."
-                              {...field}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="isNew"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-md border p-3 space-y-0">
-                          <div className="space-y-0.5">
-                            <FormLabel className="cursor-pointer">
-                              Nhãn NEW (Hàng mới)
-                            </FormLabel>
-                            <p className="text-xs text-muted-foreground">
-                              Hiển thị huy hiệu NEW màu cam trên ảnh sản phẩm
-                            </p>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={Boolean(field.value)}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="isBestSeller"
-                      render={({ field }) => (
-                        <FormItem className="flex items-center justify-between rounded-md border p-3 space-y-0">
-                          <div className="space-y-0.5">
-                            <FormLabel className="cursor-pointer">
-                              Nhãn BEST SELLER
-                            </FormLabel>
-                            <p className="text-xs text-muted-foreground">
-                              Hiển thị huy hiệu BEST SELLER (khi tắt nhãn NEW)
-                            </p>
-                          </div>
-                          <FormControl>
-                            <Switch
-                              checked={Boolean(field.value)}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </CardContent>
-                </Card>
-
-                <div className="flex justify-end">
-                  <Button
+                {/* Collapsible Care Instructions */}
+                <div className="rounded-md border bg-muted/20">
+                  <button
                     type="button"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={() => {
-                      setActiveTab("variants");
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClick={() => setShowCareEditor((prev) => !prev)}
+                    className="w-full flex items-center justify-between px-3.5 py-2.5 text-left hover:bg-muted/40 transition-colors rounded-md cursor-pointer"
                   >
-                    <span>Tiếp tục: Phân loại & Tải ảnh</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-sm font-medium">
+                        Hướng dẫn bảo quản (Tab Bảo quản)
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {watchedCare && watchedCare.replace(/<[^>]*>/g, "").trim().length > 0
+                          ? "· Đã tùy chỉnh riêng"
+                          : "· Đang dùng mặc định thương hiệu"}
+                      </span>
+                    </div>
+                    <span className="inline-flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+                      {showCareEditor ? (
+                        <>
+                          Thu gọn <ChevronUp className="h-4 w-4" />
+                        </>
+                      ) : (
+                        <>
+                          Tùy chỉnh <ChevronDown className="h-4 w-4" />
+                        </>
+                      )}
+                    </span>
+                  </button>
+
+                  {showCareEditor && (
+                    <div className="px-3.5 pb-3.5 pt-1 border-t">
+                      <FormField
+                        control={form.control}
+                        name="careInstructions"
+                        render={({ field }) => (
+                          <FormItem className="mt-2">
+                            <FormControl>
+                              <div className="rounded-md border flex flex-col bg-card">
+                                <RichTextEditor
+                                  value={field.value || ""}
+                                  onChange={field.onChange}
+                                  placeholder="Nhập lưu ý giặt ủi riêng cho chất liệu sản phẩm này..."
+                                  editorClassName="min-h-[150px] border-none"
+                                />
+                              </div>
+                            </FormControl>
+                            <p className="text-xs text-muted-foreground">
+                              Nếu để trống, hệ thống tự hiển thị hướng dẫn bảo quản tiêu chuẩn của LUXE.
+                            </p>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* GIÁ BÁN & KHUYẾN MÃI */}
+            <Card id="section-pricing" className="scroll-mt-40 sm:scroll-mt-36">
+              <CardHeader>
+                <CardTitle>
+                  {mode === "edit" ? "Giá bán & Tồn kho" : "Giá bán & Khuyến mãi"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="grid gap-5 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="price"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>
+                        Giá niêm yết (VNĐ){" "}
+                        <span className="text-red-500">*</span>
+                      </FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          placeholder="VD: 890000"
+                          value={field.value === 0 ? "" : field.value}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            field.onChange(raw === "" ? 0 : Math.max(0, Number(raw)));
+                          }}
+                          onBlur={field.onBlur}
+                          name={field.name}
+                          ref={field.ref}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="discountPercent"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Khuyến mãi (% giảm giá)</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          placeholder="0"
+                          {...field}
+                          value={field.value ?? 0}
+                          onChange={(e) =>
+                            field.onChange(
+                              Math.min(
+                                100,
+                                Math.max(0, Number(e.target.value) || 0)
+                              )
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {watchedDiscount > 0 && watchedPrice > 0 && (() => {
+                  const effective = Math.round(
+                    (watchedPrice * (100 - watchedDiscount)) / 100
+                  );
+                  return (
+                    <div className="col-span-full p-3 bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-md text-xs text-neutral-700 dark:text-neutral-300 flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <span>
+                          Giá bán sau giảm <b>{watchedDiscount}%</b>:{" "}
+                        </span>
+                        <span className="text-sm font-bold text-foreground">
+                          {formatPrice(effective)}
+                        </span>
+                      </div>
+                      <span>
+                        Tiết kiệm:{" "}
+                        <b className="text-foreground">
+                          {formatPrice(watchedPrice - effective)}
+                        </b>
+                      </span>
+                    </div>
+                  );
+                })()}
+
+                <FormField
+                  control={form.control}
+                  name="sku"
+                  render={({ field }) => (
+                    <FormItem className={mode === "create" ? "sm:col-span-2" : ""}>
+                      <FormLabel>Mã SKU gốc</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="VD: ASM-001 (dùng làm tiền tố tự sinh SKU cho biến thể)"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      {mode === "create" && (
+                        <p className="text-xs text-muted-foreground">
+                          Tồn kho khởi tạo bằng 0 — sau khi đăng bán, hệ thống sẽ gợi ý lập Phiếu nhập kho ngay.
+                        </p>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {mode === "edit" && (
+                  <FormField
+                    control={form.control}
+                    name="stock"
+                    render={({ field }) => {
+                      const totalVarStock = (watchedVariants || []).reduce(
+                        (acc, v) => acc + (Number(v.stock) || 0),
+                        0
+                      );
+                      const displayStock =
+                        variantFields.length > 0
+                          ? totalVarStock
+                          : field.value || 0;
+                      return (
+                        <FormItem>
+                          <FormLabel className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5 font-medium">
+                              <Boxes className="h-4 w-4 text-muted-foreground" />
+                              Tổng tồn kho
+                            </span>
+                            <Badge
+                              variant="secondary"
+                              className="text-[11px] font-mono"
+                            >
+                              {displayStock} SP
+                            </Badge>
+                          </FormLabel>
+                          <div className="flex items-center gap-2">
+                            <FormControl>
+                              <Input
+                                type="number"
+                                readOnly
+                                disabled
+                                value={displayStock}
+                                className="bg-muted/50 cursor-not-allowed font-semibold text-foreground"
+                              />
+                            </FormControl>
+                            {productId && (
+                              <Link
+                                href={`/admin/stock-imports?productId=${productId}`}
+                                className="inline-flex items-center gap-1.5 text-xs px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 font-medium shrink-0 transition-colors"
+                                title="Mở phiếu nhập kho cho sản phẩm này"
+                              >
+                                <PackagePlus className="h-4 w-4" />
+                                Nhập kho
+                              </Link>
+                            )}
+                          </div>
+                          <FormMessage />
+                        </FormItem>
+                      );
+                    }}
+                  />
+                )}
+              </CardContent>
+            </Card>
+
+            {/* MÀU SẮC, KÍCH CỠ */}
+            <Card id="section-options" className="scroll-mt-40 sm:scroll-mt-36">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <CardTitle>Phân loại (Màu sắc & Kích cỡ)</CardTitle>
+                  <CardDescription>
+                    Chọn màu sắc và kích cỡ — khung ảnh theo màu và bảng biến thể sẽ tự động cập nhật.
+                  </CardDescription>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    type="button"
+                    onClick={applyFashionPreset}
+                  >
+                    Mẫu Thời Trang
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    onClick={() => appendOption({ name: "", values: [] })}
+                  >
+                    <Plus className="h-4 w-4 mr-1.5" /> Thêm nhóm
                   </Button>
                 </div>
-              </div>
-            </div>
-          </TabsContent>
+              </CardHeader>
 
-          <TabsContent value="variants" className="mt-0">
-            <div className="grid gap-6 md:grid-cols-3">
-              <div className="md:col-span-2 flex flex-col gap-6">
-                {/* Variant Builder */}
-                <Card>
-                  <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <CardTitle>Thuộc tính sản phẩm</CardTitle>
-                      <CardDescription>
-                        Thêm các thuộc tính như Màu sắc, Kích thước...
-                      </CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
+              <CardContent className="space-y-4">
+                {optionFields.length === 0 ? (
+                  <div className="text-center py-7 px-4 text-muted-foreground bg-muted/40 rounded-lg border border-dashed space-y-3">
+                    <p className="text-sm">
+                      Chưa chọn thuộc tính phân loại nào. Chọn nhanh để tạo bảng màu, ảnh và biến thể:
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center gap-2">
                       <Button
-                        variant="secondary"
-                        size="sm"
                         type="button"
+                        variant="default"
+                        size="sm"
                         onClick={applyFashionPreset}
                       >
-                        Mẫu Thời Trang
+                        Dùng Mẫu Thời Trang (Đen, Trắng × S, M, L)
                       </Button>
                       <Button
+                        type="button"
                         variant="outline"
                         size="sm"
-                        type="button"
-                        onClick={() => appendOption({ name: "", values: [] })}
+                        onClick={() => handleQuickAddPresetOption("Màu sắc")}
                       >
-                        <Plus className="h-4 w-4 mr-2" /> Thêm
+                        + Thêm Màu sắc
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleQuickAddPresetOption("Kích thước")}
+                      >
+                        + Thêm Kích thước
                       </Button>
                     </div>
-                  </CardHeader>
-                  <CardContent className="grid gap-6">
-                    {optionFields.length === 0 ? (
-                      <div className="text-center py-6 text-muted-foreground bg-muted/50 rounded-lg border border-dashed">
-                        Chưa có thuộc tính nào. Sản phẩm này sẽ tạo 1 phân loại
-                        mặc định (Đen / M).
-                      </div>
-                    ) : (
-                      <div className="space-y-6">
-                        {optionFields.map((field, index) => {
-                          const currentName = form.watch(`options.${index}.name`);
-                          return (
-                          <div
-                            key={field.id}
-                            className="p-4 border rounded-lg bg-card space-y-3"
-                          >
-                            <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b">
-                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                Nhóm thuộc tính #{index + 1} {currentName ? `• ${currentName}` : ""}
-                              </span>
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <Link
-                                  href="/admin/attributes"
-                                  target="_blank"
-                                  className="text-[11px] text-muted-foreground hover:text-primary flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-muted"
-                                  title="Mở trang Quản lý bảng màu & kích thước trong tab mới"
-                                >
-                                  <Settings className="h-3 w-3" />
-                                  Quản lý bảng thuộc tính
-                                </Link>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs px-2.5 py-1 h-7 flex items-center gap-1 border border-transparent hover:border-destructive/20 transition-all"
-                                  onClick={() => handleRemoveOption(index)}
-                                  type="button"
-                                  title="Xóa toàn bộ nhóm thuộc tính này"
-                                >
-                                  <Trash2 className="h-3.5 w-3.5 text-destructive" />
-                                  <span className="text-xs text-destructive font-medium">Xóa nhóm</span>
-                                </Button>
-                              </div>
-                            </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {optionFields.map((field, index) => {
+                      const currentName = watchedOptions?.[index]?.name || "";
+                      const currentValues = watchedOptions?.[index]?.values || [];
+                      const isColor = isColorAttribute(currentName);
+                      const availableSuggestions = (
+                        suggestions.values[currentName] || []
+                      ).filter((sugg) => !currentValues.includes(sugg));
 
-                            <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
-                              <FormField
-                                control={form.control}
-                                name={`options.${index}.name`}
-                                render={({ field: nameField }) => (
-                                  <FormItem>
-                                    <FormLabel>Tên thuộc tính</FormLabel>
-                                    <FormControl>
-                                      <Input
-                                        placeholder="VD: Màu sắc"
-                                        {...nameField}
-                                      />
-                                    </FormControl>
-                                    <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                                      {suggestions.names.map((sugg) => (
-                                        <Badge
-                                          key={sugg}
-                                          variant="outline"
-                                          className="cursor-pointer text-[10px] py-0 px-1.5 hover:bg-muted font-normal"
-                                          onClick={() =>
-                                            handleQuickSetName(index, sugg)
-                                          }
-                                        >
-                                          {sugg}
-                                        </Badge>
-                                      ))}
-                                    </div>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                  <Label>Giá trị (Nhấn Enter để thêm)</Label>
-                                </div>
-                                <Input
-                                  placeholder="VD: Đỏ, Xanh... rồi ấn Enter"
-                                  onKeyDown={(e) =>
-                                    handleAddOptionValue(index, e)
-                                  }
-                                />
-
-                                {(() => {
-                                  const currentName =
-                                    watchedOptions?.[index]?.name;
-                                  if (
-                                    !currentName ||
-                                    !suggestions.values[currentName]
-                                  )
-                                    return null;
-                                  const isColor = isColorAttribute(currentName);
-                                  const currentValues =
-                                    watchedOptions?.[index]?.values || [];
-                                  const availableSuggestions = (
-                                    suggestions.values[currentName] || []
-                                  ).filter((sugg) => !currentValues.includes(sugg));
-
-                                  if (availableSuggestions.length === 0)
-                                    return null;
-
-                                  return (
-                                    <div className="space-y-1.5 mt-2">
-                                      <div className="text-[11px] text-muted-foreground font-medium">
-                                        Gợi ý sẵn có ({availableSuggestions.length}):
-                                      </div>
-                                      <div className="flex gap-1.5 flex-wrap">
-                                        {availableSuggestions.map(
-                                          (sugg: string) => (
-                                            <Badge
-                                              key={sugg}
-                                              variant="outline"
-                                              className="group/sugg text-[10px] py-0 pl-1.5 pr-1 hover:bg-muted font-normal text-muted-foreground flex items-center gap-1 transition-all"
-                                            >
-                                              <span
-                                                className="cursor-pointer flex items-center gap-1 py-0.5"
-                                                onClick={() =>
-                                                  handleQuickAddValue(index, sugg)
-                                                }
-                                                title={`Thêm ${sugg}`}
-                                              >
-                                                {isColor && (
-                                                  <span
-                                                    className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
-                                                    style={{
-                                                      backgroundColor:
-                                                        getFashionColorHex(sugg),
-                                                    }}
-                                                  />
-                                                )}
-                                                + {sugg}
-                                              </span>
-                                              <button
-                                                type="button"
-                                                className="opacity-0 group-hover/sugg:opacity-100 hover:text-destructive hover:bg-destructive/15 rounded-full p-0.5 transition-all ml-0.5"
-                                                onClick={(e) => {
-                                                  e.stopPropagation();
-                                                  handleDeleteSuggestion(
-                                                    currentName,
-                                                    sugg
-                                                  );
-                                                }}
-                                                title={`Xóa vĩnh viễn "${sugg}" khỏi danh mục gợi ý`}
-                                              >
-                                                <X className="h-2.5 w-2.5" />
-                                              </button>
-                                            </Badge>
-                                          )
-                                        )}
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
-
-                                {(watchedOptions?.[index]?.values || [])
-                                  .length > 0 && (
-                                  <div className="space-y-1 mt-3">
-                                    <div className="flex flex-wrap gap-2 p-2 bg-muted/50 rounded-md border min-h-[42px]">
-                                      {(
-                                        watchedOptions?.[index]?.values || []
-                                      ).map((val, vIdx) => {
-                                        const isColor = isColorAttribute(
-                                          watchedOptions?.[index]?.name
-                                        );
-                                        const colorHex = isColor
-                                          ? getFashionColorHex(val)
-                                          : null;
-                                        return (
-                                          <Badge
-                                            key={vIdx}
-                                            variant="secondary"
-                                            className="pl-2.5 pr-1 py-1 flex items-center gap-1.5 font-medium border bg-muted/60"
-                                          >
-                                            {isColor && (
-                                              <span
-                                                className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0 inline-block shadow-xs"
-                                                style={{
-                                                  backgroundColor:
-                                                    colorHex || "#333",
-                                                }}
-                                                title={`Màu: ${val} (${colorHex})`}
-                                              />
-                                            )}
-                                            <span>{val}</span>
-                                            <button
-                                              type="button"
-                                              className="h-4 w-4 rounded-full hover:bg-destructive hover:text-destructive-foreground text-muted-foreground flex items-center justify-center cursor-pointer ml-1 transition-colors"
-                                              onClick={() =>
-                                                handleRemoveOptionValue(index, val)
-                                              }
-                                              title={`Xóa giá trị "${val}"`}
-                                            >
-                                              <X className="h-3 w-3" />
-                                            </button>
-                                          </Badge>
-                                        );
-                                      })}
-                                    </div>
-                                    <p className="text-[11px] text-muted-foreground pt-1">
-                                      Bấm vào dấu <span className="font-semibold text-destructive">×</span> trên từng ô để xóa kích cỡ hoặc màu sắc.
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
+                      return (
+                        <div
+                          key={field.id}
+                          className="p-4 border rounded-lg bg-card space-y-3"
+                        >
+                          <div className="flex items-center justify-between flex-wrap gap-2 pb-2 border-b">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Nhóm #{index + 1} {currentName ? `· ${currentName}` : ""}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Link
+                                href="/admin/attributes"
+                                target="_blank"
+                                className="text-[11px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors px-2 py-1 rounded hover:bg-muted"
+                                title="Mở trang Quản lý bảng màu & kích thước trong tab mới"
+                              >
+                                <Settings className="h-3 w-3" />
+                                Bảng màu & size
+                              </Link>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-muted-foreground hover:text-destructive hover:bg-destructive/10 text-xs px-2 h-7 gap-1"
+                                onClick={() => handleRemoveOption(index)}
+                                type="button"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                                Xóa nhóm
+                              </Button>
                             </div>
                           </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
 
-                {/* Color Image Gallery Card */}
-                {(() => {
-                  const colorOption = (watchedOptions || []).find((opt) =>
-                    isColorAttribute(opt.name)
-                  );
-                  const activeColorValues = colorOption?.values || [];
-
-                  if (activeColorValues.length === 0) {
-                    return (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle className="flex items-center gap-2">
-                            <UploadCloud className="h-5 w-5" /> Bộ sưu tập ảnh sản phẩm
-                          </CardTitle>
-                          <CardDescription>
-                            Sản phẩm chưa có thuộc tính &quot;Màu sắc&quot;. Bạn có thể thêm thuộc tính Màu sắc ở trên để tải ảnh riêng cho từng màu, hoặc tải ảnh chung tại đây. Ảnh đầu tiên sẽ tự động làm ảnh đại diện.
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                          {currentImages.length > 0 ? (
-                            <ImageReorderGrid
-                              images={currentImages}
-                              onReorder={handleReorderGeneralImages}
-                              onRemove={handleRemoveGeneralImage}
+                          <div className="grid gap-4 md:grid-cols-[190px_1fr]">
+                            <FormField
+                              control={form.control}
+                              name={`options.${index}.name`}
+                              render={({ field: nameField }) => (
+                                <FormItem>
+                                  <FormLabel className="text-xs">Tên thuộc tính</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      placeholder="VD: Màu sắc"
+                                      {...nameField}
+                                      onBlur={(e) => {
+                                        nameField.onBlur();
+                                        const opts = form.getValues("options") || [];
+                                        if (e.target.value.trim()) {
+                                          syncVariantsFromOptions(opts);
+                                        }
+                                      }}
+                                    />
+                                  </FormControl>
+                                  <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                                    {suggestions.names.map((sugg) => (
+                                      <Badge
+                                        key={sugg}
+                                        variant={
+                                          currentName.toLowerCase() ===
+                                          sugg.toLowerCase()
+                                            ? "secondary"
+                                            : "outline"
+                                        }
+                                        className="cursor-pointer text-[11px] py-0.5 px-2 hover:bg-muted font-normal"
+                                        onClick={() =>
+                                          handleQuickSetName(index, sugg)
+                                        }
+                                      >
+                                        {sugg}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
                             />
-                          ) : (
-                            <p className="text-xs text-muted-foreground italic">
-                              Chưa có hình ảnh nào cho sản phẩm.
-                            </p>
+
+                            <div className="space-y-2.5">
+                              <Label className="text-xs">
+                                Giá trị (bấm gợi ý bên dưới hoặc gõ rồi nhấn Enter)
+                              </Label>
+                              <Input
+                                placeholder={
+                                  isColor
+                                    ? "VD: Đen, Trắng, Be... rồi nhấn Enter"
+                                    : "VD: S, M, L, XL... rồi nhấn Enter"
+                                }
+                                onKeyDown={(e) => handleAddOptionValue(index, e)}
+                              />
+
+                              {availableSuggestions.length > 0 && (
+                                <div className="flex gap-1.5 flex-wrap pt-0.5">
+                                  {availableSuggestions.map((sugg: string) => (
+                                    <button
+                                      key={sugg}
+                                      type="button"
+                                      onClick={() =>
+                                        handleQuickAddValue(index, sugg)
+                                      }
+                                      className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background hover:bg-muted px-2 py-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+                                      title={`Thêm ${sugg}`}
+                                    >
+                                      {isColor && (
+                                        <span
+                                          className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0"
+                                          style={{
+                                            backgroundColor:
+                                              getFashionColorHex(sugg),
+                                          }}
+                                        />
+                                      )}
+                                      <span>+ {sugg}</span>
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+
+                              {currentValues.length > 0 && (
+                                <div className="flex flex-wrap gap-2 p-2.5 bg-muted/40 rounded-md border min-h-[42px]">
+                                  {currentValues.map((val, vIdx) => {
+                                    const colorHex = isColor
+                                      ? getFashionColorHex(val)
+                                      : null;
+                                    return (
+                                      <Badge
+                                        key={`${val}-${vIdx}`}
+                                        variant="secondary"
+                                        className="pl-2.5 pr-1 py-1 flex items-center gap-1.5 font-medium border bg-background"
+                                      >
+                                        {isColor && (
+                                          <span
+                                            className="w-3.5 h-3.5 rounded-full border border-black/20 shrink-0"
+                                            style={{
+                                              backgroundColor: colorHex || "#333",
+                                            }}
+                                          />
+                                        )}
+                                        <span>{val}</span>
+                                        <button
+                                          type="button"
+                                          className="h-4 w-4 rounded-full hover:bg-neutral-900 hover:text-white dark:hover:bg-white dark:hover:text-neutral-900 text-muted-foreground flex items-center justify-center cursor-pointer ml-0.5 transition-colors"
+                                          onClick={() =>
+                                            handleRemoveOptionValue(index, val)
+                                          }
+                                          title={`Bỏ "${val}"`}
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </button>
+                                      </Badge>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* HÌNH ẢNH SẢN PHẨM / ẢNH THEO MÀU */}
+            <Card id="section-media" className="scroll-mt-40 sm:scroll-mt-36">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <UploadCloud className="h-5 w-5" />
+                  {activeColorValues.length > 0
+                    ? "Hình ảnh theo từng Màu sắc"
+                    : "Hình ảnh sản phẩm"}
+                </CardTitle>
+                <CardDescription>
+                  {activeColorValues.length > 0
+                    ? "Mỗi màu cần ít nhất 1 ảnh riêng khi đăng bán. Ảnh #1 của màu mặc định sẽ làm ảnh đại diện ngoài gian hàng."
+                    : "Kéo thả ảnh từ máy tính hoặc thêm thuộc tính Màu sắc ở trên để tải ảnh riêng cho từng màu."}
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                {activeColorValues.length === 0 ? (
+                  <div className="space-y-2.5">
+                    {currentImages.length > 0 && (
+                      <ImageReorderGrid
+                        images={currentImages}
+                        onReorder={handleReorderGeneralImages}
+                        onRemove={handleRemoveGeneralImage}
+                      />
+                    )}
+
+                    <label
+                      htmlFor="general-image-file-input"
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragActiveTarget(GENERAL_UPLOAD_KEY);
+                      }}
+                      onDragEnter={(e) => {
+                        e.preventDefault();
+                        setDragActiveTarget(GENERAL_UPLOAD_KEY);
+                      }}
+                      onDragLeave={() => setDragActiveTarget(null)}
+                      onDrop={(e) => handleDropFiles(GENERAL_UPLOAD_KEY, e)}
+                      className={cn(
+                        "w-full border border-dashed rounded-md px-4 py-4 flex items-center justify-center gap-2 transition-colors text-xs font-medium",
+                        uploadingTargets[GENERAL_UPLOAD_KEY]
+                          ? "opacity-60 cursor-wait bg-muted/40"
+                          : "cursor-pointer hover:bg-muted/50 text-muted-foreground hover:text-foreground",
+                        dragActiveTarget === GENERAL_UPLOAD_KEY &&
+                          "border-foreground bg-muted/70 text-foreground"
+                      )}
+                    >
+                      <input
+                        id="general-image-file-input"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        disabled={Boolean(uploadingTargets[GENERAL_UPLOAD_KEY])}
+                        className="hidden"
+                        onChange={(e) =>
+                          handleFileInputChange(GENERAL_UPLOAD_KEY, e)
+                        }
+                      />
+                      {uploadingTargets[GENERAL_UPLOAD_KEY] ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <span>Đang tải ảnh lên...</span>
+                        </>
+                      ) : (
+                        <>
+                          <UploadCloud className="h-4 w-4" />
+                          <span>Kéo thả ảnh vào đây hoặc bấm để chọn từ máy</span>
+                        </>
+                      )}
+                    </label>
+
+                    <div className="flex gap-1.5">
+                      <Input
+                        placeholder="Hoặc dán liên kết ảnh (https://...) rồi nhấn Enter"
+                        className="h-9 text-xs"
+                        value={generalUrlInput}
+                        onChange={(e) => setGeneralUrlInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleAddGeneralImage(generalUrlInput);
+                          }
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="h-9 px-3 shrink-0"
+                        onClick={() => handleAddGeneralImage(generalUrlInput)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {activeColorValues.map((colorName, colorIdx) => {
+                      const colorHex = getFashionColorHex(colorName);
+                      const colorImgs = watchedColorImages?.[colorName] || [];
+                      const isUploadingColor = Boolean(uploadingTargets[colorName]);
+                      const isDragOverColor = dragActiveTarget === colorName;
+
+                      return (
+                        <div
+                          key={colorName}
+                          className="p-3.5 sm:p-4 border rounded-lg bg-card/60 space-y-3"
+                        >
+                          <div className="flex items-center justify-between flex-wrap gap-2">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span
+                                className="w-4 h-4 rounded-full border border-black/20 shrink-0"
+                                style={{ backgroundColor: colorHex }}
+                              />
+                              <span className="font-semibold text-sm">
+                                Màu {colorName}
+                              </span>
+                              {colorIdx === 0 ? (
+                                <Badge className="bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 text-[10px] flex items-center gap-1 font-normal py-0.5">
+                                  <Check className="h-2.5 w-2.5" /> Màu mặc định
+                                </Badge>
+                              ) : (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2"
+                                  onClick={() => setDefaultColor(colorName)}
+                                >
+                                  Đặt mặc định
+                                </Button>
+                              )}
+                            </div>
+
+                            {colorImgs.length > 0 ? (
+                              <Badge variant="secondary" className="text-xs font-normal">
+                                {colorImgs.length} ảnh
+                              </Badge>
+                            ) : (
+                              <StatusBadge tone="warning" size="sm">
+                                Chưa có ảnh
+                              </StatusBadge>
+                            )}
+                          </div>
+
+                          {colorImgs.length > 0 && (
+                            <ImageReorderGrid
+                              images={colorImgs}
+                              onReorder={(imgs) =>
+                                handleReorderColorImages(colorName, imgs)
+                              }
+                              onRemove={(url) =>
+                                handleRemoveColorImage(colorName, url)
+                              }
+                              colorName={colorName}
+                              isDefaultColor={colorIdx === 0}
+                            />
                           )}
 
-                          <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                          <div className="space-y-2 pt-0.5">
                             <label
-                              htmlFor="general-image-file-input"
-                              className="flex-1 border border-dashed rounded-md px-3 py-2 flex items-center justify-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground"
+                              htmlFor={`color-upload-${colorName}`}
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                setDragActiveTarget(colorName);
+                              }}
+                              onDragEnter={(e) => {
+                                e.preventDefault();
+                                setDragActiveTarget(colorName);
+                              }}
+                              onDragLeave={() => setDragActiveTarget(null)}
+                              onDrop={(e) => handleDropFiles(colorName, e)}
+                              className={cn(
+                                "w-full border border-dashed rounded-md px-3 py-3 flex items-center justify-center gap-2 transition-colors text-xs font-medium",
+                                isUploadingColor
+                                  ? "opacity-60 cursor-wait bg-muted/40"
+                                  : "cursor-pointer hover:bg-muted/50 text-muted-foreground hover:text-foreground",
+                                isDragOverColor &&
+                                  "border-foreground bg-muted/70 text-foreground"
+                              )}
                             >
                               <input
-                                id="general-image-file-input"
+                                id={`color-upload-${colorName}`}
                                 type="file"
                                 accept="image/*"
                                 multiple
+                                disabled={isUploadingColor}
                                 className="hidden"
-                                onChange={handleGeneralFileUpload}
+                                onChange={(e) =>
+                                  handleFileInputChange(colorName, e)
+                                }
                               />
-                              <UploadCloud className="h-4 w-4" />
-                              <span>Chọn ảnh từ máy tính (kéo thả)</span>
+                              {isUploadingColor ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  <span>Đang tải ảnh màu {colorName}...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <UploadCloud className="h-4 w-4" />
+                                  <span>
+                                    Kéo thả hoặc chọn ảnh cho màu {colorName}
+                                  </span>
+                                </>
+                              )}
                             </label>
 
-                            <div className="flex gap-1.5 sm:w-80">
+                            <div className="flex gap-1.5">
                               <Input
-                                placeholder="Dán liên kết ảnh (https://...)"
+                                placeholder={`Hoặc dán URL ảnh màu ${colorName} rồi nhấn Enter...`}
                                 className="h-9 text-xs"
-                                value={generalUrlInput}
-                                onChange={(e) => setGeneralUrlInput(e.target.value)}
+                                value={colorUrlInputs[colorName] || ""}
+                                onChange={(e) =>
+                                  setColorUrlInputs((prev) => ({
+                                    ...prev,
+                                    [colorName]: e.target.value,
+                                  }))
+                                }
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter") {
                                     e.preventDefault();
-                                    handleAddGeneralImage(generalUrlInput);
+                                    handleAddColorImage(
+                                      colorName,
+                                      colorUrlInputs[colorName] || ""
+                                    );
                                   }
                                 }}
                               />
@@ -1632,407 +1707,511 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                 type="button"
                                 variant="outline"
                                 size="sm"
-                                className="h-9 px-3"
-                                onClick={() => handleAddGeneralImage(generalUrlInput)}
+                                className="h-9 px-3 shrink-0"
+                                onClick={() =>
+                                  handleAddColorImage(
+                                    colorName,
+                                    colorUrlInputs[colorName] || ""
+                                  )
+                                }
                               >
                                 <Plus className="h-4 w-4" />
                               </Button>
                             </div>
                           </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  }
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-                  return (
-                    <Card>
-                      <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                          <UploadCloud className="h-5 w-5" /> Bộ sưu tập ảnh theo Màu sắc
-                        </CardTitle>
-                        <CardDescription>
-                          Tải ảnh riêng cho từng màu sắc. Ảnh đầu tiên của màu mặc định sẽ tự động được sử dụng làm ảnh đại diện sản phẩm ngoài danh mục.
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-4">
-                        {activeColorValues.map((colorName, colorIdx) => {
-                          const colorHex = getFashionColorHex(colorName);
-                          const colorImgs =
-                            watchedColorImages?.[colorName] || [];
+            {/* DANH SÁCH BIẾN THỂ */}
+            <Card id="section-variants-table" className="scroll-mt-40 sm:scroll-mt-36">
+              <CardHeader className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <CardTitle>Danh sách Biến thể</CardTitle>
+                    <Badge variant="secondary" className="text-xs font-mono">
+                      {variantFields.length} SKU
+                    </Badge>
+                    {mode === "edit" &&
+                      variantFields.some(
+                        (v, idx) =>
+                          (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5
+                      ) && (
+                        <StatusBadge tone="warning" size="sm">
+                          {
+                            variantFields.filter(
+                              (v, idx) =>
+                                (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5
+                            ).length
+                          }{" "}
+                          biến thể sắp hết
+                        </StatusBadge>
+                      )}
+                  </div>
+                  <CardDescription>
+                    {mode === "edit"
+                      ? "Tự động đồng bộ từ Màu sắc & Kích cỡ. Chỉnh giá bán, mã SKU hoặc bấm Nhập kho."
+                      : "Biến thể được tự động sinh khi bạn chọn Màu sắc & Kích cỡ ở phần Phân loại."}
+                  </CardDescription>
+                </div>
 
-                          return (
-                            <div
-                              key={colorName}
-                              className="p-4 border rounded-lg bg-card/60 space-y-3"
-                            >
-                              <div className="flex items-center justify-between flex-wrap gap-2">
-                                <div className="flex items-center gap-2">
+                {optionFields.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    type="button"
+                    className="gap-1.5 shrink-0"
+                    onClick={handleManualSyncVariants}
+                  >
+                    <RefreshCw className="h-3.5 w-3.5" />
+                    Đồng bộ lại
+                  </Button>
+                )}
+              </CardHeader>
+
+              <CardContent>
+                {variantFields.length === 0 ? (
+                  <div className="text-center py-8 px-4 text-sm text-muted-foreground bg-muted/40 rounded-lg border border-dashed">
+                    Chọn Màu sắc và Kích cỡ ở phần <strong>Phân loại</strong> phía trên để hệ thống tự động sinh bảng biến thể tại đây.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {/* Batch Action Bar */}
+                    <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 bg-muted/40 rounded-lg border text-xs">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-medium text-muted-foreground">
+                          Áp giá hàng loạt:
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <Input
+                            type="number"
+                            placeholder="Nhập giá..."
+                            className="h-8 w-28 text-xs bg-card"
+                            value={batchPrice}
+                            onChange={(e) => setBatchPrice(e.target.value)}
+                          />
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="h-8 text-xs px-2.5"
+                            onClick={() => applyBatchPrice()}
+                          >
+                            Áp dụng
+                          </Button>
+                        </div>
+                        {watchedPrice > 0 && (
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-8 text-xs px-2.5"
+                            onClick={() => applyBatchPrice(Number(watchedPrice))}
+                          >
+                            Dùng giá niêm yết ({formatPrice(Number(watchedPrice))})
+                          </Button>
+                        )}
+                      </div>
+
+                      {mode === "edit" && productId && (
+                        <Link
+                          href={`/admin/stock-imports?productId=${productId}`}
+                          className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 font-medium border border-primary/20 transition-colors"
+                        >
+                          <PackagePlus className="h-3.5 w-3.5" />
+                          Nhập kho biến thể
+                        </Link>
+                      )}
+                    </div>
+
+                    {/* Variants Table */}
+                    <div className="border rounded-md divide-y overflow-hidden">
+                      <div className="bg-muted/50 px-4 py-3 hidden md:flex items-center gap-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        <div className="flex-1">Phân loại</div>
+                        <div className="w-32">Giá bán (đ)</div>
+                        {mode === "edit" && (
+                          <div className="w-24 text-center">Tồn kho</div>
+                        )}
+                        <div className="w-36">Mã SKU</div>
+                        <div className="w-9" />
+                      </div>
+
+                      {variantFields.map((v, i) => {
+                        const currentOpts =
+                          watchedVariants?.[i]?.options || v.options || {};
+                        const colorEntry = Object.entries(currentOpts).find(
+                          ([k]) => isColorAttribute(k)
+                        );
+                        const colorVal = colorEntry ? colorEntry[1] : null;
+                        const colorHex = colorVal
+                          ? getFashionColorHex(colorVal)
+                          : null;
+
+                        return (
+                          <div
+                            key={v.id}
+                            className="px-3.5 sm:px-4 py-3 flex flex-col md:flex-row md:items-center gap-3 md:gap-4 hover:bg-muted/30 transition-colors"
+                          >
+                            <div className="flex flex-1 items-center justify-between gap-2.5 min-w-0">
+                              <p className="font-medium text-sm flex items-center gap-2 truncate">
+                                {colorHex && (
                                   <span
-                                    className="w-4 h-4 rounded-full border border-black/20 shadow-xs inline-block shrink-0"
+                                    className="w-3.5 h-3.5 rounded-full border border-black/25 shrink-0"
                                     style={{ backgroundColor: colorHex }}
                                   />
-                                  <span className="font-semibold text-sm">
-                                    Màu sắc: {colorName}
-                                  </span>
-                                  {colorIdx === 0 ? (
-                                    <Badge className="bg-black text-white text-[10px] flex items-center gap-1 font-normal py-0.5">
-                                      <Check className="h-2.5 w-2.5" /> Màu mặc định (Ảnh đại diện & Hiển thị đầu tiên)
-                                    </Badge>
-                                  ) : (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 text-[11px] text-muted-foreground hover:text-foreground px-2"
-                                      onClick={() => setDefaultColor(colorName)}
-                                      title="Đặt màu này làm màu được chọn đầu tiên khi khách mở trang"
-                                    >
-                                      Đặt làm mặc định
-                                    </Button>
-                                  )}
-                                  <Badge variant="secondary" className="text-xs">
-                                    {colorImgs.length} ảnh
-                                  </Badge>
-                                </div>
-                              </div>
-
-                              {/* Images Grid */}
-                              {colorImgs.length > 0 ? (
-                                <ImageReorderGrid
-                                  images={colorImgs}
-                                  onReorder={(imgs) => handleReorderColorImages(colorName, imgs)}
-                                  onRemove={(url) => handleRemoveColorImage(colorName, url)}
-                                  colorName={colorName}
-                                  isDefaultColor={colorIdx === 0}
-                                />
-                              ) : (
-                                <p className="text-xs text-muted-foreground">
-                                  Chưa có ảnh cho màu {colorName}. Mỗi màu cần ít nhất 1 ảnh riêng khi đăng bán.
-                                </p>
-                              )}
-
-                              {/* Upload / URL controls */}
-                              <div className="flex flex-col sm:flex-row gap-2 pt-1">
-                                <label
-                                  htmlFor={`color-upload-${colorName}`}
-                                  className="flex-1 border border-dashed rounded-md px-3 py-2 flex items-center justify-center gap-2 cursor-pointer hover:bg-muted/50 transition-colors text-xs font-medium text-muted-foreground hover:text-foreground"
-                                >
-                                  <input
-                                    id={`color-upload-${colorName}`}
-                                    type="file"
-                                    accept="image/*"
-                                    multiple
-                                    className="hidden"
-                                    onChange={(e) =>
-                                      handleColorFileUpload(colorName, e)
-                                    }
-                                  />
-                                  <UploadCloud className="h-4 w-4" />
-                                  <span>Chọn ảnh từ máy cho màu {colorName}</span>
-                                </label>
-
-                                <div className="flex gap-1.5 sm:w-80">
-                                  <Input
-                                    placeholder={`Dán URL ảnh cho màu ${colorName}...`}
-                                    className="h-9 text-xs"
-                                    value={colorUrlInputs[colorName] || ""}
-                                    onChange={(e) =>
-                                      setColorUrlInputs((prev) => ({
-                                        ...prev,
-                                        [colorName]: e.target.value,
-                                      }))
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        e.preventDefault();
-                                        handleAddColorImage(
-                                          colorName,
-                                          colorUrlInputs[colorName] || ""
-                                        );
-                                      }
-                                    }}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    className="h-9 px-2.5"
-                                    onClick={() =>
-                                      handleAddColorImage(
-                                        colorName,
-                                        colorUrlInputs[colorName] || ""
-                                      )
-                                    }
-                                  >
-                                    <Plus className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </CardContent>
-                    </Card>
-                  );
-                })()}
-
-                {/* Variants List */}
-                <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <CardTitle>Danh sách Biến thể</CardTitle>
-                        {mode === "edit" &&
-                          variantFields.some(
-                            (v, idx) => (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5
-                          ) && (
-                            <StatusBadge tone="warning" size="sm">
-                              {
-                                variantFields.filter(
-                                  (v, idx) =>
-                                    (watchedVariants?.[idx]?.stock ?? v.stock ?? 0) <= 5
-                                ).length
-                              }{" "}
-                              biến thể sắp hết
-                            </StatusBadge>
-                          )}
-                      </div>
-                      <CardDescription>
-                        {mode === "edit"
-                          ? "Quản lý giá bán, SKU và theo dõi tồn kho của từng phân loại."
-                          : "Quản lý giá bán và SKU cho từng phân loại. Tồn kho ban đầu là 0."}
-                      </CardDescription>
-                    </div>
-                    <Button
-                      variant="default"
-                      size="sm"
-                      type="button"
-                      onClick={generateVariants}
-                    >
-                      <Plus className="h-4 w-4 mr-2" /> Tự động sinh Biến thể
-                    </Button>
-                  </CardHeader>
-                  <CardContent>
-                    {variantFields.length === 0 ? (
-                      <div className="text-center py-10 text-muted-foreground bg-muted/50 rounded-lg border border-dashed">
-                        Hãy thêm thuộc tính và nhấn nút &quot;Tự động sinh Biến
-                        thể&quot;.
-                      </div>
-                    ) : (
-                      <div className="space-y-3">
-                        <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 bg-muted/40 rounded-lg border text-xs">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold text-muted-foreground">
-                              Thiết lập hàng loạt:
-                            </span>
-                            <div className="flex items-center gap-1.5">
-                              <Input
-                                type="number"
-                                placeholder="Giá chung..."
-                                className="h-8 w-28 text-xs bg-card"
-                                value={batchPrice}
-                                onChange={(e) => setBatchPrice(e.target.value)}
-                              />
+                                )}
+                                <span className="truncate">
+                                  {Object.values(currentOpts).join(" / ")}
+                                </span>
+                              </p>
                               <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 md:hidden text-muted-foreground hover:text-destructive hover:bg-destructive/10 shrink-0"
                                 type="button"
-                                variant="secondary"
-                                size="sm"
-                                className="h-8 text-xs px-2.5"
-                                onClick={applyBatchPrice}
+                                onClick={() => removeVariant(i)}
+                                title="Xóa riêng biến thể này"
                               >
-                                Áp dụng giá
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
-                          </div>
 
-                          {productId ? (
-                            <Link
-                              href={`/admin/stock-imports?productId=${productId}`}
-                              className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md bg-primary/10 text-primary hover:bg-primary/20 font-medium border border-primary/20 transition-colors shadow-2xs"
-                              title="Tạo phiếu nhập kho cho tất cả biến thể của sản phẩm này"
-                            >
-                              <PackagePlus className="h-3.5 w-3.5" />
-                              Nhập kho các biến thể
-                            </Link>
-                          ) : (
-                            <span className="text-[11px] text-muted-foreground">
-                              Tồn kho khởi tạo bằng 0. Sau khi tạo sản phẩm, bạn có thể lập Phiếu nhập kho.
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="border rounded-md divide-y overflow-hidden">
-                          <div className="bg-muted/50 p-4 hidden sm:flex items-center gap-4 text-sm font-semibold">
-                            <div className="flex-1">Phân loại</div>
-                            <div className="w-28">Giá bán</div>
-                            <div className="w-24 text-center">Tồn kho</div>
-                            <div className="w-32">SKU</div>
-                            <div className="w-9"></div>
-                          </div>
-
-                        {variantFields.map((v, i) => {
-                          const currentOpts =
-                            watchedVariants?.[i]?.options || v.options || {};
-                          const colorEntry = Object.entries(currentOpts).find(
-                            ([k]) => isColorAttribute(k)
-                          );
-                          const colorVal = colorEntry ? colorEntry[1] : null;
-                          const colorHex = colorVal
-                            ? getFashionColorHex(colorVal)
-                            : null;
-
-                          return (
-                            <div
-                              key={v.id}
-                              className="p-4 flex flex-col sm:flex-row sm:items-center gap-4 hover:bg-muted/30 transition-colors"
-                            >
-                              <div className="flex flex-1 items-center gap-2.5">
-                                <p className="font-semibold text-sm flex items-center gap-2">
-                                  {colorHex && (
-                                    <span
-                                      className="w-4 h-4 rounded-full border border-black/25 shrink-0 inline-block shadow-2xs"
-                                      style={{ backgroundColor: colorHex }}
-                                    />
-                                  )}
-                                  <span>
-                                    {Object.values(currentOpts).join(" / ")}
-                                  </span>
-                                </p>
-                              </div>
-                            <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2.5 w-full sm:w-auto items-center">
-                              <div className="col-span-1 sm:w-28 space-y-1">
-                                <span className="text-[11px] font-medium text-muted-foreground sm:hidden">Giá bán (đ)</span>
+                            <div className="grid grid-cols-2 md:flex gap-2.5 md:gap-4 w-full md:w-auto items-center">
+                              <div className="col-span-1 md:w-32 space-y-1">
+                                <span className="text-[11px] font-medium text-muted-foreground md:hidden">
+                                  Giá bán (đ)
+                                </span>
                                 <FormField
                                   control={form.control}
                                   name={`variants.${i}.price`}
                                   render={({ field }) => (
                                     <Input
                                       type="number"
+                                      min={0}
                                       placeholder="Giá bán..."
                                       className="w-full text-sm h-9"
-                                      {...field}
-                                      onChange={(e) =>
-                                        field.onChange(Number(e.target.value))
-                                      }
+                                      value={field.value === 0 ? "" : field.value}
+                                      onChange={(e) => {
+                                        const raw = e.target.value;
+                                        field.onChange(
+                                          raw === "" ? 0 : Math.max(0, Number(raw))
+                                        );
+                                      }}
+                                      onBlur={field.onBlur}
+                                      name={field.name}
+                                      ref={field.ref}
                                     />
                                   )}
                                 />
                               </div>
-                              <div className="col-span-1 sm:w-24 space-y-1">
-                                <span className="text-[11px] font-medium text-muted-foreground sm:hidden">Tồn kho</span>
-                                <div className="h-9 flex items-center justify-center">
-                                  {(() => {
-                                    const stockVal = watchedVariants?.[i]?.stock ?? v.stock ?? 0;
-                                    if (stockVal === 0) {
-                                      if (mode === "create") {
+
+                              {mode === "edit" && (
+                                <div className="col-span-1 md:w-24 space-y-1">
+                                  <span className="text-[11px] font-medium text-muted-foreground md:hidden">
+                                    Tồn kho
+                                  </span>
+                                  <div className="h-9 flex items-center justify-center">
+                                    {(() => {
+                                      const stockVal =
+                                        watchedVariants?.[i]?.stock ?? v.stock ?? 0;
+                                      if (stockVal === 0) {
                                         return (
-                                          <span
-                                            className="font-mono text-xs text-muted-foreground px-2 py-1.5 rounded bg-muted/50 border border-border w-full text-center"
-                                            title="Tồn kho ban đầu là 0, sẽ cập nhật sau khi nhập kho"
+                                          <StatusBadge
+                                            tone="danger"
+                                            size="sm"
+                                            className="w-full justify-center py-1.5 font-mono"
+                                            title="Hết hàng (0 SP). Vui lòng lập phiếu nhập kho."
                                           >
-                                            0
-                                          </span>
+                                            0 · Hết
+                                          </StatusBadge>
+                                        );
+                                      }
+                                      if (stockVal <= 5) {
+                                        return (
+                                          <StatusBadge
+                                            tone="warning"
+                                            size="sm"
+                                            className="w-full justify-center py-1.5 font-mono"
+                                            title={`Sắp hết hàng: còn ${stockVal} sản phẩm`}
+                                          >
+                                            {stockVal} · Ít
+                                          </StatusBadge>
                                         );
                                       }
                                       return (
-                                        <StatusBadge
-                                          tone="danger"
-                                          size="sm"
-                                          className="w-full justify-center py-1.5 font-mono"
-                                          title="Hết hàng (0 SP). Vui lòng lập phiếu nhập kho."
+                                        <span
+                                          className="font-mono text-xs font-medium px-2 py-1.5 rounded bg-muted/60 text-foreground border border-border w-full text-center"
+                                          title={`Tồn kho: ${stockVal} sản phẩm`}
                                         >
-                                          0 · Hết
-                                        </StatusBadge>
+                                          {stockVal}
+                                        </span>
                                       );
-                                    }
-                                    if (stockVal <= 5) {
-                                      return (
-                                        <StatusBadge
-                                          tone="warning"
-                                          size="sm"
-                                          className="w-full justify-center py-1.5 font-mono"
-                                          title={`Sắp hết hàng: còn ${stockVal} sản phẩm`}
-                                        >
-                                          {stockVal} · Ít
-                                        </StatusBadge>
-                                      );
-                                    }
-                                    return (
-                                      <span
-                                        className="font-mono text-xs font-medium px-2 py-1.5 rounded bg-muted/60 text-foreground border border-border w-full text-center"
-                                        title={`Tồn kho: ${stockVal} sản phẩm`}
-                                      >
-                                        {stockVal}
-                                      </span>
-                                    );
-                                  })()}
+                                    })()}
+                                  </div>
                                 </div>
-                              </div>
-                              <div className="col-span-2 sm:col-span-1 sm:w-32 space-y-1">
-                                <span className="text-[11px] font-medium text-muted-foreground sm:hidden">Mã SKU</span>
+                              )}
+
+                              <div
+                                className={cn(
+                                  "md:w-36 space-y-1",
+                                  mode === "edit"
+                                    ? "col-span-2 md:col-span-1"
+                                    : "col-span-1"
+                                )}
+                              >
+                                <span className="text-[11px] font-medium text-muted-foreground md:hidden">
+                                  Mã SKU
+                                </span>
                                 <FormField
                                   control={form.control}
                                   name={`variants.${i}.sku`}
                                   render={({ field }) => (
                                     <Input
                                       placeholder="Mã SKU..."
-                                      className="w-full text-sm h-9"
+                                      className="w-full text-sm h-9 font-mono"
                                       {...field}
                                     />
                                   )}
                                 />
                               </div>
-                              <div className="col-span-2 sm:col-span-1 flex justify-end sm:justify-start">
+
+                              <div className="hidden md:flex justify-start">
                                 <Button
                                   variant="ghost"
                                   size="icon"
                                   className="h-9 w-9 text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
                                   type="button"
                                   onClick={() => removeVariant(i)}
-                                  title="Xóa riêng biến thể này khỏi sản phẩm"
+                                  title="Xóa riêng biến thể này"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               </div>
                             </div>
                           </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-              {/* Sidebar Variants */}
-              <div className="flex flex-col gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Mẹo nhập liệu</CardTitle>
-                    <CardDescription>
-                      Cách sử dụng Trình tạo Biến thể hiệu quả.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="text-sm space-y-3 text-muted-foreground">
-                    <p>
-                      1. Bấm <b>Mẫu Thời Trang</b> nếu muốn nhanh, hoặc{" "}
-                      <b>Thêm</b> để tự định nghĩa Màu sắc & Kích thước.
-                    </p>
-                    <p>
-                      2. Ở mục Giá trị, bạn có thể bấm vào các{" "}
-                      <b>gợi ý màu/size</b> bên dưới để điền nhanh.
-                    </p>
-                    <p>
-                      3. Bấm <b>Tự động sinh Biến thể</b> để sinh danh sách SKU
-                      kèm giá bán và tồn kho.
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+          {/* RIGHT COLUMN (1/3 on Desktop >= 1280px, STICKY): Checklist + Classification */}
+          <div className="xl:col-span-4 flex flex-col gap-5 sm:gap-6 xl:sticky xl:top-36">
+            {/* Readiness Checklist & Quick Jump */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-base">Sẵn sàng đăng bán</CardTitle>
+                  <Badge variant="secondary" className="font-mono text-xs">
+                    {completedChecklistCount}/{checklistItems.length}
+                  </Badge>
+                </div>
+                <CardDescription className="text-xs">
+                  Bấm vào từng mục để cuộn nhanh tới vị trí nhập.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1.5">
+                {checklistItems.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    onClick={() => scrollToSection(item.target)}
+                    className="w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-md text-left hover:bg-muted/60 transition-colors cursor-pointer"
+                  >
+                    <span className="flex items-center gap-2.5 min-w-0">
+                      <span
+                        className={cn(
+                          "w-4 h-4 rounded-full flex items-center justify-center shrink-0 border transition-colors",
+                          item.done
+                            ? "bg-neutral-900 border-neutral-900 text-white dark:bg-white dark:border-white dark:text-neutral-900"
+                            : "border-neutral-300 dark:border-neutral-700"
+                        )}
+                      >
+                        {item.done && <Check className="h-2.5 w-2.5 stroke-[3]" />}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xs truncate",
+                          item.done
+                            ? "text-foreground font-medium"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        {item.label}
+                      </span>
+                    </span>
+                    <span className="text-[11px] text-muted-foreground shrink-0">
+                      {item.hint}
+                    </span>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+
+            {/* Classification & Storefront Badges */}
+            <Card id="section-classification" className="scroll-mt-40 sm:scroll-mt-36">
+              <CardHeader>
+                <CardTitle className="text-base">Phân loại & Hiển thị</CardTitle>
+                <CardDescription className="text-xs">
+                  Danh mục, thương hiệu, chất liệu và nhãn nổi bật.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => {
+                    const selectedCat = categories.find(
+                      (c) => c.slug === field.value
+                    );
+                    const formattedCategories = categories
+                      .map((c) => ({
+                        ...c,
+                        fullPath: getCategoryFullPath(c, categories),
+                      }))
+                      .sort((a, b) => a.fullPath.localeCompare(b.fullPath, "vi"));
+
+                    return (
+                      <FormItem>
+                        <FormLabel>
+                          Danh mục chính <span className="text-red-500">*</span>
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-full max-w-full min-w-0">
+                              <SelectValue
+                                placeholder="Chọn danh mục"
+                                className="truncate"
+                              >
+                                {selectedCat
+                                  ? getCategoryFullPath(selectedCat, categories)
+                                  : field.value || "Chọn danh mục"}
+                              </SelectValue>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-72">
+                            {formattedCategories.length > 0 ? (
+                              formattedCategories.map((cat) => (
+                                <SelectItem key={cat.id} value={cat.slug}>
+                                  {cat.fullPath}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <>
+                                <SelectItem value="ao-so-mi-nu">
+                                  Áo sơ mi nữ
+                                </SelectItem>
+                                <SelectItem value="dam-cong-so">
+                                  Đầm công sở
+                                </SelectItem>
+                                <SelectItem value="ao-vest-blazer">
+                                  Áo Vest & Blazer
+                                </SelectItem>
+                              </>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="brand"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nhãn hiệu</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="LUXE"
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="material"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Chất liệu vải (Tab Chi tiết)</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="VD: Vải Tuytsi, Lụa tơ tằm, Cotton..."
+                          {...field}
+                          value={field.value || ""}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isNew"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-md border p-3 space-y-0">
+                      <div className="space-y-0.5 pr-2">
+                        <FormLabel className="cursor-pointer text-xs font-medium">
+                          Nhãn NEW (Hàng mới)
+                        </FormLabel>
+                        <p className="text-[11px] text-muted-foreground">
+                          Hiển thị huy hiệu NEW trên ảnh sản phẩm
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={Boolean(field.value)}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="isBestSeller"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between rounded-md border p-3 space-y-0">
+                      <div className="space-y-0.5 pr-2">
+                        <FormLabel className="cursor-pointer text-xs font-medium">
+                          Nhãn BEST SELLER
+                        </FormLabel>
+                        <p className="text-[11px] text-muted-foreground">
+                          Hiển thị trong mục Best Seller & Hot Deals
+                        </p>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={Boolean(field.value)}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </form>
 
       {/* Post-create Stock Import Prompt */}
@@ -2086,4 +2265,3 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     </Form>
   );
 }
-
