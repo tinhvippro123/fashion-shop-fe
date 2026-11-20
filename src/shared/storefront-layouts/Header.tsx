@@ -7,6 +7,15 @@ import { useCartStore } from "@/features/cart-and-order/stores/cart.store";
 import { useAuthStore } from "@/features/users/stores/auth.store";
 import { LuxeUserIcon, LuxeBagIcon, LuxeSearchIcon } from "@/shared/icons/LuxeIcons";
 import { apiFetch } from "@/shared/lib/api";
+import {
+  User,
+  RefreshCw,
+  MapPin,
+  Heart,
+  Headphones,
+  LogOut,
+  ShieldCheck,
+} from "lucide-react";
 
 interface SubCategoryGroup {
   title: string;
@@ -419,22 +428,22 @@ export default function Header() {
                 </button>
 
                 <div
-                  className={`absolute top-full right-0 w-[250px] bg-white border border-[#e1e1e1] rounded shadow-[0_4px_12px_rgba(0,0,0,0.1)] z-[1050] mt-[10px] transition-all duration-200 ${isUserMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"
-                    }`}
+                  data-open={isUserMenuOpen ? "true" : "false"}
+                  className="luxe-unroll-menu absolute top-full right-0 w-[240px] bg-white border border-[#ededed] rounded-[6px] shadow-[0_12px_32px_rgba(0,0,0,0.08)] z-[1050] mt-[12px] py-[12px] px-[8px]"
                 >
-                  <div className="p-3 border-b border-[#eee] bg-[#f8f9fa] rounded-t font-semibold text-[14px]">
-                    Xin chào, <b className="font-bold">{user?.name}</b>
-                  </div>
-                  <ul className="list-none p-0 m-0">
+                  <ul className="list-none p-0 m-0 space-y-[2px]">
                     {user?.isAdmin && (
                       <li>
                         <Link
                           href="/admin/dashboard"
                           onClick={() => setIsUserMenuOpen(false)}
-                          className="block px-4 py-[10px] text-[14px] text-[#333] hover:bg-[#f8f9fa] transition-colors border-b border-[#f5f5f5]"
+                          className="group/item flex items-center gap-[14px] px-[16px] py-[10px] rounded-[4px] text-[14px] font-medium text-[#5c636a] hover:text-[#111] hover:bg-[#fafafa] transition-colors"
                         >
-                          <i className="fas fa-cogs w-[20px] text-center mr-3"></i>{" "}
-                          Trang quản trị
+                          <ShieldCheck
+                            className="w-[18px] h-[18px] text-[#6c757d] group-hover/item:text-[#111] shrink-0 transition-colors"
+                            strokeWidth={1.5}
+                          />
+                          <span>Trang quản trị</span>
                         </Link>
                       </li>
                     )}
@@ -442,10 +451,13 @@ export default function Header() {
                       <Link
                         href="/account/profile"
                         onClick={() => setIsUserMenuOpen(false)}
-                        className="block px-4 py-[10px] text-[14px] text-[#333] hover:bg-[#f8f9fa] transition-colors border-b border-[#f5f5f5]"
+                        className="group/item flex items-center gap-[14px] px-[16px] py-[10px] rounded-[4px] text-[14px] font-medium text-[#5c636a] hover:text-[#111] hover:bg-[#fafafa] transition-colors"
                       >
-                        <i className="far fa-user w-[20px] text-center mr-3"></i>{" "}
-                        Thông tin tài khoản
+                        <User
+                          className="w-[18px] h-[18px] text-[#6c757d] group-hover/item:text-[#111] shrink-0 transition-colors"
+                          strokeWidth={1.5}
+                        />
+                        <span>Thông tin tài khoản</span>
                       </Link>
                     </li>
                     <li>
@@ -462,14 +474,17 @@ export default function Header() {
                             }
                           }
                         }}
-                        className="flex items-center justify-between px-4 py-[10px] text-[14px] text-[#333] hover:bg-[#f8f9fa] transition-colors border-b border-[#f5f5f5]"
+                        className="group/item flex items-center justify-between px-[16px] py-[10px] rounded-[4px] text-[14px] font-medium text-[#5c636a] hover:text-[#111] hover:bg-[#fafafa] transition-colors"
                       >
-                        <div className="flex items-center">
-                          <i className="fas fa-sync-alt w-[20px] text-center mr-3"></i>{" "}
+                        <div className="flex items-center gap-[14px]">
+                          <RefreshCw
+                            className="w-[18px] h-[18px] text-[#6c757d] group-hover/item:text-[#111] shrink-0 transition-colors"
+                            strokeWidth={1.5}
+                          />
                           <span>Quản lý đơn hàng</span>
                         </div>
                         {unreadOrderCount > 0 && (
-                          <span className="bg-[#e10600] text-white text-[11px] font-bold px-2 py-0.5 rounded-full shadow-xs leading-none">
+                          <span className="bg-[#222] text-white text-[10px] font-semibold px-1.5 py-0.5 rounded-full leading-none">
                             {unreadOrderCount}
                           </span>
                         )}
@@ -479,20 +494,39 @@ export default function Header() {
                       <Link
                         href="/account/addresses"
                         onClick={() => setIsUserMenuOpen(false)}
-                        className="block px-4 py-[10px] text-[14px] text-[#333] hover:bg-[#f8f9fa] transition-colors border-b border-[#f5f5f5]"
+                        className="group/item flex items-center gap-[14px] px-[16px] py-[10px] rounded-[4px] text-[14px] font-medium text-[#5c636a] hover:text-[#111] hover:bg-[#fafafa] transition-colors"
                       >
-                        <i className="fas fa-map-marker-alt w-[20px] text-center mr-3"></i>{" "}
-                        Sổ địa chỉ
+                        <MapPin
+                          className="w-[18px] h-[18px] text-[#6c757d] group-hover/item:text-[#111] shrink-0 transition-colors"
+                          strokeWidth={1.5}
+                        />
+                        <span>Sổ địa chỉ</span>
                       </Link>
                     </li>
                     <li>
                       <Link
                         href="/account/wishlist"
                         onClick={() => setIsUserMenuOpen(false)}
-                        className="block px-4 py-[10px] text-[14px] text-[#333] hover:bg-[#f8f9fa] transition-colors border-b border-[#f5f5f5]"
+                        className="group/item flex items-center gap-[14px] px-[16px] py-[10px] rounded-[4px] text-[14px] font-medium text-[#5c636a] hover:text-[#111] hover:bg-[#fafafa] transition-colors"
                       >
-                        <i className="far fa-heart w-[20px] text-center mr-3"></i>{" "}
-                        Sản phẩm yêu thích
+                        <Heart
+                          className="w-[18px] h-[18px] text-[#6c757d] group-hover/item:text-[#111] shrink-0 transition-colors"
+                          strokeWidth={1.5}
+                        />
+                        <span>Sản phẩm yêu thích</span>
+                      </Link>
+                    </li>
+                    <li>
+                      <Link
+                        href="/pages/chinh-sach-doi-tra"
+                        onClick={() => setIsUserMenuOpen(false)}
+                        className="group/item flex items-center gap-[14px] px-[16px] py-[10px] rounded-[4px] text-[14px] font-medium text-[#5c636a] hover:text-[#111] hover:bg-[#fafafa] transition-colors"
+                      >
+                        <Headphones
+                          className="w-[18px] h-[18px] text-[#6c757d] group-hover/item:text-[#111] shrink-0 transition-colors"
+                          strokeWidth={1.5}
+                        />
+                        <span>Hỗ trợ - LUXE</span>
                       </Link>
                     </li>
                     <li>
@@ -501,10 +535,13 @@ export default function Header() {
                           logout();
                           setIsUserMenuOpen(false);
                         }}
-                        className="w-full text-left px-4 py-[10px] text-[14px] text-[#333] hover:bg-[#f8f9fa] transition-colors bg-transparent border-none cursor-pointer"
+                        className="group/item w-full text-left flex items-center gap-[14px] px-[16px] py-[10px] rounded-[4px] text-[14px] font-medium text-[#5c636a] hover:text-[#111] hover:bg-[#fafafa] transition-colors bg-transparent border-none cursor-pointer"
                       >
-                        <i className="fas fa-sign-out-alt w-[20px] text-center mr-3"></i>{" "}
-                        Đăng xuất
+                        <LogOut
+                          className="w-[18px] h-[18px] text-[#6c757d] group-hover/item:text-[#111] shrink-0 transition-colors"
+                          strokeWidth={1.5}
+                        />
+                        <span>Đăng xuất</span>
                       </button>
                     </li>
                   </ul>

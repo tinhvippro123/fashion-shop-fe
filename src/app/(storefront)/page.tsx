@@ -5,7 +5,6 @@ import Link from "next/link";
 import HomeSlider from "@/features/catalog/components/home/HomeSlider";
 import ProductSlider from "@/features/catalog/components/home/ProductSlider";
 import FeaturedCategories from "@/features/catalog/components/home/FeaturedCategories";
-import ServiceHighlights from "@/features/catalog/components/home/ServiceHighlights";
 import type { Product } from "@/shared/storefront-ui/ProductCard";
 import { apiFetch } from "@/shared/lib/api";
 
@@ -37,8 +36,8 @@ export default function Home() {
       .catch(() => {})
       .finally(() => setLoadingMen(false));
 
-    // 3. Best Seller & Hot Deals (Lấy 10 sản phẩm đang có ưu đãi giảm giá tốt nhất)
-    apiFetch<Product[]>("/catalog/products?onSale=true")
+    // 3. Best Seller & Hot Deals (Sản phẩm bán chạy hoặc đang giảm giá)
+    apiFetch<Product[]>("/catalog/products?hotDeals=true")
       .then((res) => {
         const list = res || [];
         setSaleProducts(list.slice(0, 10));
@@ -137,9 +136,6 @@ export default function Home() {
           </div>
         </section>
       )}
-
-      {/* 5. SERVICE HIGHLIGHTS */}
-      <ServiceHighlights />
     </>
   );
 }

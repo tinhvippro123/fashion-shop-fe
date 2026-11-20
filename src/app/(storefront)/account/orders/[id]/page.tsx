@@ -9,8 +9,7 @@ import { OrderResponseDto } from "@/features/cart-and-order/types/order";
 import ProductReviewModal, {
   ReviewProductInfo,
 } from "@/features/reviews/components/ProductReviewModal";
-
-const STEP_ORDER = ["PENDING", "PROCESSING", "SHIPPING", "COMPLETED"];
+import { OrderTrackingTimeline } from "@/features/cart-and-order/components/OrderTrackingTimeline";
 
 export default function OrderDetailPage({
   params,
@@ -58,40 +57,47 @@ export default function OrderDetailPage({
   };
 
   const getStatusDisplay = (status: string) => {
-    switch (status) {
-      case "PENDING":
-        return (
-          <span className="text-[#ffc107]">
-            <i className="fas fa-clock mr-[4px]"></i> CHỜ XỬ LÝ
-          </span>
-        );
-      case "PROCESSING":
-        return (
-          <span className="text-[#007bff]">
-            <i className="fas fa-box mr-[4px]"></i> ĐANG CHUẨN BỊ HÀNG
-          </span>
-        );
-      case "SHIPPING":
-        return (
-          <span className="text-[#17a2b8]">
-            <i className="fas fa-truck mr-[4px]"></i> ĐANG GIAO HÀNG
-          </span>
-        );
-      case "COMPLETED":
-        return (
-          <span className="text-[#28a745]">
-            <i className="fas fa-check-circle mr-[4px]"></i> GIAO THÀNH CÔNG
-          </span>
-        );
-      case "CANCELLED":
-        return (
-          <span className="text-[#dc3545]">
-            <i className="fas fa-sync mr-[4px] text-[12px]"></i> ĐÃ HỦY ĐƠN HÀNG
-          </span>
-        );
-      default:
-        return <span>{status}</span>;
-    }
+    const config: Record<string, { label: string; dot: string; text: string }> = {
+      PENDING: {
+        label: "Chờ xử lý",
+        dot: "bg-amber-600",
+        text: "text-[#222]",
+      },
+      PROCESSING: {
+        label: "Đang chuẩn bị hàng",
+        dot: "bg-[#222]",
+        text: "text-[#222]",
+      },
+      SHIPPING: {
+        label: "Đang giao hàng",
+        dot: "bg-[#555]",
+        text: "text-[#222]",
+      },
+      COMPLETED: {
+        label: "Giao thành công",
+        dot: "bg-emerald-600",
+        text: "text-[#222]",
+      },
+      CANCELLED: {
+        label: "Đã hủy đơn hàng",
+        dot: "bg-[#b5121b]",
+        text: "text-[#b5121b]",
+      },
+    };
+    const item = config[status] || {
+      label: status,
+      dot: "bg-[#999]",
+      text: "text-[#222]",
+    };
+
+    return (
+      <span
+        className={`inline-flex items-center gap-2 text-[13px] font-medium uppercase tracking-[0.4px] ${item.text}`}
+      >
+        <span className={`w-[7px] h-[7px] rounded-full shrink-0 ${item.dot}`} />
+        <span>{item.label}</span>
+      </span>
+    );
   };
 
   if (loading) {
@@ -112,11 +118,6 @@ export default function OrderDetailPage({
       </div>
     );
   }
-
-  const activeStepIdx =
-    order.status === "CANCELLED"
-      ? 0
-      : Math.max(0, STEP_ORDER.indexOf(order.status));
 
   return (
     <div className="flex flex-col lg:flex-row mx-[-15px]">
@@ -139,83 +140,13 @@ export default function OrderDetailPage({
           </div>
         </div>
 
-        {/* Integrated 4-Step Order Progress Bar */}
-        <div
-          className="mb-[28px] border border-[#e1e1e1] px-[15px] lg:px-[36px] py-[28px]"
-          style={{ borderRadius: "20px 0 20px 0" }}
-        >
-          <div className="w-full relative">
-            {/* Background line with active progress bar fill */}
-            <div className="absolute top-[6px] left-[7px] right-[7px] h-[2px] bg-[#e5e7eb] z-[1] overflow-hidden">
-              <div
-                className="h-full bg-[#222] transition-all duration-500 ease-out"
-                style={{
-                  width:
-                    order.status === "CANCELLED"
-                      ? "0%"
-                      : `${(activeStepIdx / (STEP_ORDER.length - 1)) * 100}%`,
-                }}
-              />
-            </div>
-
-            <div className="flex justify-between relative z-[2] h-[48px]">
-              {order.status === "CANCELLED" ? (
-                <>
-                  <div className="relative w-[14px]">
-                    <div className="w-[14px] h-[14px] rounded-full bg-[#222] mx-auto"></div>
-                    <div className="text-[12px] text-[#6c6d70] text-left leading-tight absolute top-[24px] left-[-5px] w-max">
-                      Đơn hàng đã đặt
-                    </div>
-                  </div>
-                  <div className="relative w-[14px]">
-                    <div className="w-[14px] h-[14px] rounded-full bg-[#dc3545] mx-auto"></div>
-                    <div className="text-[12px] text-[#dc3545] font-semibold text-right leading-tight absolute top-[24px] right-[-5px] w-max">
-                      Đã hủy
-                    </div>
-                  </div>
-                </>
-              ) : (
-                [
-                  { key: "PENDING", label: "Đã đặt đơn" },
-                  { key: "PROCESSING", label: "Đang xử lý" },
-                  { key: "SHIPPING", label: "Đang giao" },
-                  { key: "COMPLETED", label: "Hoàn thành" },
-                ].map((step, idx) => {
-                  const reached = idx <= activeStepIdx;
-                  return (
-                    <div key={step.key} className="relative w-[14px]">
-                      <div
-                        className={`w-[14px] h-[14px] rounded-full mx-auto ${
-                          reached
-                            ? "bg-[#222]"
-                            : "bg-white border-[2px] border-[#e1e1e1]"
-                        }`}
-                      ></div>
-                      <div
-                        className={`text-[12px] leading-tight absolute top-[24px] w-max ${
-                          idx === 0
-                            ? "left-[-5px]"
-                            : idx === 3
-                            ? "right-[-5px]"
-                            : "left-1/2 -translate-x-1/2"
-                        } ${
-                          reached ? "text-[#222] font-medium" : "text-[#999]"
-                        }`}
-                      >
-                        {step.label}
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-          {order.status === "CANCELLED" && order.cancelReason && (
-            <div className="mt-2 pt-3 border-t border-[#f0f0f0] text-[13px] text-[#dc3545]">
-              Lý do hủy: {order.cancelReason}
-            </div>
-          )}
-        </div>
+        <OrderTrackingTimeline
+          status={order.status}
+          createdAt={order.createdAt}
+          updatedAt={order.updatedAt}
+          cancelReason={order.cancelReason}
+          showVerticalDetails={true}
+        />
 
         {/* Items */}
         <div className="mb-[24px] border-b border-[#e1e1e1] pb-[24px]">

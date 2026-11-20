@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
 import { useAuthStore } from "@/features/users/stores/auth.store";
+import { AlertCircle } from "lucide-react";
 import VnPayInAppModal from "@/features/cart-and-order/components/checkout/VnPayInAppModal";
 
 function OrderSuccessContent() {
@@ -128,26 +129,24 @@ function OrderSuccessContent() {
 
           {/* Action Callout if VNPay Unpaid */}
           {isVnPayUnpaid && (
-            <div className="bg-amber-50 border border-amber-200 rounded-[12px] p-5 mb-[30px] flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 font-bold text-lg">
-                  ⚠
-                </div>
+            <div className="bg-[#fafafa] border border-[#e5e5e5] border-l-2 border-l-[#222] rounded-[4px] p-5 mb-[30px] flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-[#222] shrink-0 mt-0.5" strokeWidth={1.75} />
                 <div>
-                  <h4 className="font-bold text-[15px] text-amber-900 mb-0.5">
+                  <h4 className="font-semibold text-[14px] text-[#111] mb-0.5">
                     Đơn hàng chưa hoàn tất thanh toán VNPay
                   </h4>
-                  <p className="text-[13px] text-amber-800 m-0">
-                    Vui lòng bấm thanh toán để đơn hàng được xác nhận và đóng gói sớm nhất!
+                  <p className="text-[13px] text-[#555] m-0">
+                    Vui lòng thanh toán để đơn hàng được xác nhận và đóng gói sớm nhất.
                   </p>
                 </div>
               </div>
               <button
                 type="button"
                 onClick={() => setShowVnPayModal(true)}
-                className="bg-[#005baa] hover:bg-[#004a8c] text-white px-5 py-2.5 text-[13px] font-bold uppercase rounded-[6px] shadow transition-colors shrink-0 cursor-pointer"
+                className="bg-[#222] hover:bg-black text-white px-5 py-2.5 text-[12px] font-semibold uppercase tracking-wide rounded-tl-[12px] rounded-br-[12px] transition-colors shrink-0 cursor-pointer"
               >
-                Thanh toán ngay qua VNPay
+                Thanh toán VNPay
               </button>
             </div>
           )}

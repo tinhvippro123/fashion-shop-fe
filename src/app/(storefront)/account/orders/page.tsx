@@ -105,22 +105,19 @@ export default function OrdersPage() {
       : orders.filter((o) => o.status === statusFilter);
 
   const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "PENDING":
-        return <i className="fas fa-clock mr-[4px] text-[#ffc107]"></i>;
-      case "PROCESSING":
-        return <i className="fas fa-box mr-[4px] text-[#007bff]"></i>;
-      case "SHIPPING":
-        return <i className="fas fa-truck mr-[4px] text-[#17a2b8]"></i>;
-      case "COMPLETED":
-        return <i className="fas fa-check-circle mr-[4px] text-[#28a745]"></i>;
-      case "CANCELLED":
-        return (
-          <i className="fas fa-sync mr-[4px] text-[#6c757d] text-[12px]"></i>
-        );
-      default:
-        return null;
-    }
+    const dotColors: Record<string, string> = {
+      PENDING: "bg-amber-600",
+      PROCESSING: "bg-[#222]",
+      SHIPPING: "bg-[#555]",
+      COMPLETED: "bg-emerald-600",
+      CANCELLED: "bg-[#b5121b]",
+    };
+    const dotColor = dotColors[status] || "bg-[#999]";
+    return (
+      <span
+        className={`inline-block w-[7px] h-[7px] rounded-full mr-[8px] align-middle ${dotColor}`}
+      />
+    );
   };
 
   const getStatusText = (status: string) => {

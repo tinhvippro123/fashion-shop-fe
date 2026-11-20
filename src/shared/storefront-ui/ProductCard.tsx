@@ -65,24 +65,16 @@ export default function ProductCard({
     product.productColors?.find((c) => c.id === activeColorId) ||
     initialColor;
 
-  const colorWithImages =
-    product.productColors?.find((c) => c.images && c.images.length > 0);
-
-  // Fallback to any color that has images so storefront never displays a blank card unnecessarily
-  const displayColor =
-    activeColor?.images && activeColor.images.length > 0
-      ? activeColor
-      : colorWithImages || activeColor;
-
-  const hasImages = Boolean(displayColor?.images && displayColor.images.length > 0);
+  // Show the selected color's own images honestly (never swap to another color's photo)
+  const hasImages = Boolean(activeColor?.images && activeColor.images.length > 0);
 
   const mainImage = hasImages
-    ? resolveImageUrl(displayColor!.images[0].imageUrl)
+    ? resolveImageUrl(activeColor!.images[0].imageUrl)
     : null;
 
   const hoverImage =
-    hasImages && displayColor!.images.length > 1
-      ? resolveImageUrl(displayColor!.images[1].imageUrl)
+    hasImages && activeColor!.images.length > 1
+      ? resolveImageUrl(activeColor!.images[1].imageUrl)
       : null;
 
   // Sync activeColorId if productColors update
@@ -127,14 +119,7 @@ export default function ProductCard({
   const handleToggleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isAuthenticated) {
-      toast("Bạn cần đăng nhập để thực hiện chức năng này !", {
-        style: {
-          backgroundColor: "#359cb1",
-          color: "#fff",
-          borderRadius: "2px",
-          padding: "16px",
-        },
-      });
+      toast.info("Vui lòng đăng nhập để sử dụng danh sách yêu thích");
       return;
     }
     try {
@@ -264,20 +249,20 @@ export default function ProductCard({
           </button>
         </div>
 
-        <div className="mb-[5px]">
+        <div className="mb-[4px]">
           <Link
             href={`/product/${product.slug || product.id}`}
-            className="text-[#333] text-[14px] font-normal no-underline uppercase block hover:text-[#000] whitespace-nowrap overflow-hidden text-ellipsis"
+            className="text-[#6c6d70] text-[14px] leading-[16px] font-normal no-underline capitalize block hover:text-[#221F20] transition-colors h-[32px] line-clamp-2 overflow-hidden text-left"
           >
             {product.name}
           </Link>
         </div>
 
-        <div className="flex justify-between items-center mb-[8px]">
-          <div className="flex items-center gap-[10px]">
+        <div className="flex justify-between items-end mb-[8px]">
+          <div className="flex items-baseline gap-[8px] pb-[2px]">
             {product.discountPercent && product.discountPercent > 0 ? (
               <>
-                <span className="text-[16px] font-bold text-[#e10600]">
+                <span className="text-[16px] font-semibold text-[#221F20]">
                   {formatPrice(
                     Math.round(
                       (product.basePrice *
@@ -286,12 +271,12 @@ export default function ProductCard({
                     )
                   )}
                 </span>
-                <span className="text-[14px] text-[#999] line-through">
+                <span className="text-[13px] text-[#a8a9ad] line-through">
                   {formatPrice(product.basePrice)}
                 </span>
               </>
             ) : (
-              <span className="text-[16px] font-bold text-[#000]">
+              <span className="text-[16px] font-semibold text-[#221F20]">
                 {formatPrice(product.basePrice)}
               </span>
             )}

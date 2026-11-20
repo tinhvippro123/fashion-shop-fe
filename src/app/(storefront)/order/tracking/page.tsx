@@ -7,6 +7,7 @@ import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
+import { OrderTrackingTimeline } from "@/features/cart-and-order/components/OrderTrackingTimeline";
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Chờ xử lý",
@@ -15,8 +16,6 @@ const STATUS_LABELS: Record<string, string> = {
   COMPLETED: "Giao thành công",
   CANCELLED: "Đã hủy đơn hàng",
 };
-
-const STEP_ORDER = ["PENDING", "PROCESSING", "SHIPPING", "COMPLETED"];
 
 function OrderTrackingContent() {
   const searchParams = useSearchParams();
@@ -46,12 +45,6 @@ function OrderTrackingContent() {
       setLoading(false);
     }
   };
-
-  const activeStepIdx = order
-    ? order.status === "CANCELLED"
-      ? 0
-      : Math.max(0, STEP_ORDER.indexOf(order.status))
-    : 0;
 
   return (
     <div className="container-luxe px-[15px] min-[1200px]:px-[85px] mx-auto mt-[40px] mb-[60px] font-['Montserrat',sans-serif]">
@@ -118,104 +111,13 @@ function OrderTrackingContent() {
           <div className="flex flex-col lg:flex-row gap-[40px] lg:gap-[60px]">
             {/* Left Column */}
             <div className="flex-1 overflow-hidden">
-              {/* Horizontal Progress Bar */}
-              <div
-                className="mb-[50px] border border-[#e1e1e1] px-[15px] lg:px-[40px] py-[30px]"
-                style={{ borderRadius: "20px 0 20px 0" }}
-              >
-                <div className="w-full relative">
-                  <div className="absolute top-[6px] left-[7px] right-[7px] h-[2px] bg-[#e1e1e1] z-[1]"></div>
-
-                  <div className="flex justify-between relative z-[2] h-[55px]">
-                    {order.status === "CANCELLED" ? (
-                      <>
-                        <div className="relative w-[14px]">
-                          <div className="w-[14px] h-[14px] rounded-full bg-[#222] mx-auto"></div>
-                          <div className="text-[12px] text-[#6c6d70] text-left leading-tight absolute top-[25px] left-[-5px] w-max">
-                            Đơn hàng đã đặt
-                          </div>
-                        </div>
-                        <div className="relative w-[14px]">
-                          <div className="w-[14px] h-[14px] rounded-full bg-[#dc3545] mx-auto"></div>
-                          <div className="text-[12px] text-[#dc3545] font-semibold text-right leading-tight absolute top-[25px] right-[-5px] w-max">
-                            Đã hủy
-                          </div>
-                        </div>
-                      </>
-                    ) : (
-                      [
-                        { key: "PENDING", label: "Đã đặt đơn" },
-                        { key: "PROCESSING", label: "Đang xử lý" },
-                        { key: "SHIPPING", label: "Đang giao" },
-                        { key: "COMPLETED", label: "Hoàn thành" },
-                      ].map((step, idx) => {
-                        const reached = idx <= activeStepIdx;
-                        return (
-                          <div key={step.key} className="relative w-[14px]">
-                            <div
-                              className={`w-[14px] h-[14px] rounded-full mx-auto ${
-                                reached
-                                  ? "bg-[#222]"
-                                  : "bg-white border-[2px] border-[#e1e1e1]"
-                              }`}
-                            ></div>
-                            <div
-                              className={`text-[12px] leading-tight absolute top-[25px] w-max ${
-                                idx === 0
-                                  ? "left-[-5px]"
-                                  : idx === 3
-                                  ? "right-[-5px]"
-                                  : "left-1/2 -translate-x-1/2"
-                              } ${
-                                reached
-                                  ? "text-[#222] font-medium"
-                                  : "text-[#999]"
-                              }`}
-                            >
-                              {step.label}
-                            </div>
-                          </div>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Vertical Timeline */}
-              <h4 className="font-semibold text-[18px] text-[#222] mb-[30px]">
-                Chi tiết trạng thái đơn hàng
-              </h4>
-
-              <div className="pl-[8px] mb-[40px] space-y-[20px] border-l-[2px] border-[#222]">
-                <div className="relative pl-[25px]">
-                  <div className="absolute top-[4px] left-[-8px] w-[14px] h-[14px] rounded-full bg-[#222]"></div>
-                  <div className="flex flex-wrap items-center gap-[20px]">
-                    <span className="text-[14px] font-medium text-[#222] w-[180px]">
-                      Đơn hàng đã đặt
-                    </span>
-                    <span className="text-[14px] text-[#6c6d70]">
-                      {order.createdAt}
-                    </span>
-                  </div>
-                </div>
-
-                {order.status !== "PENDING" && (
-                  <div className="relative pl-[25px]">
-                    <div className="absolute top-[4px] left-[-8px] w-[14px] h-[14px] rounded-full bg-[#222]"></div>
-                    <div className="flex flex-wrap items-center gap-[20px]">
-                      <span className="text-[14px] font-medium text-[#222] w-[180px]">
-                        {STATUS_LABELS[order.status] || order.status}
-                      </span>
-                      <span className="text-[14px] text-[#6c6d70]">
-                        {order.status === "CANCELLED"
-                          ? order.cancelReason || "Đơn hàng đã bị hủy"
-                          : "Đã cập nhật trạng thái đơn hàng"}
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
+              <OrderTrackingTimeline
+                status={order.status}
+                createdAt={order.createdAt}
+                updatedAt={order.updatedAt}
+                cancelReason={order.cancelReason}
+                showVerticalDetails={true}
+              />
 
               {/* Product Items */}
               <div className="border-t border-[#e1e1e1] pt-[30px] space-y-[24px]">

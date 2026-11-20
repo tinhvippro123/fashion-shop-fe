@@ -9,6 +9,7 @@ import {
 import { useAuthStore } from "@/features/users/stores/auth.store";
 import { apiFetch } from "@/shared/lib/api";
 import { toast } from "react-toastify";
+import { CheckCircle2, Info, Lock } from "lucide-react";
 
 interface ProductTabsProps {
   product: ProductDetail;
@@ -16,67 +17,52 @@ interface ProductTabsProps {
   onReviewAdded: (review: ProductReviewItem) => void;
 }
 
+const EDITORIAL_CONTENT_CLASSES =
+  "w-full max-w-full overflow-x-hidden break-words [overflow-wrap:anywhere] text-[#333] text-[14px] leading-[1.8] font-normal [&_p]:mb-2.5 [&_p:last-child]:mb-0 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:mb-3 [&_li]:mb-1.5 [&_strong]:font-semibold [&_strong]:text-[#111] [&_*]:!max-w-full [&_*]:!whitespace-normal";
+
+function sanitizeEditorialHtml(raw: string): string {
+  return raw
+    .replace(/&nbsp;/gi, " ")
+    .replace(/\u00A0/g, " ")
+    .replace(/<pre[^>]*>/gi, "<p>")
+    .replace(/<\/pre>/gi, "</p>")
+    .replace(/style\s*=\s*"([^"]*)"/gi, (_, styles: string) => {
+      const cleaned = styles
+        .split(";")
+        .map((rule) => rule.trim())
+        .filter(
+          (rule) =>
+            rule &&
+            !/^(white-space|width|min-width|max-width|word-break|overflow|display|position|left|right|margin-left|margin-right)\s*:/i.test(
+              rule
+            )
+        )
+        .join("; ");
+      return cleaned ? `style="${cleaned}"` : "";
+    })
+    .replace(/(<p[^>]*>\s*(?:<br\s*\/?>)?\s*<\/p>\s*){2,}/gi, "<p><br /></p>");
+}
+
 function formatRawDescription(desc?: string): string {
-  if (!desc) return "<p>Đang cập nhật thông tin sản phẩm...</p>";
+  if (!desc || !desc.trim()) return "<p>Đang cập nhật thông tin sản phẩm...</p>";
 
-  // If already clean multi-paragraph HTML with model specs, use it
-  if (desc.includes("<p>") && (desc.includes("<strong>Chiều cao") || desc.includes("<strong>Thông tin mẫu"))) {
-    return desc
-      .replace(/<ul[^>]*>/gi, "")
-      .replace(/<\/ul>/gi, "")
-      .replace(/<li[^>]*>/gi, "<p class='mb-3 text-[#333] leading-relaxed'>- ")
-      .replace(/<\/li>/gi, "</p>");
+  // Preserve structured HTML entered via RichTextEditor (Quill) or clean seed HTML
+  if (/<(p|div|ul|ol|li|h[1-6]|br)\b/i.test(desc)) {
+    return sanitizeEditorialHtml(desc);
   }
 
-  let text = desc.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-  let noteInfo = "";
-  let modelInfo = "";
-
-  const noteIdx = text.search(/Lưu ý\s*:/i);
-  if (noteIdx !== -1) {
-    noteInfo = text.substring(noteIdx).replace(/^Lưu ý\s*:\s*/i, "").trim();
-    text = text.substring(0, noteIdx).trim();
+  // Plain-text fallback: preserve line breaks cleanly
+  const normalized = desc.replace(/\u00A0/g, " ").trim();
+  if (normalized.includes("\n")) {
+    return normalized
+      .split(/\r?\n+/)
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .map((line) => `<p>${line}</p>`)
+      .join("\n");
   }
 
-  const modelIdx = text.search(/Thông tin (?:người )?mẫu\s*:/i);
-  if (modelIdx !== -1) {
-    modelInfo = text.substring(modelIdx).replace(/^Thông tin (?:người )?mẫu\s*:\s*/i, "").trim();
-    text = text.substring(0, modelIdx).trim();
-  }
-
-  // Split description paragraphs by ' - ' or '- '
-  const bullets = text
-    .split(/\s*-\s+/)
-    .map((s) => s.trim())
-    .filter(Boolean);
-
-  let html = "";
-  for (const b of bullets) {
-    html += `<p class="mb-3 text-[#333] leading-relaxed">- ${b}</p>\n`;
-  }
-
-  if (modelInfo) {
-    html += `<p class="font-bold text-[#111] mt-5 mb-2.5 text-[14px]">Thông tin mẫu:</p>\n`;
-    const height = (modelInfo.match(/Chiều cao[^:]*:\s*([0-9\s]+(?:cm|m)?)/i) || [])[1];
-    const weight = (modelInfo.match(/Cân nặng[^:]*:\s*([0-9\s]+(?:kg)?)/i) || [])[1];
-    const measurements = (modelInfo.match(/Số đo[^:]*:\s*([0-9\s\-]+(?:cm)?)/i) || [])[1];
-    const size = (modelInfo.match(/Mẫu mặc[^:]*:\s*([^\n\r,]+)/i) || [])[1];
-
-    if (height) html += `<p class="mb-2 text-[#333]"><strong>Chiều cao: </strong>${height.trim()}</p>\n`;
-    if (weight) html += `<p class="mb-2 text-[#333]"><strong>Cân nặng: </strong>${weight.trim()}</p>\n`;
-    if (measurements) html += `<p class="mb-2 text-[#333]"><strong>Số đo 3 vòng: </strong>${measurements.trim()}</p>\n`;
-    if (size) html += `<p class="mb-2 text-[#333]"><strong>Mẫu mặc size: </strong>${size.trim()}</p>\n`;
-
-    if (!height && !weight && !measurements && !size) {
-      html += `<p class="mb-2 text-[#333]">${modelInfo}</p>\n`;
-    }
-  }
-
-  if (noteInfo) {
-    html += `<p class="mt-4 text-[#555] leading-relaxed text-[13px]">Lưu ý: ${noteInfo}</p>\n`;
-  }
-
-  return html || `<p>${desc}</p>`;
+  return `<p>${normalized}</p>`;
 }
 
 export default function ProductTabs({
@@ -203,20 +189,23 @@ export default function ProductTabs({
         </li>
       </ul>
 
-      <div className="tab-content">
+      <div className="tab-content w-full max-w-full overflow-x-hidden">
         {activeTab === "intro" && (
           <div className="animate-fadeIn">
             <div
               className={`relative overflow-hidden transition-all duration-300 ease-in-out ${
-                isDescExpanded ? "max-h-[1000px]" : "max-h-[150px]"
+                isDescExpanded ? "max-h-none" : "max-h-[180px]"
               }`}
             >
               <div
-                className="text-[#333] text-[14px] leading-[1.8] font-normal [&>p]:mb-3.5 [&>p>strong]:font-bold [&>p>strong]:text-[#111]"
+                className={EDITORIAL_CONTENT_CLASSES}
                 dangerouslySetInnerHTML={{
                   __html: formatRawDescription(product.description),
                 }}
               />
+              {!isDescExpanded && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-white to-transparent" />
+              )}
             </div>
 
             <div className="text-center mt-[16px] relative">
@@ -259,20 +248,22 @@ export default function ProductTabs({
         )}
 
         {activeTab === "preserve" && (
-          <div className="text-[#6c757d] text-[14px] leading-[1.8] animate-fadeIn space-y-2">
+          <div className="w-full max-w-full overflow-x-hidden animate-fadeIn">
             {product.careInstructions ? (
               product.careInstructions.includes("<") ? (
                 <div
-                  className="prose prose-sm max-w-none text-[#6c757d]"
-                  dangerouslySetInnerHTML={{ __html: product.careInstructions }}
+                  className={EDITORIAL_CONTENT_CLASSES}
+                  dangerouslySetInnerHTML={{
+                    __html: sanitizeEditorialHtml(product.careInstructions),
+                  }}
                 />
               ) : (
-                <div className="whitespace-pre-line">
-                  {product.careInstructions}
+                <div className="whitespace-pre-line break-words [overflow-wrap:anywhere] text-[#333] text-[14px] leading-[1.8]">
+                  {product.careInstructions.replace(/\u00A0/g, " ")}
                 </div>
               )
             ) : (
-              <>
+              <div className="text-[#555] text-[14px] leading-[1.8] space-y-2">
                 <p>
                   - Khuyến khích giặt tay với nước lạnh hoặc giặt máy ở chế độ nhẹ để
                   giữ phom dáng chuẩn.
@@ -282,7 +273,7 @@ export default function ProductTabs({
                   nắng trực tiếp.
                 </p>
                 <p>- Ủi ở nhiệt độ thấp dưới 110 độ C.</p>
-              </>
+              </div>
             )}
           </div>
         )}
@@ -290,9 +281,9 @@ export default function ProductTabs({
         {activeTab === "reviews" && (
           <div className="animate-fadeIn space-y-6">
             {!isAuthenticated ? (
-              <div className="border border-[#e7e8e9] p-4 rounded-[8px] bg-[#f8f9fa] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="text-[13px] text-[#555] flex items-center gap-2">
-                  <i className="fas fa-lock text-[#888]"></i>
+              <div className="border border-[#e5e5e5] border-l-2 border-l-[#222] p-4 rounded-[4px] bg-[#fafafa] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="text-[13px] text-[#444] flex items-center gap-2.5">
+                  <Lock className="w-4 h-4 text-[#555] shrink-0" strokeWidth={1.6} />
                   <span>Vui lòng đăng nhập để gửi đánh giá cho sản phẩm này.</span>
                 </div>
                 <Link
@@ -303,24 +294,36 @@ export default function ProductTabs({
                 </Link>
               </div>
             ) : loadingEligibility ? (
-              <div className="border border-[#e7e8e9] p-4 rounded-[8px] bg-[#f8f9fa] text-[13px] text-[#777] flex items-center gap-2">
+              <div className="border border-[#e5e5e5] p-4 rounded-[4px] bg-[#fafafa] text-[13px] text-[#666] flex items-center gap-2">
                 <i className="fas fa-spinner fa-spin"></i>
                 <span>Đang kiểm tra quyền đánh giá sản phẩm...</span>
               </div>
             ) : eligibility?.reviewed ? (
-              <div className="border border-emerald-200 bg-emerald-50 text-emerald-800 p-4 rounded-[8px] text-[13px] flex items-start gap-2.5">
-                <i className="fas fa-check-circle text-[16px] text-emerald-600 mt-0.5 shrink-0"></i>
+              <div className="border border-[#e5e5e5] border-l-2 border-l-[#222] bg-[#fafafa] text-[#333] p-4 rounded-[4px] text-[13px] flex items-start gap-2.5">
+                <CheckCircle2 className="w-4 h-4 text-[#222] mt-0.5 shrink-0" strokeWidth={1.75} />
                 <div>
-                  <strong className="font-semibold block mb-0.5">Bạn đã gửi đánh giá cho sản phẩm này</strong>
-                  <span>Cảm ơn những phản hồi quý báu của bạn đã giúp cộng đồng và LUXE nâng cao chất lượng sản phẩm!</span>
+                  <strong className="font-semibold text-[#111] block mb-0.5">
+                    Bạn đã gửi đánh giá cho sản phẩm này
+                  </strong>
+                  <span className="text-[#555]">
+                    Cảm ơn phản hồi của bạn đã giúp LUXE nâng cao chất lượng sản phẩm.
+                  </span>
                 </div>
               </div>
             ) : !eligibility?.purchased ? (
-              <div className="border border-amber-200 bg-amber-50 text-amber-800 p-4 rounded-[8px] text-[13px] flex items-start gap-2.5">
-                <i className="fas fa-shield-alt text-[16px] text-amber-600 mt-0.5 shrink-0"></i>
+              <div className="border border-[#e5e5e5] border-l-2 border-l-[#222] bg-[#fafafa] text-[#333] p-4 rounded-[4px] text-[13px] flex items-start gap-2.5">
+                <Info className="w-4 h-4 text-[#222] mt-0.5 shrink-0" strokeWidth={1.75} />
                 <div>
-                  <strong className="font-semibold block mb-0.5">Quyền đánh giá dành riêng cho người mua hàng</strong>
-                  <span>Để đảm bảo tính khách quan và trải nghiệm thực tế, chỉ những khách hàng <strong>đã mua và nhận hàng thành công</strong> sản phẩm này mới có thể viết đánh giá.</span>
+                  <strong className="font-semibold text-[#111] block mb-0.5">
+                    Quyền đánh giá dành riêng cho khách hàng đã mua sản phẩm
+                  </strong>
+                  <span className="text-[#555]">
+                    Chỉ những khách hàng{" "}
+                    <strong className="text-[#222] font-medium">
+                      đã mua và nhận hàng thành công
+                    </strong>{" "}
+                    sản phẩm này mới có thể viết đánh giá.
+                  </span>
                 </div>
               </div>
             ) : (

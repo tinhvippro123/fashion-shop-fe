@@ -44,30 +44,32 @@ const DEFAULT_FEATURED: FeaturedBanner[] = [
 ];
 
 export default function FeaturedCategories() {
-  const [categories, setCategories] = useState<FeaturedBanner[]>(DEFAULT_FEATURED);
+  const [categories, setCategories] = useState<FeaturedBanner[] | null>(null);
 
   useEffect(() => {
     let active = true;
     apiFetch<FeaturedBanner[]>("/banners?position=FEATURED")
       .then((data) => {
-        if (active && Array.isArray(data) && data.length > 0) {
+        if (active && Array.isArray(data)) {
           setCategories(data);
         }
       })
       .catch(() => {
-        // keep fallback default categories
+        if (active) {
+          setCategories(DEFAULT_FEATURED);
+        }
       });
     return () => {
       active = false;
     };
   }, []);
 
-  // Giới hạn tối đa 4 danh mục nổi bật trên trang chủ
-  const displayCategories = categories.slice(0, 4);
-
-  if (displayCategories.length === 0) {
+  if (!categories || categories.length === 0) {
     return null;
   }
+
+  // Giới hạn tối đa 4 danh mục nổi bật trên trang chủ
+  const displayCategories = categories.slice(0, 4);
 
   // Tự động căn chỉnh layout và tỉ lệ ảnh lấp đầy toàn bộ hàng ngang:
   // - 4 thẻ: 4 cột đều nhau (25% mỗi thẻ)
