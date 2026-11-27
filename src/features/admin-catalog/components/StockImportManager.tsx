@@ -313,17 +313,35 @@ export function StockImportManager() {
   };
 
   const handleSubmitReceipt = async () => {
-    if (!supplierName.trim()) {
-      toast.error("Vui lòng nhập tên nhà cung cấp!");
+    const trimmedSupplier = supplierName.trim();
+    if (trimmedSupplier.length < 2 || trimmedSupplier.length > 100) {
+      toast.error("Tên nhà cung cấp phải từ 2 đến 100 ký tự!");
       return;
     }
-    const validItems = draftItems.filter(
-      (i) => i.variantId && i.quantity > 0 && i.unitCost >= 0
-    );
-    if (validItems.length === 0) {
-      toast.error("Vui lòng chọn ít nhất 1 biến thể sản phẩm hợp lệ!");
+    if (note.trim().length > 300) {
+      toast.error("Ghi chú không vượt quá 300 ký tự!");
       return;
     }
+    if (draftItems.length === 0) {
+      toast.error("Vui lòng thêm ít nhất 1 biến thể sản phẩm vào phiếu nhập!");
+      return;
+    }
+    for (let idx = 0; idx < draftItems.length; idx++) {
+      const row = draftItems[idx];
+      if (!row.variantId) {
+        toast.error(`Dòng #${idx + 1}: Vui lòng chọn biến thể sản phẩm!`);
+        return;
+      }
+      if (!Number.isInteger(row.quantity) || row.quantity < 1 || row.quantity > 10000) {
+        toast.error(`Dòng #${idx + 1}: Số lượng nhập phải là số nguyên từ 1 đến 10.000!`);
+        return;
+      }
+      if (!Number.isFinite(row.unitCost) || row.unitCost < 1000 || row.unitCost > 100000000) {
+        toast.error(`Dòng #${idx + 1}: Giá vốn đơn vị phải từ 1.000đ đến 100.000.000đ!`);
+        return;
+      }
+    }
+    const validItems = draftItems;
 
     setSubmitting(true);
     try {
@@ -623,6 +641,7 @@ export function StockImportManager() {
               <div className="relative">
                 <Input
                   list="supplier-options"
+                  maxLength={100}
                   placeholder="Gõ hoặc chọn nhà cung cấp..."
                   value={supplierName}
                   onChange={(e) => setSupplierName(e.target.value)}
@@ -636,8 +655,9 @@ export function StockImportManager() {
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs font-semibold">Ghi chú chứng từ</Label>
+              <Label className="text-xs font-semibold">Ghi chú chứng từ (Không bắt buộc)</Label>
               <Input
+                maxLength={300}
                 placeholder="VD: Nhập bổ sung lô hàng Thu Đông đợt 1..."
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -854,6 +874,7 @@ export function StockImportManager() {
                             <Input
                               type="number"
                               min={1}
+                              max={10000}
                               className="h-8 w-20 text-center font-bold text-xs mx-auto"
                               value={row.quantity}
                               onChange={(e) =>
@@ -876,7 +897,8 @@ export function StockImportManager() {
                           <TableCell className="text-right">
                             <Input
                               type="number"
-                              min={0}
+                              min={1000}
+                              max={100000000}
                               step={1000}
                               className="h-8 w-28 text-right font-medium text-xs ml-auto"
                               value={row.unitCost}

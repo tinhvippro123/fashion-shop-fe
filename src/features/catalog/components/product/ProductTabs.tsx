@@ -109,7 +109,18 @@ export default function ProductTabs({
       toast.info("Vui lòng đăng nhập để gửi đánh giá sản phẩm.");
       return;
     }
-    if (!comment.trim()) return;
+    if (!comment.trim()) {
+      toast.error("Vui lòng nhập nội dung đánh giá sản phẩm.");
+      return;
+    }
+    if (comment.trim().length < 5) {
+      toast.error("Nội dung đánh giá cần tối thiểu 5 ký tự.");
+      return;
+    }
+    if (comment.trim().length > 500) {
+      toast.error("Nội dung đánh giá không vượt quá 500 ký tự.");
+      return;
+    }
     setSubmitting(true);
     try {
       const created = await apiFetch<ProductReviewItem>(
@@ -354,12 +365,19 @@ export default function ProductTabs({
                 </div>
                 <textarea
                   value={comment}
-                  onChange={(e) => setComment(e.target.value)}
+                  onChange={(e) => setComment(e.target.value.slice(0, 500))}
+                  minLength={5}
+                  maxLength={500}
                   rows={3}
                   required
-                  placeholder="Chia sẻ cảm nhận thực tế về chất liệu, đường may và kiểu dáng sản phẩm..."
-                  className="w-full border border-[#ddd] rounded-[4px] p-3 text-[13px] bg-white outline-none focus:border-[#222] mb-3"
+                  placeholder="Chia sẻ cảm nhận thực tế về chất liệu, đường may và kiểu dáng sản phẩm (5 - 500 ký tự)..."
+                  className="w-full border border-[#ddd] rounded-[4px] p-3 text-[13px] bg-white outline-none focus:border-[#222] mb-1.5"
                 />
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] text-[#888]">
+                    {comment.length}/500 ký tự
+                  </span>
+                </div>
                 <button
                   type="submit"
                   disabled={submitting}

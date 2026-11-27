@@ -56,6 +56,7 @@ import {
   toggleBannerStatus,
   deleteAdminBanner,
 } from "../api/banner.api";
+import { isValidSafeUrl } from "@/shared/utils/validation";
 
 export function BannerManagement() {
   const [banners, setBanners] = useState<BannerItem[]>([]);
@@ -155,12 +156,34 @@ export function BannerManagement() {
   };
 
   const handleSave = () => {
-    if (!formData.title.trim()) {
-      toast.error("Vui lòng nhập tiêu đề banner");
+    const title = formData.title.trim();
+    const subtitle = (formData.subtitle || "").trim();
+    const imageUrl = formData.imageUrl.trim();
+    const targetUrl = (formData.targetUrl || "").trim();
+    const sortOrder = formData.sortOrder ?? 1;
+
+    if (title.length < 2 || title.length > 100) {
+      toast.error("Tiêu đề banner phải từ 2 đến 100 ký tự");
       return;
     }
-    if (!formData.imageUrl.trim()) {
+    if (subtitle.length > 150) {
+      toast.error("Phụ đề banner không vượt quá 150 ký tự");
+      return;
+    }
+    if (!imageUrl) {
       toast.error("Vui lòng tải lên hoặc nhập đường dẫn ảnh");
+      return;
+    }
+    if (imageUrl.length > 500 || !isValidSafeUrl(imageUrl)) {
+      toast.error("Đường dẫn ảnh không hợp lệ (phải bắt đầu bằng / hoặc http(s)://)");
+      return;
+    }
+    if (targetUrl && (targetUrl.length > 300 || !isValidSafeUrl(targetUrl))) {
+      toast.error("Liên kết đích không hợp lệ hoặc vượt quá 300 ký tự");
+      return;
+    }
+    if (!Number.isInteger(sortOrder) || sortOrder < 0 || sortOrder > 99) {
+      toast.error("Thứ tự ưu tiên phải là số nguyên từ 0 đến 99");
       return;
     }
 
@@ -505,6 +528,7 @@ export function BannerManagement() {
                 <Label htmlFor="banner-title">Tiêu đề Banner *</Label>
                 <Input
                   id="banner-title"
+                  maxLength={100}
                   placeholder="Ví dụ: BỘ SƯU TẬP THỜI TRANG NỮ"
                   value={formData.title}
                   onChange={(e) =>
@@ -517,6 +541,7 @@ export function BannerManagement() {
                 <Label htmlFor="banner-subtitle">Phụ đề / Thông điệp (Không bắt buộc)</Label>
                 <Input
                   id="banner-subtitle"
+                  maxLength={150}
                   placeholder="Ví dụ: Ưu đãi đặc biệt giảm đến 50%"
                   value={formData.subtitle || ""}
                   onChange={(e) =>
@@ -579,6 +604,7 @@ export function BannerManagement() {
                 <Label htmlFor="banner-target">Liên kết khi click (Target URL)</Label>
                 <Input
                   id="banner-target"
+                  maxLength={300}
                   placeholder="Ví dụ: /danh-muc/nu hoặc /danh-muc/sale"
                   value={formData.targetUrl || ""}
                   onChange={(e) =>
@@ -592,7 +618,8 @@ export function BannerManagement() {
                 <Input
                   id="banner-order"
                   type="number"
-                  min={1}
+                  min={0}
+                  max={99}
                   value={formData.sortOrder ?? 1}
                   onChange={(e) =>
                     setFormData((prev) => ({

@@ -5,6 +5,14 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { apiRequestWithMeta } from "@/shared/lib/api";
 import { useAuthStore } from "@/features/users/stores/auth.store";
+import {
+  VN_NAME_ERROR,
+  VN_PHONE_ERROR,
+  isValidEmail,
+  isValidVnName,
+  isValidVnPhone,
+  sanitizeVnPhone,
+} from "@/shared/utils/validation";
 import { MapPin, Phone, Mail, Clock, CheckCircle2, Send } from "lucide-react";
 
 const SUBJECT_PRESETS = [
@@ -33,20 +41,24 @@ export default function ContactPage() {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (!fullName.trim()) {
-      toast.error("Vui lòng nhập họ và tên");
+    if (!isValidVnName(fullName)) {
+      toast.error(VN_NAME_ERROR);
       return;
     }
-    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      toast.error("Vui lòng nhập địa chỉ email hợp lệ");
+    if (!isValidEmail(email)) {
+      toast.error("Vui lòng nhập địa chỉ email hợp lệ (tối đa 100 ký tự)");
       return;
     }
-    if (!subject.trim()) {
-      toast.error("Vui lòng chọn chủ đề liên hệ");
+    if (phone.trim() && !isValidVnPhone(phone)) {
+      toast.error(VN_PHONE_ERROR);
       return;
     }
-    if (!message.trim()) {
-      toast.error("Vui lòng nhập nội dung cần hỗ trợ");
+    if (subject.trim().length < 3 || subject.trim().length > 100) {
+      toast.error("Chủ đề liên hệ phải từ 3 đến 100 ký tự");
+      return;
+    }
+    if (message.trim().length < 10 || message.trim().length > 1000) {
+      toast.error("Nội dung liên hệ phải từ 10 đến 1000 ký tự");
       return;
     }
 
@@ -144,10 +156,10 @@ export default function ContactPage() {
                       Hotline tư vấn
                     </div>
                     <a
-                      href="tel:0123456789"
+                      href="tel:18002026"
                       className="text-[#6c6d70] hover:text-[#000] transition-colors"
                     >
-                      0123 456 789
+                      1800 2026 (Miễn phí)
                     </a>
                   </div>
                 </div>
@@ -245,7 +257,8 @@ export default function ContactPage() {
                       id="contact-fullname"
                       type="text"
                       required
-                      maxLength={150}
+                      minLength={2}
+                      maxLength={40}
                       value={fullName}
                       onChange={(e) => setFullNameInput(e.target.value)}
                       placeholder="Nhập họ tên của bạn"
@@ -258,15 +271,21 @@ export default function ContactPage() {
                       htmlFor="contact-phone"
                       className="block text-[13px] font-medium text-[#221F20] mb-[6px]"
                     >
-                      Số điện thoại
+                      Số điện thoại{" "}
+                      <span className="text-[12px] font-normal text-[#888]">
+                        (không bắt buộc)
+                      </span>
                     </label>
                     <input
                       id="contact-phone"
                       type="tel"
-                      maxLength={30}
+                      inputMode="numeric"
+                      maxLength={10}
                       value={phone}
-                      onChange={(e) => setPhoneInput(e.target.value)}
-                      placeholder="VD: 0901 234 567"
+                      onChange={(e) =>
+                        setPhoneInput(sanitizeVnPhone(e.target.value))
+                      }
+                      placeholder="VD: 0901234567 (10 số)"
                       className="w-full h-[44px] px-[14px] text-[14px] text-[#221F20] border border-[#d8d8d8] rounded-[4px] outline-none focus:border-[#221F20] transition-colors bg-white"
                     />
                   </div>
@@ -285,7 +304,7 @@ export default function ContactPage() {
                       id="contact-email"
                       type="email"
                       required
-                      maxLength={150}
+                      maxLength={100}
                       value={email}
                       onChange={(e) => setEmailInput(e.target.value)}
                       placeholder="email@example.com"
@@ -316,19 +335,25 @@ export default function ContactPage() {
                 </div>
 
                 <div>
-                  <label
-                    htmlFor="contact-message"
-                    className="block text-[13px] font-medium text-[#221F20] mb-[6px]"
-                  >
-                    Nội dung chi tiết <span className="text-[#e10600]">*</span>
-                  </label>
+                  <div className="flex items-center justify-between mb-[6px]">
+                    <label
+                      htmlFor="contact-message"
+                      className="block text-[13px] font-medium text-[#221F20]"
+                    >
+                      Nội dung chi tiết <span className="text-[#e10600]">*</span>
+                    </label>
+                    <span className="text-[11px] text-[#888]">
+                      {message.length}/1000 ký tự
+                    </span>
+                  </div>
                   <textarea
                     id="contact-message"
                     required
                     rows={6}
-                    maxLength={3000}
+                    minLength={10}
+                    maxLength={1000}
                     value={message}
-                    onChange={(e) => setMessage(e.target.value)}
+                    onChange={(e) => setMessage(e.target.value.slice(0, 1000))}
                     placeholder="Mô tả câu hỏi của bạn (kèm mã đơn hàng hoặc chiều cao, cân nặng nếu cần tư vấn size)..."
                     className="w-full px-[14px] py-[12px] text-[14px] text-[#221F20] border border-[#d8d8d8] rounded-[4px] outline-none focus:border-[#221F20] transition-colors bg-white resize-y"
                   />

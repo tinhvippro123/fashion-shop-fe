@@ -115,8 +115,8 @@ export function ContactManagement() {
 
   const handleSendReply = async () => {
     if (!selectedContact) return;
-    if (!replyText.trim()) {
-      toast.error("Vui lòng nhập nội dung phản hồi");
+    if (replyText.trim().length < 2 || replyText.trim().length > 1500) {
+      toast.error("Nội dung phản hồi phải từ 2 đến 1500 ký tự");
       return;
     }
 

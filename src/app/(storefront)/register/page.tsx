@@ -8,6 +8,22 @@ import { useAuthStore } from "@/features/users/stores/auth.store";
 import { GoogleSignInButton } from "@/features/auth";
 import { apiFetch } from "@/shared/lib/api";
 import {
+  BIRTH_DATE_ERROR,
+  PASSWORD_ERROR,
+  VN_NAME_ERROR,
+  VN_PHONE_ERROR,
+  getMaxBirthDateString,
+  getMinBirthDateString,
+  isValidBirthDate,
+  isValidEmail,
+  isValidOtp,
+  isValidPassword,
+  isValidVnName,
+  isValidVnPhone,
+  sanitizeOtp,
+  sanitizeVnPhone,
+} from "@/shared/utils/validation";
+import {
   loadVnProvinces,
   loadVnDistricts,
   loadVnWards,
@@ -64,7 +80,7 @@ export default function RegisterPage() {
 
   const handleSendOtp = async () => {
     const trimmedEmail = email.trim();
-    if (!trimmedEmail || !trimmedEmail.includes("@")) {
+    if (!isValidEmail(trimmedEmail)) {
       toast.warning("Vui lòng nhập địa chỉ Email hợp lệ trước khi lấy mã OTP!");
       return;
     }
@@ -117,25 +133,45 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
-    if (phone.trim() && !VN_PHONE_REGEX.test(phone.trim())) {
-      toast.error("Số điện thoại không hợp lệ! Vui lòng nhập 10 chữ số bắt đầu bằng 03, 05, 07, 08, 09.");
+    const fullName = `${lastName} ${firstName}`.trim();
+    if (!lastName.trim() || !firstName.trim() || !isValidVnName(fullName)) {
+      toast.error(VN_NAME_ERROR);
       return;
     }
-    if (password.length < 6) {
-      toast.error("Mật khẩu phải từ 6 ký tự trở lên!");
+    if (!isValidEmail(email)) {
+      toast.error("Địa chỉ email không đúng định dạng (tối đa 100 ký tự)!");
+      return;
+    }
+    if (!isValidVnPhone(phone)) {
+      toast.error(VN_PHONE_ERROR);
+      return;
+    }
+    if (!dateOfBirth || !isValidBirthDate(dateOfBirth)) {
+      toast.error(BIRTH_DATE_ERROR);
+      return;
+    }
+    if (!selectedProvince || !selectedDistrict || !selectedWard) {
+      toast.error("Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã!");
+      return;
+    }
+    const cleanStreet = street.trim();
+    if (cleanStreet.length < 3 || cleanStreet.length > 150) {
+      toast.error("Địa chỉ cụ thể (số nhà, tên đường) phải từ 3 đến 150 ký tự!");
+      return;
+    }
+    if (!isValidPassword(password)) {
+      toast.error(PASSWORD_ERROR);
       return;
     }
     if (password !== confirmPassword) {
       toast.error("Mật khẩu nhập lại không khớp!");
       return;
     }
-    if (!otpCode.trim()) {
-      toast.error("Vui lòng nhập mã xác thực OTP gửi tới email!");
+    if (!isValidOtp(otpCode)) {
+      toast.error("Vui lòng nhập đủ mã xác thực OTP gồm 6 chữ số!");
       return;
     }
 
-    const fullName = `${lastName} ${firstName}`.trim();
     setLoading(true);
     try {
       await register({
@@ -183,6 +219,7 @@ export default function RegisterPage() {
                   </label>
                   <input
                     type="text"
+                    maxLength={20}
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
@@ -196,6 +233,7 @@ export default function RegisterPage() {
                   </label>
                   <input
                     type="text"
+                    maxLength={20}
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
@@ -212,6 +250,7 @@ export default function RegisterPage() {
                   </label>
                   <input
                     type="email"
+                    maxLength={100}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
@@ -226,11 +265,11 @@ export default function RegisterPage() {
                   <input
                     type="tel"
                     inputMode="numeric"
-                    maxLength={11}
+                    maxLength={10}
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
+                    onChange={(e) => setPhone(sanitizeVnPhone(e.target.value))}
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
-                    placeholder="0987654321"
+                    placeholder="VD: 0987654321 (10 số)"
                     required
                   />
                 </div>
@@ -243,6 +282,8 @@ export default function RegisterPage() {
                   </label>
                   <input
                     type="date"
+                    min={getMinBirthDateString()}
+                    max={getMaxBirthDateString()}
                     value={dateOfBirth}
                     onChange={(e) => setDateOfBirth(e.target.value)}
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
@@ -328,6 +369,8 @@ export default function RegisterPage() {
                   Địa chỉ:<span className="text-[#ff0000]">*</span>
                 </label>
                 <textarea
+                  minLength={3}
+                  maxLength={150}
                   value={street}
                   onChange={(e) => setStreet(e.target.value)}
                   className="w-full h-[100px] p-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3] resize-none"
@@ -349,10 +392,12 @@ export default function RegisterPage() {
                 </label>
                 <input
                   type="password"
+                  minLength={6}
+                  maxLength={32}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
-                  placeholder="Mật khẩu (tối thiểu 6 ký tự)..."
+                  placeholder="Từ 6 đến 32 ký tự, không khoảng trắng..."
                   required
                 />
               </div>
@@ -363,6 +408,8 @@ export default function RegisterPage() {
                 </label>
                 <input
                   type="password"
+                  minLength={6}
+                  maxLength={32}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
@@ -378,9 +425,10 @@ export default function RegisterPage() {
                 <div className="flex gap-[12px]">
                   <input
                     type="text"
+                    inputMode="numeric"
                     maxLength={6}
                     value={otpCode}
-                    onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setOtpCode(sanitizeOtp(e.target.value))}
                     className="flex-1 h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3] tracking-[2px] font-semibold"
                     placeholder="Nhập mã OTP 6 số..."
                     required

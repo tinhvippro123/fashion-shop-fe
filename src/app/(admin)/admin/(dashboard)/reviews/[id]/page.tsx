@@ -120,8 +120,8 @@ export default function ReviewDetailPage() {
 
   const handleSendReply = async () => {
     const plain = replyHtml.replace(/<[^>]*>/g, "").trim();
-    if (!plain) {
-      toast.error("Vui lòng nhập nội dung phản hồi");
+    if (plain.length < 2 || plain.length > 500) {
+      toast.error("Nội dung phản hồi phải từ 2 đến 500 ký tự");
       return;
     }
     setSubmitting(true);

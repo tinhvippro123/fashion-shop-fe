@@ -143,6 +143,7 @@ export function VoucherForm({
               <FormControl>
                 <Input
                   placeholder="VD: SUMMER2026"
+                  maxLength={20}
                   className="uppercase"
                   disabled={readOnly || status === "Đang diễn ra"}
                   {...field}
@@ -204,6 +205,8 @@ export function VoucherForm({
               <FormControl>
                 <Input
                   type="number"
+                  min={discountType === "vnd" ? 1000 : 1}
+                  max={discountType === "percent" ? 100 : 50000000}
                   placeholder={
                     discountType === "vnd" ? "VD: 50000" : "VD: 10"
                   }
@@ -230,6 +233,8 @@ export function VoucherForm({
                 <FormControl>
                   <Input
                     type="number"
+                    min={1000}
+                    max={50000000}
                     placeholder="VD: 100000"
                     disabled={readOnly || status === "Đang diễn ra"}
                     {...field}
@@ -252,6 +257,8 @@ export function VoucherForm({
               <FormControl>
                 <Input
                   type="number"
+                  min={0}
+                  max={100000000}
                   placeholder="VD: 500000"
                   disabled={readOnly}
                   {...field}
@@ -275,6 +282,8 @@ export function VoucherForm({
               <FormControl>
                 <Input
                   type="number"
+                  min={1}
+                  max={100000}
                   placeholder="VD: 100"
                   disabled={readOnly}
                   {...field}

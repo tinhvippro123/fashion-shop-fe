@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { useAuthStore } from "@/features/users/stores/auth.store";
 import { GoogleSignInButton } from "@/features/auth";
+import { isValidEmail } from "@/shared/utils/validation";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,6 +20,14 @@ export default function LoginPage() {
     e.preventDefault();
     if (!email.trim() || !password) {
       toast.error("Vui lòng nhập đầy đủ Email và Mật khẩu");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      toast.error("Địa chỉ email không đúng định dạng");
+      return;
+    }
+    if (password.length > 64) {
+      toast.error("Mật khẩu không vượt quá 64 ký tự");
       return;
     }
     setLoading(true);
@@ -55,6 +64,7 @@ export default function LoginPage() {
                 <div className="mb-[20px] flex justify-center">
                   <input
                     type="email"
+                    maxLength={100}
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="w-full max-w-[390px] h-[48px] px-[15px] border border-[#e7e8e9] rounded-[4px] text-[14px] outline-none focus:border-[#222] transition-colors placeholder-[#a3a3a3] font-['Montserrat',sans-serif]"
@@ -66,6 +76,7 @@ export default function LoginPage() {
                   <div className="relative w-full max-w-[390px]">
                     <input
                       type={showPassword ? "text" : "password"}
+                      maxLength={64}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       className="w-full h-[48px] pl-[15px] pr-[42px] border border-[#e7e8e9] rounded-[4px] text-[14px] outline-none focus:border-[#222] transition-colors placeholder-[#a3a3a3] font-['Montserrat',sans-serif]"

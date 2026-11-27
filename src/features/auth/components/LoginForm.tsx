@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/features/users/stores/auth.store";
+import { isValidEmail } from "@/shared/utils/validation";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -19,11 +20,25 @@ export function LoginForm() {
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsLoading(true);
 
     const formData = new FormData(event.currentTarget);
-    const email = (formData.get("email") as string)?.trim();
-    const password = formData.get("password") as string;
+    const email = ((formData.get("email") as string) || "").trim();
+    const password = (formData.get("password") as string) || "";
+
+    if (!email || !password) {
+      toast.error("Vui lòng nhập đầy đủ Email và Mật khẩu");
+      return;
+    }
+    if (!isValidEmail(email)) {
+      toast.error("Địa chỉ email không đúng định dạng");
+      return;
+    }
+    if (password.length > 64) {
+      toast.error("Mật khẩu không vượt quá 64 ký tự");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const loggedUser = await login(email, password);
@@ -100,6 +115,7 @@ export function LoginForm() {
                   id="email"
                   name="email"
                   type="email"
+                  maxLength={100}
                   placeholder="Nhập email quản trị..."
                   required
                   className="h-11"
@@ -126,6 +142,7 @@ export function LoginForm() {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
+                    maxLength={64}
                     placeholder="Nhập mật khẩu..."
                     required
                     className="h-11 pr-10"

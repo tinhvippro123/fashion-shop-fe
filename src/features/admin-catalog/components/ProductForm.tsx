@@ -2,7 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition, KeyboardEvent, DragEvent, useEffect } from "react";
+import {
+  useState,
+  useTransition,
+  KeyboardEvent,
+  DragEvent,
+  useEffect,
+  useRef,
+} from "react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
@@ -70,6 +77,7 @@ import {
 } from "../schemas/product.schema";
 import { getFashionColorHex, isColorAttribute } from "@/shared/utils/color";
 import { isSizeAttribute, getSizeSortOrder } from "@/shared/utils/size";
+import { toAsciiSkuToken } from "@/shared/utils/validation";
 import {
   AdminCategory,
   IOptionSuggestions,
@@ -99,26 +107,82 @@ interface ProductFormProps {
 
 const GENERAL_UPLOAD_KEY = "__general__";
 
-function buildSkuSuffix(combo: Record<string, string>): string {
-  return Object.values(combo)
-    .map((val) => {
-      const cleaned = val.trim();
-      if (cleaned.length <= 3) return cleaned.toUpperCase();
-      return cleaned
-        .split(/\s+/)
-        .map((w) => w[0]?.toUpperCase() || "")
-        .join("");
-    })
-    .filter(Boolean)
-    .join("-");
+function sanitizeSkuInput(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[đĐ]/g, "D")
+    .toUpperCase()
+    .replace(/\s+/g, "-")
+    .replace(/[^A-Z0-9_-]/g, "")
+    .slice(0, 25);
+}
+
+function buildOptionValueSkuMap(values: string[]): Record<string, string> {
+  const shortCodes: Record<string, string> = {};
+  const counts: Record<string, number> = {};
+
+  for (const val of values) {
+    const token = toAsciiSkuToken(val);
+    const words = token.split("-").filter(Boolean);
+    let code = "";
+    if (words.length === 0) {
+      code = "OPT";
+    } else if (words.length === 1) {
+      code = words[0].slice(0, 5);
+    } else {
+      code = words.map((w) => w[0] || "").join("");
+    }
+    shortCodes[val] = code;
+    counts[code] = (counts[code] || 0) + 1;
+  }
+
+  const finalMap: Record<string, string> = {};
+  const usedFinal = new Set<string>();
+
+  for (const val of values) {
+    let candidate = shortCodes[val];
+    if (counts[candidate] > 1) {
+      const words = toAsciiSkuToken(val).split("-").filter(Boolean);
+      if (words.length > 1) {
+        candidate =
+          words[0][0] +
+          words
+            .slice(1)
+            .map((w) => w.slice(0, 3))
+            .join("");
+      } else if (words.length === 1) {
+        candidate = words[0].slice(0, 6);
+      }
+    }
+    let uniqueCandidate = candidate || "V";
+    let suffix = 2;
+    while (usedFinal.has(uniqueCandidate)) {
+      uniqueCandidate = `${candidate}${suffix}`;
+      suffix++;
+    }
+    usedFinal.add(uniqueCandidate);
+    finalMap[val] = uniqueCandidate;
+  }
+
+  return finalMap;
 }
 
 function buildVariantCombinations(
   options: TProductOption[],
   existingVariants: TProductVariant[],
   basePrice: number,
-  baseSku: string
+  skuPrefix: string
 ): TProductVariant[] {
+  // If user has a Color attribute group present on screen with 0 values chosen yet,
+  // wait until at least 1 color is picked (unless they remove the Color group).
+  const hasEmptyColorGroup = options.some(
+    (opt) => isColorAttribute(opt.name) && (!opt.values || opt.values.length === 0)
+  );
+  if (hasEmptyColorGroup) {
+    return [];
+  }
+
   const validOptions = options
     .map((opt) => {
       if (isSizeAttribute(opt.name)) {
@@ -135,6 +199,11 @@ function buildVariantCombinations(
 
   if (validOptions.length === 0) return [];
 
+  const codeMapsByOptName: Record<string, Record<string, string>> = {};
+  for (const opt of validOptions) {
+    codeMapsByOptName[opt.name] = buildOptionValueSkuMap(opt.values);
+  }
+
   let combinations: Record<string, string>[] = [{}];
   for (const opt of validOptions) {
     const nextCombinations: Record<string, string>[] = [];
@@ -146,7 +215,8 @@ function buildVariantCombinations(
     combinations = nextCombinations;
   }
 
-  const skuPrefix = baseSku?.trim() || `LUXE-${Date.now() % 10000}`;
+  const cleanPrefix = toAsciiSkuToken(skuPrefix) || "LX-10001";
+  const usedSkus = new Set<string>();
 
   return combinations.map((combo, i) => {
     const matched = existingVariants.find((ev) => {
@@ -160,12 +230,26 @@ function buildVariantCombinations(
       );
     });
 
-    const suffix = buildSkuSuffix(combo);
+    const suffixParts = Object.entries(combo)
+      .map(([optName, optVal]) => codeMapsByOptName[optName]?.[optVal] || toAsciiSkuToken(optVal))
+      .filter(Boolean);
+    const suffix = suffixParts.join("-") || String(i + 1);
+    const autoSku = `${cleanPrefix}-${suffix}`.slice(0, 40);
+
+    const existingCleaned = matched?.sku ? toAsciiSkuToken(matched.sku) : "";
+    let resolvedSku = existingCleaned || autoSku;
+    if (usedSkus.has(resolvedSku)) {
+      resolvedSku = `${autoSku}-${i + 1}`.slice(0, 40);
+    }
+    usedSkus.add(resolvedSku);
+
+    const resolvedPrice =
+      matched?.price && matched.price > 0 ? matched.price : basePrice;
 
     return {
       id: matched?.id,
-      sku: matched?.sku || `${skuPrefix}-${suffix || i + 1}`,
-      price: matched?.price ?? basePrice,
+      sku: resolvedSku,
+      price: resolvedPrice,
       costPrice: matched?.costPrice,
       stock: matched?.stock ?? 0,
       options: combo,
@@ -188,12 +272,19 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const loadingInitial =
     mode === "edit" && Boolean(productId) && loadedProductId !== productId;
 
+  const [autoSkuFallback] = useState(
+    () => `LX-${10000 + Math.floor(Math.random() * 90000)}`
+  );
+  const prevBasePriceRef = useRef<number>(0);
+  const prevSkuPrefixRef = useRef<string>(autoSkuFallback);
+
   const [showCareEditor, setShowCareEditor] = useState(false);
   const [uploadingTargets, setUploadingTargets] = useState<Record<string, boolean>>({});
   const [dragActiveTarget, setDragActiveTarget] = useState<string | null>(null);
   const [generalUrlInput, setGeneralUrlInput] = useState("");
   const [colorUrlInputs, setColorUrlInputs] = useState<Record<string, string>>({});
   const [batchPrice, setBatchPrice] = useState("");
+  const [batchStock, setBatchStock] = useState("");
 
   const [createdProductPrompt, setCreatedProductPrompt] = useState<{
     id: string | number;
@@ -204,7 +295,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const [suggestions, setSuggestions] = useState<IOptionSuggestions>({
     names: ["Màu sắc", "Kích thước"],
     values: {
-      "Màu sắc": ["Đen", "Trắng", "Be", "Đỏ đô", "Xanh navy"],
+      "Màu sắc": ["Đen", "Trắng", "Kem Be", "Đỏ đô", "Xanh Navy"],
       "Kích thước": ["S", "M", "L", "XL"],
     },
   });
@@ -227,7 +318,13 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       images: [],
       colorImages: {},
       status: "published",
-      options: [],
+      options:
+        mode === "create"
+          ? [
+              { name: "Màu sắc", values: [] },
+              { name: "Kích thước", values: ["S", "M", "L"] },
+            ]
+          : [],
       variants: [],
     },
   });
@@ -262,6 +359,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
         }
         if (prod.productColors && Array.isArray(prod.productColors)) {
           prod.productColors.forEach((pc) => {
+            if (pc.isActive === false) return;
             const cName = pc.color?.name;
             if (cName && pc.images && pc.images.length > 0) {
               if (
@@ -283,14 +381,19 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           setShowCareEditor(true);
         }
 
+        const loadedPrice = Number(prod.basePrice || 0);
+        const loadedSku = prod.sku || "";
+        prevBasePriceRef.current = loadedPrice;
+        prevSkuPrefixRef.current = toAsciiSkuToken(loadedSku) || autoSkuFallback;
+
         form.reset({
           name: prod.name || "",
           description: prod.description || "",
-          price: Number(prod.basePrice || 0),
+          price: loadedPrice,
           discountPercent: prod.discountPercent ?? 0,
           isNew: prod.isNew ?? true,
           isBestSeller: prod.isBestSeller ?? false,
-          sku: prod.sku || "",
+          sku: loadedSku,
           stock: prod.totalStock ?? 0,
           category: prod.category?.slug || "",
           brand: prod.brand || "LUXE",
@@ -302,7 +405,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           options: prod.options || [],
           variants: (prod.adminVariants || []).map((v) => ({
             id: v.id,
-            sku: v.sku,
+            sku: toAsciiSkuToken(v.sku) || v.sku,
             price: Number(v.price || prod.basePrice || 0),
             costPrice:
               v.costPrice !== undefined ? Number(v.costPrice) : undefined,
@@ -323,7 +426,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     return () => {
       active = false;
     };
-  }, [mode, productId, form]);
+  }, [mode, productId, form, autoSkuFallback]);
 
   const {
     fields: optionFields,
@@ -352,6 +455,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const watchedOptions = useWatch({ control: form.control, name: "options" });
   const watchedVariants = useWatch({ control: form.control, name: "variants" });
   const watchedPrice = useWatch({ control: form.control, name: "price" }) || 0;
+  const watchedSku = useWatch({ control: form.control, name: "sku" }) || "";
   const watchedDiscount =
     useWatch({ control: form.control, name: "discountPercent" }) || 0;
   const watchedCare = useWatch({ control: form.control, name: "careInstructions" }) || "";
@@ -361,16 +465,26 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       name: "colorImages",
     }) as Record<string, string[]>) || {};
 
+  const getEffectivePrefix = (rawSku?: string) => {
+    const clean = toAsciiSkuToken(rawSku ?? form.getValues("sku") ?? "");
+    return clean || autoSkuFallback;
+  };
+
   // Auto-sync variants whenever options change, keeping existing prices/SKUs/stocks intact
-  const syncVariantsFromOptions = (nextOptions: TProductOption[]) => {
+  const syncVariantsFromOptions = (
+    nextOptions: TProductOption[],
+    forceRebuildSkus = false
+  ) => {
     const basePrice = form.getValues("price") || 0;
-    const baseSku = form.getValues("sku") || "";
-    const existingVariants = form.getValues("variants") || [];
+    const skuPrefix = getEffectivePrefix();
+    const existingVariants = forceRebuildSkus
+      ? (form.getValues("variants") || []).map((v) => ({ ...v, sku: "" }))
+      : form.getValues("variants") || [];
     const synced = buildVariantCombinations(
       nextOptions,
       existingVariants,
       basePrice,
-      baseSku
+      skuPrefix
     );
     replaceVariants(synced);
   };
@@ -529,12 +643,31 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       toast.error("Chưa có biến thể nào để áp dụng");
       return;
     }
-    const updated = current.map((v) => ({ ...v, price: p }));
+    const updated = current.map((v) => ({ ...v, price: Math.round(p) }));
     replaceVariants(updated);
     toast.success(
-      `Đã áp dụng giá ${formatPrice(p)} cho tất cả ${current.length} biến thể`
+      `Đã áp dụng giá ${formatPrice(Math.round(p))} cho tất cả ${current.length} biến thể`
     );
     if (customValue === undefined) setBatchPrice("");
+  };
+
+  const applyBatchStock = () => {
+    const qty = Math.round(Number(batchStock));
+    if (isNaN(qty) || qty < 0 || qty > 10000) {
+      toast.error("Số lượng tồn kho phải từ 0 đến 10.000");
+      return;
+    }
+    const current = form.getValues("variants") || [];
+    if (current.length === 0) {
+      toast.error("Chưa có biến thể nào để áp dụng");
+      return;
+    }
+    const updated = current.map((v) => ({ ...v, stock: qty }));
+    replaceVariants(updated);
+    toast.success(
+      `Đã đặt tồn kho đầu kỳ ${qty} SP cho tất cả ${current.length} biến thể`
+    );
+    setBatchStock("");
   };
 
   const setDefaultColor = (colorName: string) => {
@@ -564,13 +697,13 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       (opt) => opt.name?.trim() && opt.values && opt.values.length > 0
     );
     if (!hasValid) {
-      toast.error("Vui lòng thêm ít nhất 1 thuộc tính và giá trị trước.");
+      toast.error("Vui lòng chọn ít nhất 1 màu sắc hoặc kích cỡ trước.");
       scrollToSection("section-options");
       return;
     }
-    syncVariantsFromOptions(currentOptions);
+    syncVariantsFromOptions(currentOptions, true);
     const count = (form.getValues("variants") || []).length;
-    toast.success(`Đã đồng bộ ${count} biến thể`);
+    toast.success(`Đã làm mới mã SKU và đồng bộ ${count} biến thể`);
   };
 
   const applyFashionPreset = () => {
@@ -590,7 +723,9 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     ];
     replaceOptions(defaultOptions);
     syncVariantsFromOptions(defaultOptions);
-    toast.success("Đã khởi tạo nhóm Màu sắc & Kích thước (S, M, L). Hãy chọn màu cho sản phẩm!");
+    toast.success(
+      "Đã khởi tạo nhóm Màu sắc & Kích thước (S, M, L). Bấm chọn màu để tạo biến thể!"
+    );
   };
 
   const handleQuickAddPresetOption = (name: string) => {
@@ -611,16 +746,36 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     const updatedOpt = { name, values: currentOpt?.values || [] };
     updateOption(index, updatedOpt);
     currentOpts[index] = updatedOpt;
-    syncVariantsFromOptions(currentOpts);
+    syncVariantsFromOptions(currentOpts, true);
   };
 
-  const handleQuickAddValue = (index: number, val: string) => {
+  const handleQuickAddValue = (index: number, rawVal: string) => {
+    const val = rawVal.trim();
+    if (!val) return;
     const currentOpts = [...(form.getValues("options") || [])];
     const currentOpt = currentOpts[index];
     if (!currentOpt) return;
     const currentValues = currentOpt.values || [];
 
-    if (!currentValues.includes(val)) {
+    if (!currentValues.some((v) => v.toLowerCase() === val.toLowerCase())) {
+      // Preserve general images if user uploaded photos before choosing the very first color
+      if (isColorAttribute(currentOpt.name) && currentValues.length === 0) {
+        const generalImgs = (form.getValues("images") || []).filter(Boolean);
+        const existingColorMap = form.getValues("colorImages") || {};
+        if (
+          generalImgs.length > 0 &&
+          (!existingColorMap[val] || existingColorMap[val].length === 0)
+        ) {
+          form.setValue(
+            "colorImages",
+            { ...existingColorMap, [val]: generalImgs },
+            { shouldDirty: true }
+          );
+          form.setValue("images", [], { shouldDirty: true });
+          toast.info(`Đã tự động gán ${generalImgs.length} ảnh vừa tải cho màu ${val}`);
+        }
+      }
+
       const nextValues = [...currentValues, val];
       if (isSizeAttribute(currentOpt.name)) {
         nextValues.sort((a, b) => getSizeSortOrder(a) - getSizeSortOrder(b));
@@ -685,9 +840,17 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       scrollToSection("section-basic");
       return;
     }
-    if (errors.price?.message || errors.discountPercent?.message) {
+    if (
+      errors.price?.message ||
+      errors.discountPercent?.message ||
+      errors.sku?.message
+    ) {
       toast.error(
-        String(errors.price?.message || errors.discountPercent?.message)
+        String(
+          errors.price?.message ||
+            errors.discountPercent?.message ||
+            errors.sku?.message
+        )
       );
       scrollToSection("section-pricing");
       return;
@@ -698,14 +861,12 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       return;
     }
     if (errors.options) {
-      toast.error(
-        "Mỗi nhóm thuộc tính cần có tên và ít nhất 1 giá trị (hoặc xóa nhóm đang để trống)."
-      );
+      toast.error("Vui lòng kiểm tra lại tên thuộc tính phân loại.");
       scrollToSection("section-options");
       return;
     }
     if (errors.variants) {
-      toast.error("Vui lòng kiểm tra lại giá bán và mã SKU của các biến thể.");
+      toast.error("Vui lòng kiểm tra các dòng báo đỏ trong Danh sách biến thể.");
       scrollToSection("section-variants-table");
       return;
     }
@@ -716,17 +877,18 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     values: TProductPayload,
     status: "draft" | "published" = "published"
   ) {
-    const colorOption = (values.options || []).find((opt) =>
-      isColorAttribute(opt.name)
+    const cleanedOptions = (values.options || []).filter(
+      (opt) => opt.name?.trim() && opt.values && opt.values.length > 0
     );
+    const colorOption = cleanedOptions.find((opt) => isColorAttribute(opt.name));
     const activeColorValues = (colorOption?.values || []).filter(Boolean);
 
     if (status === "published") {
-      if (!values.price || values.price <= 0) {
+      if (!values.price || values.price < 1000) {
         form.setError("price", {
-          message: "Giá niêm yết phải lớn hơn 0 khi đăng bán",
+          message: "Giá niêm yết tối thiểu 1.000đ khi đăng bán",
         });
-        toast.error("Vui lòng nhập giá niêm yết lớn hơn 0 (hoặc bấm Lưu nháp).");
+        toast.error("Vui lòng nhập giá niêm yết tối thiểu 1.000đ (hoặc bấm Lưu nháp).");
         scrollToSection("section-pricing");
         return;
       }
@@ -778,13 +940,23 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           finalImages = [];
         }
 
+        const effectiveRootSku = getEffectivePrefix(values.sku);
         const normalizedVariants = (values.variants || []).map((v) => ({
           ...v,
+          sku: toAsciiSkuToken(v.sku) || v.sku,
           price: v.price > 0 ? v.price : values.price,
+          stock: Math.max(0, Math.round(Number(v.stock) || 0)),
         }));
+
+        const totalInitialStock = normalizedVariants.reduce(
+          (sum, v) => sum + (v.stock || 0),
+          0
+        );
 
         const payload = {
           ...values,
+          sku: effectiveRootSku,
+          options: cleanedOptions,
           variants: normalizedVariants,
           images: finalImages,
           colorImages: normalizedColorImages,
@@ -792,14 +964,15 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
         };
 
         if (mode === "create") {
-          const created = await apiFetch<{ id?: number | string; name?: string }>(
-            "/admin/products",
-            {
-              method: "POST",
-              body: JSON.stringify(payload),
-            }
-          );
-          if (status === "published" && created?.id) {
+          const created = await apiFetch<{
+            id?: number | string;
+            name?: string;
+            totalStock?: number;
+          }>("/admin/products", {
+            method: "POST",
+            body: JSON.stringify(payload),
+          });
+          if (status === "published" && created?.id && totalInitialStock === 0) {
             toast.success("Đã tạo sản phẩm mới thành công");
             setCreatedProductPrompt({
               id: created.id,
@@ -807,9 +980,11 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
             });
           } else {
             toast.success(
-              status === "published"
-                ? "Đã thêm sản phẩm mới thành công"
-                : "Đã lưu nháp sản phẩm"
+              status === "draft"
+                ? "Đã lưu nháp sản phẩm thành công"
+                : totalInitialStock > 0
+                ? `Đã đăng bán sản phẩm & nhập kho đầu kỳ (${totalInitialStock} SP)!`
+                : "Đã thêm sản phẩm mới thành công"
             );
             router.push("/admin/products");
           }
@@ -834,7 +1009,13 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   }
 
   const onDraft = () => {
+    form.setValue("status", "draft");
     form.handleSubmit((values) => onSubmit(values, "draft"), onInvalid)();
+  };
+
+  const onPublishSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    form.setValue("status", "published");
+    form.handleSubmit((values) => onSubmit(values, "published"), onInvalid)(e);
   };
 
   // Derived states for Checklist & Media Gallery
@@ -844,7 +1025,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const activeColorValues = (colorOption?.values || []).filter(Boolean);
 
   const hasBasicAndPrice =
-    watchedName.trim().length > 0 && Number(watchedPrice) > 0;
+    watchedName.trim().length >= 2 && Number(watchedPrice) >= 1000;
   const hasCategory = Boolean(watchedCategory);
   const hasAllImages =
     activeColorValues.length > 0
@@ -858,11 +1039,11 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     {
       label: "Thông tin & Giá bán",
       done: hasBasicAndPrice,
-      target: watchedName.trim().length === 0 ? "section-basic" : "section-pricing",
+      target: watchedName.trim().length < 2 ? "section-basic" : "section-pricing",
       hint:
-        watchedName.trim().length === 0
+        watchedName.trim().length < 2
           ? "Chưa nhập tên"
-          : Number(watchedPrice) <= 0
+          : Number(watchedPrice) < 1000
           ? "Chưa nhập giá"
           : formatPrice(Number(watchedPrice)),
     },
@@ -875,7 +1056,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     {
       label: "Màu sắc & Hình ảnh",
       done: hasAllImages,
-      target: "section-media",
+      target: activeColorValues.length === 0 && Boolean(colorOption) ? "section-options" : "section-media",
       hint:
         activeColorValues.length > 0
           ? `${
@@ -889,12 +1070,13 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       label: "Danh sách Biến thể",
       done: hasVariants,
       target: hasVariants ? "section-variants-table" : "section-options",
-      hint: `${variantFields.length} SKU`,
+      hint: `${variantFields.length} biến thể`,
     },
   ];
 
   const completedChecklistCount = checklistItems.filter((i) => i.done).length;
   const isAnyUploading = Object.values(uploadingTargets).some(Boolean);
+  const previewRootSku = toAsciiSkuToken(watchedSku) || autoSkuFallback;
 
   if (loadingInitial) {
     return (
@@ -907,10 +1089,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   return (
     <Form {...form}>
       <form
-        onSubmit={form.handleSubmit(
-          (values) => onSubmit(values, "published"),
-          onInvalid
-        )}
+        onSubmit={onPublishSubmit}
         className="flex flex-col gap-6 w-full pb-12"
       >
         {/* Sticky Top Action Bar */}
@@ -925,7 +1104,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                 <p className="hidden sm:block text-xs sm:text-sm text-muted-foreground truncate">
                   {mode === "edit"
                     ? "Cập nhật thông tin, hình ảnh theo màu và bảng biến thể."
-                    : "Điền thông tin từ trên xuống: Thông tin → Giá → Màu & Ảnh → Biến thể."}
+                    : "Điền Tên & Giá → Chọn Màu & Size → Tải ảnh theo màu → Nhập tồn kho & Đăng bán."}
                 </p>
               </div>
             </div>
@@ -967,7 +1146,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
           </div>
         </div>
 
-        {/* Main 2-Column Single-Page Layout (1 col on Mobile/iPad Mini/iPad Pro portrait, 2 cols on Desktop >= 1280px) */}
+        {/* Main 2-Column Single-Page Layout */}
         <div className="max-w-6xl mx-auto w-full grid gap-5 sm:gap-6 xl:grid-cols-12 items-start">
           {/* LEFT COLUMN (2/3 on Desktop) */}
           <div className="xl:col-span-8 flex flex-col gap-5 sm:gap-6 min-w-0">
@@ -990,7 +1169,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       </FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="VD: Áo sơ mi cổ đức dáng suông..."
+                          maxLength={100}
+                          placeholder="VD: Đầm A xếp ly Rose Cobalt..."
                           {...field}
                         />
                       </FormControl>
@@ -1080,11 +1260,11 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
               </CardContent>
             </Card>
 
-            {/* GIÁ BÁN & KHUYẾN MÃI */}
+            {/* GIÁ BÁN & MÃ THIẾT KẾ (SKU) */}
             <Card id="section-pricing" className="scroll-mt-40 sm:scroll-mt-36">
               <CardHeader>
                 <CardTitle>
-                  {mode === "edit" ? "Giá bán & Tồn kho" : "Giá bán & Khuyến mãi"}
+                  {mode === "edit" ? "Giá bán, Mã SKU & Tồn kho" : "Giá bán & Mã sản phẩm (SKU)"}
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-5 sm:grid-cols-2">
@@ -1101,17 +1281,43 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                         <Input
                           type="number"
                           min={0}
-                          placeholder="VD: 890000"
+                          max={100000000}
+                          placeholder="VD: 1432000"
                           value={field.value === 0 ? "" : field.value}
                           onChange={(e) => {
                             const raw = e.target.value;
-                            field.onChange(raw === "" ? 0 : Math.max(0, Number(raw)));
+                            const nextPrice =
+                              raw === "" ? 0 : Math.max(0, Math.round(Number(raw)));
+                            const prevPrice = prevBasePriceRef.current;
+                            prevBasePriceRef.current = nextPrice;
+                            field.onChange(nextPrice);
+
+                            // Auto-sync price to variants that still hold 0 or previous basePrice
+                            const currentVars = form.getValues("variants") || [];
+                            if (currentVars.length > 0 && nextPrice > 0) {
+                              let updatedAny = false;
+                              const nextVars = currentVars.map((v) => {
+                                if (!v.price || v.price === 0 || v.price === prevPrice) {
+                                  updatedAny = true;
+                                  return { ...v, price: nextPrice };
+                                }
+                                return v;
+                              });
+                              if (updatedAny) {
+                                replaceVariants(nextVars);
+                              }
+                            }
                           }}
                           onBlur={field.onBlur}
                           name={field.name}
                           ref={field.ref}
                         />
                       </FormControl>
+                      {watchedPrice > 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          Hiển thị: <strong className="text-foreground">{formatPrice(Number(watchedPrice))}</strong>
+                        </p>
+                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1127,15 +1333,15 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                         <Input
                           type="number"
                           min={0}
-                          max={100}
+                          max={90}
                           placeholder="0"
                           {...field}
                           value={field.value ?? 0}
                           onChange={(e) =>
                             field.onChange(
                               Math.min(
-                                100,
-                                Math.max(0, Number(e.target.value) || 0)
+                                90,
+                                Math.max(0, Math.round(Number(e.target.value) || 0))
                               )
                             )
                           }
@@ -1175,19 +1381,56 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                   name="sku"
                   render={({ field }) => (
                     <FormItem className={mode === "create" ? "sm:col-span-2" : ""}>
-                      <FormLabel>Mã SKU gốc</FormLabel>
+                      <FormLabel>Mã thiết kế / SKU hiển thị (kiểu IVY moda)</FormLabel>
                       <FormControl>
                         <Input
-                          placeholder="VD: ASM-001 (dùng làm tiền tố tự sinh SKU cho biến thể)"
-                          {...field}
+                          maxLength={25}
+                          placeholder={`VD: 41M8939 (bỏ trống sẽ tự lấy ${autoSkuFallback})`}
+                          className="font-mono"
+                          name={field.name}
+                          ref={field.ref}
                           value={field.value || ""}
+                          onChange={(e) => {
+                            const sanitized = sanitizeSkuInput(e.target.value);
+                            field.onChange(sanitized);
+
+                            const nextPrefix = toAsciiSkuToken(sanitized) || autoSkuFallback;
+                            const prevPrefix = prevSkuPrefixRef.current;
+                            if (nextPrefix !== prevPrefix) {
+                              prevSkuPrefixRef.current = nextPrefix;
+                              const currentVars = form.getValues("variants") || [];
+                              if (currentVars.length > 0) {
+                                const updatedVars = currentVars.map((v) => {
+                                  if (v.sku && v.sku.startsWith(prevPrefix + "-")) {
+                                    return {
+                                      ...v,
+                                      sku: (
+                                        nextPrefix +
+                                        "-" +
+                                        v.sku.slice(prevPrefix.length + 1)
+                                      ).slice(0, 40),
+                                    };
+                                  }
+                                  return v;
+                                });
+                                replaceVariants(updatedVars);
+                              }
+                            }
+                          }}
+                          onBlur={(e) => {
+                            field.onBlur();
+                            const clean = toAsciiSkuToken(e.target.value);
+                            if (clean !== e.target.value) {
+                              field.onChange(clean);
+                            }
+                          }}
                         />
                       </FormControl>
-                      {mode === "create" && (
-                        <p className="text-xs text-muted-foreground">
-                          Tồn kho khởi tạo bằng 0 — sau khi đăng bán, hệ thống sẽ gợi ý lập Phiếu nhập kho ngay.
-                        </p>
-                      )}
+                      <p className="text-xs text-muted-foreground">
+                        Mã hiển thị cố định ngoài trang sản phẩm:{" "}
+                        <strong className="font-mono text-foreground">{previewRootSku}</strong>{" "}
+                        (các biến thể kho tự ghép hậu tố không dấu bên dưới).
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -1256,7 +1499,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                 <div className="min-w-0">
                   <CardTitle>Phân loại (Màu sắc & Kích cỡ)</CardTitle>
                   <CardDescription>
-                    Chọn màu sắc và kích cỡ — khung ảnh theo màu và bảng biến thể sẽ tự động cập nhật.
+                    Bấm chọn nhanh màu sắc & kích cỡ bên dưới — khung tải ảnh theo màu và mã biến thể không dấu sẽ tự động sinh.
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-2 shrink-0 flex-nowrap">
@@ -1322,7 +1565,12 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       const isColor = isColorAttribute(currentName);
                       const availableSuggestions = (
                         suggestions.values[currentName] || []
-                      ).filter((sugg) => !currentValues.includes(sugg));
+                      ).filter(
+                        (sugg) =>
+                          !currentValues.some(
+                            (cv) => cv.toLowerCase() === sugg.toLowerCase()
+                          )
+                      );
 
                       return (
                         <div
@@ -1402,13 +1650,13 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
 
                             <div className="space-y-2.5">
                               <Label className="text-xs">
-                                Giá trị (bấm gợi ý bên dưới hoặc gõ rồi nhấn Enter)
+                                Giá trị (bấm nhanh gợi ý bên dưới hoặc tự gõ rồi nhấn Enter)
                               </Label>
                               <Input
                                 placeholder={
                                   isColor
-                                    ? "VD: Đen, Trắng, Be... rồi nhấn Enter"
-                                    : "VD: S, M, L, XL... rồi nhấn Enter"
+                                    ? "VD: Nâu socola, Xanh tím than, Đỏ... rồi nhấn Enter"
+                                    : "VD: S, M, L, XL, XXL... rồi nhấn Enter"
                                 }
                                 onKeyDown={(e) => handleAddOptionValue(index, e)}
                               />
@@ -1498,6 +1746,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                 <CardDescription>
                   {activeColorValues.length > 0
                     ? "Mỗi màu cần ít nhất 1 ảnh riêng khi đăng bán. Ảnh #1 của màu mặc định sẽ làm ảnh đại diện ngoài gian hàng."
+                    : Boolean(colorOption)
+                    ? "Hãy bấm chọn các Màu sắc của sản phẩm ở khung Phân loại phía trên để hiện ô tải ảnh riêng cho từng màu."
                     : "Kéo thả ảnh từ máy tính hoặc thêm thuộc tính Màu sắc ở trên để tải ảnh riêng cho từng màu."}
                 </CardDescription>
               </CardHeader>
@@ -1766,8 +2016,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                   </div>
                   <CardDescription>
                     {mode === "edit"
-                      ? "Tự động đồng bộ từ Màu sắc & Kích cỡ. Chỉnh giá bán, mã SKU hoặc bấm Nhập kho."
-                      : "Biến thể được tự động sinh khi bạn chọn Màu sắc & Kích cỡ ở phần Phân loại."}
+                      ? "Tự động đồng bộ từ Màu sắc & Kích cỡ. Chỉnh giá bán, mã kho hoặc bấm Nhập kho."
+                      : "Tự sinh mã biến thể không dấu. Bạn có thể nhập luôn Tồn đầu kỳ để bán ngay (hệ thống tự tạo Phiếu nhập kho)."}
                   </CardDescription>
                 </div>
 
@@ -1788,17 +2038,26 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
               <CardContent>
                 {variantFields.length === 0 ? (
                   <div className="text-center py-8 px-4 text-sm text-muted-foreground bg-muted/40 rounded-lg border border-dashed">
-                    Chọn Màu sắc và Kích cỡ ở phần <strong>Phân loại</strong> phía trên để hệ thống tự động sinh bảng biến thể tại đây.
+                    {Boolean(colorOption) && activeColorValues.length === 0 ? (
+                      <>
+                        Hãy bấm chọn ít nhất 1 <strong>Màu sắc</strong> ở phần{" "}
+                        <strong>Phân loại</strong> phía trên để hệ thống tự sinh bảng biến thể (hoặc bấm <em>Xóa nhóm</em> Màu sắc nếu sản phẩm không chia màu).
+                      </>
+                    ) : (
+                      <>
+                        Chọn Màu sắc và Kích cỡ ở phần <strong>Phân loại</strong> phía trên để hệ thống tự động sinh bảng biến thể tại đây.
+                      </>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-3">
                     {/* Batch Action Bar */}
                     <div className="flex flex-wrap items-center justify-between gap-2.5 p-2.5 bg-muted/40 rounded-lg border text-xs">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-muted-foreground">
-                          Áp giá hàng loạt:
-                        </span>
+                      <div className="flex flex-wrap items-center gap-3">
                         <div className="flex items-center gap-1.5">
+                          <span className="font-medium text-muted-foreground">
+                            Áp giá:
+                          </span>
                           <Input
                             type="number"
                             placeholder="Nhập giá..."
@@ -1815,17 +2074,43 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                           >
                             Áp dụng
                           </Button>
+                          {watchedPrice > 0 && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-xs px-2.5"
+                              onClick={() => applyBatchPrice(Number(watchedPrice))}
+                            >
+                              Theo giá gốc
+                            </Button>
+                          )}
                         </div>
-                        {watchedPrice > 0 && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs px-2.5"
-                            onClick={() => applyBatchPrice(Number(watchedPrice))}
-                          >
-                            Dùng giá niêm yết ({formatPrice(Number(watchedPrice))})
-                          </Button>
+
+                        {mode === "create" && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium text-muted-foreground">
+                              Tồn đầu kỳ:
+                            </span>
+                            <Input
+                              type="number"
+                              min={0}
+                              max={10000}
+                              placeholder="VD: 20"
+                              className="h-8 w-20 text-xs bg-card"
+                              value={batchStock}
+                              onChange={(e) => setBatchStock(e.target.value)}
+                            />
+                            <Button
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              className="h-8 text-xs px-2.5"
+                              onClick={applyBatchStock}
+                            >
+                              Điền đều
+                            </Button>
+                          </div>
                         )}
                       </div>
 
@@ -1845,10 +2130,10 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       <div className="bg-muted/50 px-4 py-3 hidden md:flex items-center gap-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                         <div className="flex-1">Phân loại</div>
                         <div className="w-32">Giá bán (đ)</div>
-                        {mode === "edit" && (
-                          <div className="w-24 text-center">Tồn kho</div>
-                        )}
-                        <div className="w-36">Mã SKU</div>
+                        <div className="w-24 text-center">
+                          {mode === "create" ? "Tồn đầu kỳ" : "Tồn kho"}
+                        </div>
+                        <div className="w-40">Mã kho (SKU)</div>
                         <div className="w-9" />
                       </div>
 
@@ -1866,9 +2151,9 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                         return (
                           <div
                             key={v.id}
-                            className="px-3.5 sm:px-4 py-3 flex flex-col md:flex-row md:items-center gap-3 md:gap-4 hover:bg-muted/30 transition-colors"
+                            className="px-3.5 sm:px-4 py-3 flex flex-col md:flex-row md:items-start gap-3 md:gap-4 hover:bg-muted/30 transition-colors"
                           >
-                            <div className="flex flex-1 items-center justify-between gap-2.5 min-w-0">
+                            <div className="flex flex-1 items-center justify-between gap-2.5 min-w-0 md:pt-1.5">
                               <p className="font-medium text-sm flex items-center gap-2 truncate">
                                 {colorHex && (
                                   <span
@@ -1892,7 +2177,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                               </Button>
                             </div>
 
-                            <div className="grid grid-cols-2 md:flex gap-2.5 md:gap-4 w-full md:w-auto items-center">
+                            <div className="grid grid-cols-2 md:flex gap-2.5 md:gap-4 w-full md:w-auto items-start">
                               <div className="col-span-1 md:w-32 space-y-1">
                                 <span className="text-[11px] font-medium text-muted-foreground md:hidden">
                                   Giá bán (đ)
@@ -1901,31 +2186,72 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   control={form.control}
                                   name={`variants.${i}.price`}
                                   render={({ field }) => (
-                                    <Input
-                                      type="number"
-                                      min={0}
-                                      placeholder="Giá bán..."
-                                      className="w-full text-sm h-9"
-                                      value={field.value === 0 ? "" : field.value}
-                                      onChange={(e) => {
-                                        const raw = e.target.value;
-                                        field.onChange(
-                                          raw === "" ? 0 : Math.max(0, Number(raw))
-                                        );
-                                      }}
-                                      onBlur={field.onBlur}
-                                      name={field.name}
-                                      ref={field.ref}
-                                    />
+                                    <FormItem className="space-y-1">
+                                      <FormControl>
+                                        <Input
+                                          type="number"
+                                          min={0}
+                                          placeholder="Giá bán..."
+                                          className="w-full text-sm h-9"
+                                          value={field.value === 0 ? "" : field.value}
+                                          onChange={(e) => {
+                                            const raw = e.target.value;
+                                            field.onChange(
+                                              raw === ""
+                                                ? 0
+                                                : Math.max(0, Math.round(Number(raw)))
+                                            );
+                                          }}
+                                          onBlur={field.onBlur}
+                                          name={field.name}
+                                          ref={field.ref}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-[11px]" />
+                                    </FormItem>
                                   )}
                                 />
                               </div>
 
-                              {mode === "edit" && (
-                                <div className="col-span-1 md:w-24 space-y-1">
-                                  <span className="text-[11px] font-medium text-muted-foreground md:hidden">
-                                    Tồn kho
-                                  </span>
+                              <div className="col-span-1 md:w-24 space-y-1">
+                                <span className="text-[11px] font-medium text-muted-foreground md:hidden">
+                                  {mode === "create" ? "Tồn đầu kỳ" : "Tồn kho"}
+                                </span>
+                                {mode === "create" ? (
+                                  <FormField
+                                    control={form.control}
+                                    name={`variants.${i}.stock`}
+                                    render={({ field }) => (
+                                      <FormItem className="space-y-1">
+                                        <FormControl>
+                                          <Input
+                                            type="number"
+                                            min={0}
+                                            max={10000}
+                                            placeholder="0"
+                                            className="w-full text-sm h-9 text-center font-mono"
+                                            value={field.value ?? 0}
+                                            onChange={(e) => {
+                                              const raw = e.target.value;
+                                              field.onChange(
+                                                raw === ""
+                                                  ? 0
+                                                  : Math.min(
+                                                      10000,
+                                                      Math.max(0, Math.round(Number(raw)))
+                                                    )
+                                              );
+                                            }}
+                                            onBlur={field.onBlur}
+                                            name={field.name}
+                                            ref={field.ref}
+                                          />
+                                        </FormControl>
+                                        <FormMessage className="text-[11px]" />
+                                      </FormItem>
+                                    )}
+                                  />
+                                ) : (
                                   <div className="h-9 flex items-center justify-center">
                                     {(() => {
                                       const stockVal =
@@ -1964,29 +2290,41 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                       );
                                     })()}
                                   </div>
-                                </div>
-                              )}
-
-                              <div
-                                className={cn(
-                                  "md:w-36 space-y-1",
-                                  mode === "edit"
-                                    ? "col-span-2 md:col-span-1"
-                                    : "col-span-1"
                                 )}
-                              >
+                              </div>
+
+                              <div className="col-span-2 md:col-span-1 md:w-40 space-y-1">
                                 <span className="text-[11px] font-medium text-muted-foreground md:hidden">
-                                  Mã SKU
+                                  Mã kho (SKU)
                                 </span>
                                 <FormField
                                   control={form.control}
                                   name={`variants.${i}.sku`}
                                   render={({ field }) => (
-                                    <Input
-                                      placeholder="Mã SKU..."
-                                      className="w-full text-sm h-9 font-mono"
-                                      {...field}
-                                    />
+                                    <FormItem className="space-y-1">
+                                      <FormControl>
+                                        <Input
+                                          placeholder="Mã SKU..."
+                                          className="w-full text-xs h-9 font-mono"
+                                          name={field.name}
+                                          ref={field.ref}
+                                          value={field.value || ""}
+                                          onChange={(e) => {
+                                            const sanitized = e.target.value
+                                              .normalize("NFD")
+                                              .replace(/[\u0300-\u036f]/g, "")
+                                              .replace(/[đĐ]/g, "D")
+                                              .toUpperCase()
+                                              .replace(/\s+/g, "-")
+                                              .replace(/[^A-Z0-9_-]/g, "")
+                                              .slice(0, 40);
+                                            field.onChange(sanitized);
+                                          }}
+                                          onBlur={field.onBlur}
+                                        />
+                                      </FormControl>
+                                      <FormMessage className="text-[11px]" />
+                                    </FormItem>
                                   )}
                                 />
                               </div>
@@ -2147,6 +2485,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       <FormLabel>Nhãn hiệu</FormLabel>
                       <FormControl>
                         <Input
+                          maxLength={50}
                           placeholder="LUXE"
                           {...field}
                           value={field.value || ""}
@@ -2165,6 +2504,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                       <FormLabel>Chất liệu vải (Tab Chi tiết)</FormLabel>
                       <FormControl>
                         <Input
+                          maxLength={150}
                           placeholder="VD: Vải Tuytsi, Lụa tơ tằm, Cotton..."
                           {...field}
                           value={field.value || ""}

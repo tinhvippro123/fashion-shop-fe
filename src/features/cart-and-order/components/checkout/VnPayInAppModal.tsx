@@ -78,8 +78,26 @@ export default function VnPayInAppModal({
     e.preventDefault();
     if (processing) return;
 
-    if (!cardNumber.trim() || !cardHolder.trim() || !issueDate.trim() || !otp.trim()) {
+    const rawCardDigits = cardNumber.replace(/\D/g, "");
+    if (!rawCardDigits || !cardHolder.trim() || !issueDate.trim() || !otp.trim()) {
       toast.error("Vui lòng điền đầy đủ thông tin thẻ");
+      return;
+    }
+    if (rawCardDigits.length < 12 || rawCardDigits.length > 19) {
+      toast.error("Số thẻ ATM phải gồm từ 12 đến 19 chữ số");
+      return;
+    }
+    const cleanHolder = cardHolder.trim();
+    if (cleanHolder.length < 2 || cleanHolder.length > 40 || !/^[A-Z\s]+$/.test(cleanHolder)) {
+      toast.error("Tên chủ thẻ phải từ 2 đến 40 ký tự, chỉ chữ cái không dấu in hoa (VD: NGUYEN VAN A)");
+      return;
+    }
+    if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(issueDate.trim())) {
+      toast.error("Ngày phát hành phải đúng định dạng MM/YY (tháng từ 01 đến 12)");
+      return;
+    }
+    if (!/^\d{6}$/.test(otp.trim())) {
+      toast.error("Mã xác thực OTP phải gồm đúng 6 chữ số");
       return;
     }
 
@@ -188,6 +206,7 @@ export default function VnPayInAppModal({
             </label>
             <input
               type="text"
+              inputMode="numeric"
               autoComplete="off"
               spellCheck={false}
               value={cardNumber}
@@ -208,6 +227,7 @@ export default function VnPayInAppModal({
               type="text"
               autoComplete="off"
               spellCheck={false}
+              maxLength={40}
               value={cardHolder}
               onChange={(e) => setCardHolder(e.target.value.toUpperCase())}
               placeholder="Họ và tên chủ thẻ (không dấu)"
@@ -224,6 +244,7 @@ export default function VnPayInAppModal({
               </label>
               <input
                 type="text"
+                inputMode="numeric"
                 autoComplete="off"
                 spellCheck={false}
                 value={issueDate}
@@ -240,6 +261,7 @@ export default function VnPayInAppModal({
               </label>
               <input
                 type="text"
+                inputMode="numeric"
                 autoComplete="off"
                 spellCheck={false}
                 value={otp}

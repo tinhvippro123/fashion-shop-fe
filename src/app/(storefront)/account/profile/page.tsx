@@ -4,6 +4,19 @@ import React, { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
 import { useAuthStore, User } from "@/features/users/stores/auth.store";
+import {
+  BIRTH_DATE_ERROR,
+  PASSWORD_ERROR,
+  VN_NAME_ERROR,
+  VN_PHONE_ERROR,
+  getMaxBirthDateString,
+  getMinBirthDateString,
+  isValidBirthDate,
+  isValidPassword,
+  isValidVnName,
+  isValidVnPhone,
+  sanitizeVnPhone,
+} from "@/shared/utils/validation";
 
 export default function ProfilePage() {
   const { user, setUser } = useAuthStore();
@@ -41,13 +54,16 @@ export default function ProfilePage() {
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!fullName.trim()) {
-      toast.error("Họ và tên không được để trống");
+    if (!isValidVnName(fullName)) {
+      toast.error(VN_NAME_ERROR);
       return;
     }
-    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
-    if (phone.trim() && !VN_PHONE_REGEX.test(phone.trim())) {
-      toast.error("Số điện thoại không hợp lệ! Vui lòng nhập 10 chữ số bắt đầu bằng 03, 05, 07, 08, 09.");
+    if (phone.trim() && !isValidVnPhone(phone)) {
+      toast.error(VN_PHONE_ERROR);
+      return;
+    }
+    if (dateOfBirth && !isValidBirthDate(dateOfBirth)) {
+      toast.error(BIRTH_DATE_ERROR);
       return;
     }
     setSaving(true);
@@ -77,8 +93,16 @@ export default function ProfilePage() {
 
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword.length < 6) {
-      toast.error("Mật khẩu mới phải từ 6 ký tự trở lên");
+    if (!currentPassword) {
+      toast.error("Vui lòng nhập mật khẩu hiện tại");
+      return;
+    }
+    if (!isValidPassword(newPassword)) {
+      toast.error(PASSWORD_ERROR);
+      return;
+    }
+    if (newPassword === currentPassword) {
+      toast.error("Mật khẩu mới không được trùng mật khẩu hiện tại");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -135,11 +159,13 @@ export default function ProfilePage() {
           <div className="w-full lg:w-7/12 px-[15px] order-2 lg:order-1">
             <div className="flex flex-col md:flex-row md:items-center mb-[24px]">
               <label className="text-[#6c6d70] text-[14px] w-full md:w-[150px] shrink-0 mb-[8px] md:mb-0">
-                Họ và tên
+                Họ và tên <span className="text-[#ff0000]">*</span>
               </label>
               <div className="flex-1 w-full">
                 <input
                   type="text"
+                  minLength={2}
+                  maxLength={40}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full border border-[#e1e1e1] rounded-[4px] p-[10px_15px] text-[14px] text-[#222] outline-none focus:border-[#222] transition-colors"
@@ -156,10 +182,10 @@ export default function ProfilePage() {
                 <input
                   type="tel"
                   inputMode="numeric"
-                  maxLength={11}
+                  maxLength={10}
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
-                  placeholder="0987654321"
+                  onChange={(e) => setPhone(sanitizeVnPhone(e.target.value))}
+                  placeholder="VD: 0987654321 (10 số)"
                   className="w-full border border-[#e1e1e1] rounded-[4px] p-[10px_15px] text-[14px] text-[#222] outline-none focus:border-[#222] transition-colors"
                 />
               </div>
@@ -227,6 +253,8 @@ export default function ProfilePage() {
               <div className="flex-1 w-full">
                 <input
                   type="date"
+                  min={getMinBirthDateString()}
+                  max={getMaxBirthDateString()}
                   value={dateOfBirth}
                   onChange={(e) => setDateOfBirth(e.target.value)}
                   className="w-full border border-[#e1e1e1] rounded-[4px] p-[10px_15px] text-[14px] text-[#222] outline-none focus:border-[#222] transition-colors"
@@ -314,10 +342,11 @@ export default function ProfilePage() {
               <form onSubmit={handlePasswordSubmit}>
                 <div className="mb-[16px]">
                   <label className="text-[12px] text-[#6c6d70] font-bold block mb-[8px]">
-                    Mật khẩu hiện tại
+                    Mật khẩu hiện tại <span className="text-[#ff0000]">*</span>
                   </label>
                   <input
                     type="password"
+                    maxLength={64}
                     value={currentPassword}
                     onChange={(e) => setCurrentPassword(e.target.value)}
                     required
@@ -326,10 +355,13 @@ export default function ProfilePage() {
                 </div>
                 <div className="mb-[16px]">
                   <label className="text-[12px] text-[#6c6d70] font-bold block mb-[8px]">
-                    Mật khẩu mới
+                    Mật khẩu mới <span className="text-[#ff0000]">*</span>
                   </label>
                   <input
                     type="password"
+                    minLength={6}
+                    maxLength={32}
+                    placeholder="Từ 6 đến 32 ký tự, không khoảng trắng"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     required
@@ -338,10 +370,12 @@ export default function ProfilePage() {
                 </div>
                 <div className="mb-[24px]">
                   <label className="text-[12px] text-[#6c6d70] font-bold block mb-[8px]">
-                    Nhập lại Mật khẩu mới
+                    Nhập lại Mật khẩu mới <span className="text-[#ff0000]">*</span>
                   </label>
                   <input
                     type="password"
+                    minLength={6}
+                    maxLength={32}
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
                     required

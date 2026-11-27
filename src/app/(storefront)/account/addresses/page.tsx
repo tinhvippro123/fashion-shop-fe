@@ -12,6 +12,13 @@ import {
   VnDistrict,
   VnWard,
 } from "@/shared/utils/vn-locations";
+import {
+  VN_NAME_ERROR,
+  VN_PHONE_ERROR,
+  isValidVnName,
+  isValidVnPhone,
+  sanitizeVnPhone,
+} from "@/shared/utils/validation";
 
 export default function AddressesPage() {
   const [addresses, setAddresses] = useState<AddressDto[]>([]);
@@ -320,9 +327,21 @@ function AddressModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
-    if (!VN_PHONE_REGEX.test(phone.trim())) {
-      toast.error("Số điện thoại không hợp lệ! Vui lòng nhập 10 chữ số bắt đầu bằng 03, 05, 07, 08, 09.");
+    if (!isValidVnName(recipientName)) {
+      toast.error(VN_NAME_ERROR);
+      return;
+    }
+    if (!isValidVnPhone(phone)) {
+      toast.error(VN_PHONE_ERROR);
+      return;
+    }
+    if (!province || !district || !ward) {
+      toast.error("Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện và Phường/Xã.");
+      return;
+    }
+    const cleanStreet = streetAddress.trim();
+    if (cleanStreet.length < 3 || cleanStreet.length > 150) {
+      toast.error("Địa chỉ cụ thể (số nhà, tên đường) phải từ 3 đến 150 ký tự.");
       return;
     }
     setSaving(true);
@@ -368,8 +387,10 @@ function AddressModal({
                   type="text"
                   autoComplete="off"
                   spellCheck={false}
+                  minLength={2}
+                  maxLength={40}
                   className="w-full border-b border-[#e1e1e1] pb-[10px] pt-[10px] text-[#222] focus:border-[#222] outline-none transition-colors placeholder-[#6c6d70]"
-                  placeholder="Họ tên người nhận"
+                  placeholder="Họ tên người nhận *"
                   required
                   value={recipientName}
                   onChange={(e) => setRecipientName(e.target.value)}
@@ -381,12 +402,12 @@ function AddressModal({
                   inputMode="numeric"
                   autoComplete="off"
                   spellCheck={false}
-                  maxLength={11}
+                  maxLength={10}
                   className="w-full border-b border-[#e1e1e1] pb-[10px] pt-[10px] text-[#222] focus:border-[#222] outline-none transition-colors placeholder-[#6c6d70]"
-                  placeholder="Số điện thoại (10 chữ số)"
+                  placeholder="Số điện thoại (10 chữ số) *"
                   required
                   value={phone}
-                  onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
+                  onChange={(e) => setPhone(sanitizeVnPhone(e.target.value))}
                 />
               </div>
             </div>
@@ -445,8 +466,10 @@ function AddressModal({
                 type="text"
                 autoComplete="off"
                 spellCheck={false}
+                minLength={3}
+                maxLength={150}
                 className="w-full border-b border-[#e1e1e1] pb-[10px] pt-[10px] text-[#222] focus:border-[#222] outline-none transition-colors placeholder-[#6c6d70]"
-                placeholder="Địa chỉ cụ thể (Số nhà, tên đường...)"
+                placeholder="Địa chỉ cụ thể (Số nhà, tên đường...) *"
                 required
                 value={streetAddress}
                 onChange={(e) => setStreetAddress(e.target.value)}

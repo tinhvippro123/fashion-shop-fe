@@ -43,6 +43,24 @@ async function uploadToCloudinary(buffer: Buffer, originalName: string): Promise
   });
 }
 
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024; // 5MB
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "image/avif",
+]);
+const ALLOWED_EXTENSIONS = new Set([
+  ".jpg",
+  ".jpeg",
+  ".png",
+  ".webp",
+  ".gif",
+  ".avif",
+]);
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -53,6 +71,30 @@ export async function POST(request: NextRequest) {
         { error: "Vui lòng chọn ít nhất một file ảnh" },
         { status: 400 }
       );
+    }
+
+    for (const file of files) {
+      if (!file.name) continue;
+      const ext = path.extname(file.name).toLowerCase();
+      const mime = (file.type || "").toLowerCase();
+      if (!ALLOWED_EXTENSIONS.has(ext) || (mime && !ALLOWED_MIME_TYPES.has(mime))) {
+        return NextResponse.json(
+          { error: "Chỉ hỗ trợ định dạng ảnh JPG, PNG, WEBP, GIF hoặc AVIF" },
+          { status: 400 }
+        );
+      }
+      if (file.size <= 0) {
+        return NextResponse.json(
+          { error: "Tệp ảnh trống hoặc không hợp lệ" },
+          { status: 400 }
+        );
+      }
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        return NextResponse.json(
+          { error: "Kích thước mỗi ảnh không được vượt quá 5MB" },
+          { status: 400 }
+        );
+      }
     }
 
     const uploadedUrls: string[] = [];

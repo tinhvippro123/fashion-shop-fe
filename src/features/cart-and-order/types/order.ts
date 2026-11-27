@@ -55,7 +55,7 @@ export interface OrderResponseDto {
   paymentStatus: string;
   paymentMethod: string;
   payment: string;
-  paymentBg: string;
+  paymentBg?: string;
   paymentUrl?: string | null;
   total: string;
   subtotal: number;

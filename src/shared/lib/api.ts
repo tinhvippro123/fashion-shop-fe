@@ -61,8 +61,23 @@ export async function apiRequestWithMeta<T>(
   }
 
   if (!res.ok || (payload && payload.success === false)) {
+    let detailedError: string | undefined;
+    if (
+      payload?.data &&
+      typeof payload.data === "object" &&
+      !Array.isArray(payload.data)
+    ) {
+      const firstFieldMsg = Object.values(
+        payload.data as Record<string, unknown>
+      ).find((val): val is string => typeof val === "string" && val.trim().length > 0);
+      if (firstFieldMsg) {
+        detailedError = firstFieldMsg;
+      }
+    }
     const errorMsg =
-      payload?.message || `Yêu cầu thất bại (HTTP ${res.status})`;
+      detailedError ||
+      payload?.message ||
+      `Yêu cầu thất bại (HTTP ${res.status})`;
     const errorCode = payload?.code;
     throw new ApiError(errorMsg, errorCode, res.status);
   }

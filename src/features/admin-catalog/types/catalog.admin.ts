@@ -79,6 +79,8 @@ export interface AdminProduct {
   isActive: boolean;
   image?: string;
   description?: string;
+  material?: string;
+  careInstructions?: string;
   lowStockVariantCount: number;
   outOfStockVariantCount: number;
   lowStockVariants: Array<{

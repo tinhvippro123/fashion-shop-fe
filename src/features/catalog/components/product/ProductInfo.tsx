@@ -164,7 +164,7 @@ export default function ProductInfo({
 
       <div className="flex items-center mb-[24px] text-[#6c757d] text-[14px]">
         <div className="mr-[24px]">
-          <span>SKU: {selectedVariant?.sku || product.sku || `SP-${product.id}`}</span>
+          <span>SKU: {product.sku || `SP-${product.id}`}</span>
         </div>
         <div className="flex items-center">
           <div className="text-[#ffc107] mr-[8px]">

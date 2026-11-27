@@ -23,7 +23,7 @@ export function isSizeAttribute(attributeName?: string | null): boolean {
     lower.includes("kích") ||
     lower.includes("kich") ||
     lower.includes("cỡ") ||
-    lower.includes("co")
+    /\bkich co\b|\bco\b/.test(lower)
   );
 }
 

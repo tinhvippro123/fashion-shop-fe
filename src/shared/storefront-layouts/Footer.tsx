@@ -82,7 +82,7 @@ export default function Footer() {
               </a>
             </div>
             <div className="bg-[#222] text-white inline-block px-[22px] py-[15px] rounded-tl-[15px] rounded-br-[15px] font-semibold text-[15px]">
-              HOTLINE: 0123 456 789
+              HOTLINE: 1800 2026
             </div>
           </div>
 
@@ -219,10 +219,10 @@ export default function Footer() {
               <ul className="list-none p-0 m-0">
                 <li className="mb-[16px]">
                   <a
-                    href="tel:0123456789"
+                    href="tel:18002026"
                     className="text-[#555] font-normal block py-[2px] transition-all duration-200 hover:text-[#000]"
                   >
-                    Hotline: 0123 456 789
+                    Hotline: 1800 2026
                   </a>
                 </li>
                 <li className="mb-[16px]">

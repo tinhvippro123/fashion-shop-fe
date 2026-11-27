@@ -5,6 +5,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { apiFetch } from "@/shared/lib/api";
+import {
+  PASSWORD_ERROR,
+  isValidEmail,
+  isValidOtp,
+  isValidPassword,
+  sanitizeOtp,
+} from "@/shared/utils/validation";
 
 interface SendOtpResponse {
   email: string;
@@ -38,8 +45,8 @@ export default function ForgotPasswordPage() {
   const handleSendOtp = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const cleanEmail = email.trim().toLowerCase();
-    if (!cleanEmail) {
-      toast.error("Vui lòng nhập địa chỉ email của bạn");
+    if (!isValidEmail(cleanEmail)) {
+      toast.error("Vui lòng nhập địa chỉ email hợp lệ");
       return;
     }
 
@@ -73,12 +80,12 @@ export default function ForgotPasswordPage() {
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!otpCode.trim()) {
-      toast.error("Vui lòng nhập mã OTP gồm 6 chữ số");
+    if (!isValidOtp(otpCode)) {
+      toast.error("Vui lòng nhập đủ mã OTP gồm 6 chữ số");
       return;
     }
-    if (newPassword.length < 6) {
-      toast.error("Mật khẩu mới phải từ 6 ký tự trở lên");
+    if (!isValidPassword(newPassword)) {
+      toast.error(PASSWORD_ERROR);
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -139,6 +146,7 @@ export default function ForgotPasswordPage() {
               </label>
               <input
                 type="email"
+                maxLength={100}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Ví dụ: khachhang@gmail.com"
@@ -184,9 +192,10 @@ export default function ForgotPasswordPage() {
               </div>
               <input
                 type="text"
+                inputMode="numeric"
                 maxLength={6}
                 value={otpCode}
-                onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                onChange={(e) => setOtpCode(sanitizeOtp(e.target.value))}
                 placeholder="Nhập 6 số OTP trong email"
                 className="w-full h-[48px] px-[15px] border border-[#e7e8e9] rounded-[4px] text-[16px] text-center tracking-[4px] font-mono outline-none focus:border-[#222] transition-colors"
                 required
@@ -199,9 +208,11 @@ export default function ForgotPasswordPage() {
               </label>
               <input
                 type="password"
+                minLength={6}
+                maxLength={32}
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Tối thiểu 6 ký tự"
+                placeholder="Từ 6 đến 32 ký tự, không khoảng trắng"
                 className="w-full h-[48px] px-[15px] border border-[#e7e8e9] rounded-[4px] text-[14px] outline-none focus:border-[#222] transition-colors placeholder-[#a3a3a3]"
                 required
               />
@@ -213,6 +224,8 @@ export default function ForgotPasswordPage() {
               </label>
               <input
                 type="password"
+                minLength={6}
+                maxLength={32}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Nhập lại mật khẩu mới"

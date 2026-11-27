@@ -8,6 +8,12 @@ import { apiFetch } from "@/shared/lib/api";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
 import { OrderResponseDto } from "@/features/cart-and-order/types/order";
 import { OrderTrackingTimeline } from "@/features/cart-and-order/components/OrderTrackingTimeline";
+import {
+  ORDER_CODE_REGEX,
+  VN_PHONE_ERROR,
+  isValidVnPhone,
+  sanitizeVnPhone,
+} from "@/shared/utils/validation";
 
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Chờ xử lý",
@@ -27,7 +33,15 @@ function OrderTrackingContent() {
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!orderId.trim()) return;
+    const cleanCode = orderId.trim();
+    if (cleanCode.length < 3 || cleanCode.length > 30 || !ORDER_CODE_REGEX.test(cleanCode)) {
+      toast.error("Mã đơn hàng không hợp lệ (3-30 ký tự, chỉ chữ không dấu, số và dấu gạch ngang)");
+      return;
+    }
+    if (!isValidVnPhone(phone)) {
+      toast.error(VN_PHONE_ERROR);
+      return;
+    }
     setLoading(true);
     try {
       const qs = new URLSearchParams({
@@ -61,6 +75,7 @@ function OrderTrackingContent() {
               </label>
               <input
                 type="text"
+                maxLength={30}
                 value={orderId}
                 onChange={(e) => setOrderId(e.target.value)}
                 className="flex-1 h-[48px] border border-[#e1e1e1] px-[15px] rounded-[4px] outline-none focus:border-[#222] text-[14px] text-[#222] transition-colors"
@@ -73,11 +88,13 @@ function OrderTrackingContent() {
                 Số điện thoại <span className="text-[#ff0000]">*</span>
               </label>
               <input
-                type="text"
+                type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(sanitizeVnPhone(e.target.value))}
                 className="flex-1 h-[48px] border border-[#e1e1e1] px-[15px] rounded-[4px] outline-none focus:border-[#222] text-[14px] text-[#222] transition-colors"
-                placeholder="Nhập SĐT nhận hàng"
+                placeholder="Nhập SĐT nhận hàng (10 số)"
                 required
               />
             </div>

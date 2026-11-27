@@ -32,6 +32,13 @@ import {
 } from "@/features/cart-and-order/types/order";
 import VnPayInAppModal from "@/features/cart-and-order/components/checkout/VnPayInAppModal";
 import { cn } from "@/shared/utils/utils";
+import {
+  VN_NAME_ERROR,
+  VN_PHONE_ERROR,
+  isValidVnName,
+  isValidVnPhone,
+  sanitizeVnPhone,
+} from "@/shared/utils/validation";
 
 const emptySubscribe = () => () => { };
 
@@ -205,9 +212,38 @@ export default function CheckoutPage() {
       return;
     }
 
-    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
-    if (!VN_PHONE_REGEX.test(finalPhone.trim())) {
-      toast.error("Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09)");
+    if (!isValidVnName(finalName)) {
+      toast.error(VN_NAME_ERROR);
+      return;
+    }
+
+    if (
+      !isAuthenticated &&
+      (!selectedProvince || !selectedDistrict || !selectedWard || !street.trim())
+    ) {
+      toast.error(
+        "Vui lòng chọn đầy đủ Tỉnh/Thành phố, Quận/Huyện, Phường/Xã và nhập địa chỉ cụ thể"
+      );
+      return;
+    }
+
+    if (!isAuthenticated && (street.trim().length < 3 || street.trim().length > 150)) {
+      toast.error("Địa chỉ cụ thể (số nhà, tên đường) phải từ 3 đến 150 ký tự");
+      return;
+    }
+
+    if (finalAddress.trim().length < 10 || finalAddress.trim().length > 250) {
+      toast.error("Địa chỉ giao hàng phải từ 10 đến 250 ký tự");
+      return;
+    }
+
+    if (note.trim().length > 300) {
+      toast.error("Ghi chú đơn hàng không vượt quá 300 ký tự");
+      return;
+    }
+
+    if (!isValidVnPhone(finalPhone)) {
+      toast.error(VN_PHONE_ERROR);
       return;
     }
 
@@ -392,9 +428,16 @@ export default function CheckoutPage() {
       toast.error("Vui lòng nhập đầy đủ thông tin địa chỉ");
       return;
     }
-    const VN_PHONE_REGEX = /^(0|\+84)[35789]\d{8}$/;
-    if (!VN_PHONE_REGEX.test(modalPhone.trim())) {
-      toast.error("Số điện thoại không hợp lệ (gồm 10 số, bắt đầu bằng 03, 05, 07, 08 hoặc 09)");
+    if (!isValidVnName(modalName)) {
+      toast.error(VN_NAME_ERROR);
+      return;
+    }
+    if (modalStreet.trim().length < 3 || modalStreet.trim().length > 150) {
+      toast.error("Địa chỉ cụ thể (số nhà, tên đường) phải từ 3 đến 150 ký tự");
+      return;
+    }
+    if (!isValidVnPhone(modalPhone)) {
+      toast.error(VN_PHONE_ERROR);
       return;
     }
     try {
@@ -637,22 +680,25 @@ export default function CheckoutPage() {
                           name="receiverName"
                           autoComplete="off"
                           spellCheck={false}
+                          minLength={2}
+                          maxLength={40}
                           value={receiverName}
                           onChange={(e) => setReceiverName(e.target.value)}
                           className="w-full md:w-1/2 border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
-                          placeholder="Họ tên"
+                          placeholder="Họ tên *"
                           required
                         />
                         <input
                           type="tel"
+                          inputMode="numeric"
                           name="phone"
                           autoComplete="off"
                           spellCheck={false}
                           value={receiverPhone}
-                          onChange={(e) => setReceiverPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
+                          onChange={(e) => setReceiverPhone(sanitizeVnPhone(e.target.value))}
                           className="w-full md:w-1/2 border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
                           placeholder="Số điện thoại (10 số, VD: 0901234567)"
-                          maxLength={11}
+                          maxLength={10}
                           required
                         />
                       </div>
@@ -719,10 +765,12 @@ export default function CheckoutPage() {
                           name="street"
                           autoComplete="off"
                           spellCheck={false}
+                          minLength={3}
+                          maxLength={150}
                           value={street}
                           onChange={(e) => setStreet(e.target.value)}
                           className="w-full border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
-                          placeholder="Địa chỉ (Ví dụ: 123 đường Lê Lợi)"
+                          placeholder="Địa chỉ (Ví dụ: 123 đường Lê Lợi) *"
                           required
                         />
                       </div>
@@ -730,6 +778,7 @@ export default function CheckoutPage() {
                       <div className="mt-3">
                         <textarea
                           name="note"
+                          maxLength={300}
                           value={note}
                           onChange={(e) => setNote(e.target.value)}
                           className="w-full border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[80px] text-[14px] outline-none focus:border-[#222] transition-colors resize-none"
@@ -1206,19 +1255,22 @@ export default function CheckoutPage() {
                   type="text"
                   autoComplete="off"
                   spellCheck={false}
+                  minLength={2}
+                  maxLength={40}
                   value={modalName}
                   onChange={(e) => setModalName(e.target.value)}
-                  placeholder="Họ tên người nhận"
+                  placeholder="Họ tên người nhận *"
                   className="w-full md:w-1/2 border border-[#e1e1e1] rounded-[4px] px-[15px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
                 />
                 <input
                   type="tel"
+                  inputMode="numeric"
                   autoComplete="off"
                   spellCheck={false}
                   value={modalPhone}
-                  onChange={(e) => setModalPhone(e.target.value.replace(/[^0-9]/g, "").slice(0, 11))}
+                  onChange={(e) => setModalPhone(sanitizeVnPhone(e.target.value))}
                   placeholder="Số điện thoại (10 số, VD: 0901234567)"
-                  maxLength={11}
+                  maxLength={10}
                   className="w-full md:w-1/2 border border-[#e1e1e1] rounded-[4px] px-[15px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
                 />
               </div>
@@ -1274,9 +1326,11 @@ export default function CheckoutPage() {
                   type="text"
                   autoComplete="off"
                   spellCheck={false}
+                  minLength={3}
+                  maxLength={150}
                   value={modalStreet}
                   onChange={(e) => setModalStreet(e.target.value)}
-                  placeholder="Địa chỉ cụ thể (Số nhà, tên đường...)"
+                  placeholder="Địa chỉ cụ thể (Số nhà, tên đường...) *"
                   className="w-full border border-[#e1e1e1] rounded-[4px] px-[15px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
                 />
               </div>

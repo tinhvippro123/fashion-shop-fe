@@ -210,5 +210,5 @@ export function isLightColor(hex?: string | null): boolean {
 export function isColorAttribute(attributeName?: string | null): boolean {
   if (!attributeName) return false;
   const lower = attributeName.trim().toLowerCase();
-  return lower.includes("màu") || lower.includes("color");
+  return lower.includes("màu") || lower.includes("mau") || lower.includes("color");
 }

@@ -51,6 +51,7 @@ import {
   updateAdminSize,
   deleteAdminSize,
 } from "../api/attributes.api";
+import { SIZE_NAME_REGEX, isValidHexColor } from "@/shared/utils/validation";
 
 export function AttributesManagement() {
   const [activeTab, setActiveTab] = useState<"colors" | "sizes">("colors");
@@ -139,6 +140,14 @@ export function AttributesManagement() {
       toast.error("Vui lòng nhập tên màu sắc");
       return;
     }
+    if (trimmed.length > 30) {
+      toast.error("Tên màu sắc không vượt quá 30 ký tự");
+      return;
+    }
+    if (colorHex.trim() && !isValidHexColor(colorHex)) {
+      toast.error("Mã màu Hex không hợp lệ (VD: #111111 hoặc #FFF)");
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -190,6 +199,14 @@ export function AttributesManagement() {
     const trimmed = sizeName.trim().toUpperCase();
     if (!trimmed) {
       toast.error("Vui lòng nhập tên kích thước");
+      return;
+    }
+    if (trimmed.length > 15 || !SIZE_NAME_REGEX.test(trimmed)) {
+      toast.error("Tên kích thước tối đa 15 ký tự, chỉ gồm chữ không dấu, số hoặc dấu gạch");
+      return;
+    }
+    if (!Number.isInteger(sizeOrder) || sizeOrder < 1 || sizeOrder > 99) {
+      toast.error("Thứ tự sắp xếp phải là số nguyên từ 1 đến 99");
       return;
     }
 
@@ -494,6 +511,7 @@ export function AttributesManagement() {
               <Label htmlFor="color-name">Tên màu sắc *</Label>
               <Input
                 id="color-name"
+                maxLength={30}
                 placeholder="VD: Xanh Navy, Đỏ Ruby, Be..."
                 value={colorName}
                 onChange={(e) => setColorName(e.target.value)}
@@ -513,6 +531,7 @@ export function AttributesManagement() {
                 />
                 <Input
                   id="color-hex"
+                  maxLength={7}
                   placeholder="#111111"
                   className="font-mono"
                   value={colorHex}
@@ -560,6 +579,7 @@ export function AttributesManagement() {
               <Label htmlFor="size-name">Tên kích thước *</Label>
               <Input
                 id="size-name"
+                maxLength={15}
                 placeholder="VD: XXL, 3XL, 28, 29..."
                 value={sizeName}
                 onChange={(e) => setSizeName(e.target.value)}
@@ -573,6 +593,7 @@ export function AttributesManagement() {
                 id="size-order"
                 type="number"
                 min={1}
+                max={99}
                 value={sizeOrder}
                 onChange={(e) => setSizeOrder(Number(e.target.value) || 1)}
               />
