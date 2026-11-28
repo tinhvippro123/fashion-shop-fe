@@ -1449,6 +1449,7 @@ export default function CheckoutPage() {
               body: JSON.stringify({
                 orderCode: created.orderCode,
                 bankCode: "NCB",
+                phone: pendingOrderPayload.recipientPhone,
               }),
             });
             return created.orderCode;

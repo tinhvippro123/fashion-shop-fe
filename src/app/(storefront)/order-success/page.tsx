@@ -343,6 +343,7 @@ function OrderSuccessContent() {
             <VnPayInAppModal
               isOpen={showVnPayModal}
               orderCode={order.orderCode}
+              recipientPhone={order.customerPhone || order.customer?.phone}
               totalAmount={order.totalAmount || 0}
               paymentUrl={order.paymentUrl}
               onSuccess={() => {

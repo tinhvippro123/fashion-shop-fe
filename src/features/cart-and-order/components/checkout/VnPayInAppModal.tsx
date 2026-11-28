@@ -8,6 +8,7 @@ import { toast } from "sonner";
 interface VnPayInAppModalProps {
   isOpen: boolean;
   orderCode?: string;
+  recipientPhone?: string;
   totalAmount: number;
   paymentUrl?: string | null;
   onConfirmPayment?: () => Promise<string | void>;
@@ -18,6 +19,7 @@ interface VnPayInAppModalProps {
 export default function VnPayInAppModal({
   isOpen,
   orderCode,
+  recipientPhone,
   totalAmount,
   onConfirmPayment,
   onSuccess,
@@ -118,6 +120,7 @@ export default function VnPayInAppModal({
           body: JSON.stringify({
             orderCode,
             bankCode: "NCB",
+            ...(recipientPhone ? { phone: recipientPhone } : {}),
           }),
         });
       }
