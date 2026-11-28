@@ -11,6 +11,7 @@ import {
   isValidEmail,
   isValidVnName,
   isValidVnPhone,
+  normalizeVnName,
   sanitizeVnPhone,
 } from "@/shared/utils/validation";
 import { MapPin, Phone, Mail, Clock, CheckCircle2, Send } from "lucide-react";
@@ -67,7 +68,7 @@ export default function ContactPage() {
       const { message: serverMsg } = await apiRequestWithMeta("/contact", {
         method: "POST",
         body: JSON.stringify({
-          fullName: fullName.trim(),
+          fullName: normalizeVnName(fullName),
           email: email.trim(),
           phone: phone.trim(),
           subject: subject.trim(),
@@ -258,7 +259,7 @@ export default function ContactPage() {
                       type="text"
                       required
                       minLength={2}
-                      maxLength={40}
+                      maxLength={50}
                       value={fullName}
                       onChange={(e) => setFullNameInput(e.target.value)}
                       placeholder="Nhập họ tên của bạn"

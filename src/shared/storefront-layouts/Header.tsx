@@ -413,6 +413,7 @@ export default function Header() {
               <input
                 type="text"
                 name="keyword"
+                maxLength={100}
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 placeholder="TÌM KIẾM SẢN PHẨM"

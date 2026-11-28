@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { CartState, CartItem } from "@/features/cart-and-order/types/cart";
 import { apiFetch } from "@/shared/lib/api";
+import { MAX_CART_ITEM_QTY } from "@/shared/utils/validation";
 
 interface ServerCartItem {
   id: number;
@@ -121,18 +122,22 @@ export const useCartStore = create<CartState>()(
         const existingItemIndex = items.findIndex((item) => item.id === itemId);
 
         const newItems = [...items];
-        const maxStock = Math.max(1, variant?.stock ?? 99);
+        const maxStock = Math.min(
+          MAX_CART_ITEM_QTY,
+          Math.max(1, variant?.stock ?? MAX_CART_ITEM_QTY)
+        );
+        const safeQty = Math.min(MAX_CART_ITEM_QTY, Math.max(1, quantity));
         if (existingItemIndex >= 0) {
           const existingItem = newItems[existingItemIndex];
           newItems[existingItemIndex] = {
             ...existingItem,
             variant,
-            quantity: Math.min(maxStock, existingItem.quantity + quantity),
+            quantity: Math.min(maxStock, existingItem.quantity + safeQty),
           };
         } else {
           newItems.push({
             id: itemId,
-            quantity: Math.min(maxStock, Math.max(1, quantity)),
+            quantity: Math.min(maxStock, safeQty),
             product,
             color,
             variant,
@@ -145,7 +150,7 @@ export const useCartStore = create<CartState>()(
         if (isUserAuthenticated()) {
           apiFetch("/cart/items", {
             method: "POST",
-            body: JSON.stringify({ variantId: variant.id, quantity }),
+            body: JSON.stringify({ variantId: variant.id, quantity: safeQty }),
           }).catch(() => {});
         }
       },
@@ -174,7 +179,10 @@ export const useCartStore = create<CartState>()(
         const { items } = get();
         const newItems = items.map((item) => {
           if (item.id !== id) return item;
-          const maxStock = Math.max(1, item.variant?.stock ?? 99);
+          const maxStock = Math.min(
+            MAX_CART_ITEM_QTY,
+            Math.max(1, item.variant?.stock ?? MAX_CART_ITEM_QTY)
+          );
           return { ...item, quantity: Math.min(maxStock, quantity) };
         });
         const { totalItems, totalPrice } = recalculateTotals(newItems);

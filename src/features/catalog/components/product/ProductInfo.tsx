@@ -11,6 +11,7 @@ import { apiFetch } from "@/shared/lib/api";
 import { formatPrice } from "@/shared/utils/format";
 import { Ruler } from "lucide-react";
 import { getSizeSortOrder } from "@/shared/utils/size";
+import { MAX_CART_ITEM_QTY } from "@/shared/utils/validation";
 
 interface ProductInfoProps {
   product: ProductDetail;
@@ -89,10 +90,10 @@ export default function ProductInfo({
   const handleQtyChange = (delta: number) => {
     setQuantity((prev) => {
       const next = Math.max(1, prev + delta);
-      if (selectedVariant && next > selectedVariant.stock) {
-        return Math.max(1, selectedVariant.stock);
-      }
-      return next;
+      const maxAllowed = selectedVariant
+        ? Math.min(MAX_CART_ITEM_QTY, Math.max(1, selectedVariant.stock))
+        : MAX_CART_ITEM_QTY;
+      return Math.min(next, maxAllowed);
     });
   };
 
@@ -109,7 +110,14 @@ export default function ProductInfo({
     if (variant) {
       const inCart =
         items.find((i) => i.variant.id === variant.id)?.quantity || 0;
-      if (inCart + quantity > variant.stock) {
+      const maxAllowed = Math.min(MAX_CART_ITEM_QTY, variant.stock);
+      if (inCart + quantity > maxAllowed) {
+        if (variant.stock > MAX_CART_ITEM_QTY && inCart + quantity > MAX_CART_ITEM_QTY) {
+          toast.warning(
+            `Mỗi phân loại sản phẩm đặt tối đa ${MAX_CART_ITEM_QTY} chiếc/đơn (trong giỏ đã có ${inCart})`
+          );
+          return;
+        }
         toast.warning(
           inCart >= variant.stock
             ? `Bạn đã có ${inCart} sản phẩm này trong giỏ (đạt tối đa tồn kho)`
@@ -135,12 +143,13 @@ export default function ProductInfo({
     if (variant) {
       const inCart =
         items.find((i) => i.variant.id === variant.id)?.quantity || 0;
-      if (inCart + quantity > variant.stock) {
-        if (inCart >= variant.stock) {
+      const maxAllowed = Math.min(MAX_CART_ITEM_QTY, variant.stock);
+      if (inCart + quantity > maxAllowed) {
+        if (inCart >= maxAllowed) {
           router.push("/cart");
           return;
         }
-        addItem(product, selectedColor, variant, variant.stock - inCart);
+        addItem(product, selectedColor, variant, maxAllowed - inCart);
         router.push("/cart");
         return;
       }

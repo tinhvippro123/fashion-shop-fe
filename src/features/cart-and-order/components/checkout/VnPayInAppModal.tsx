@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { formatPrice } from "@/shared/utils/format";
 import { apiFetch } from "@/shared/lib/api";
+import { isValidCardIssueDate } from "@/shared/utils/validation";
 import { toast } from "sonner";
 
 interface VnPayInAppModalProps {
@@ -96,6 +97,10 @@ export default function VnPayInAppModal({
     }
     if (!/^(0[1-9]|1[0-2])\/\d{2}$/.test(issueDate.trim())) {
       toast.error("Ngày phát hành phải đúng định dạng MM/YY (tháng từ 01 đến 12)");
+      return;
+    }
+    if (!isValidCardIssueDate(issueDate)) {
+      toast.error("Ngày phát hành thẻ không được lớn hơn tháng/năm hiện tại");
       return;
     }
     if (!/^\d{6}$/.test(otp.trim())) {

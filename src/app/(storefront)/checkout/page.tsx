@@ -37,6 +37,7 @@ import {
   VN_PHONE_ERROR,
   isValidVnName,
   isValidVnPhone,
+  normalizeVnName,
   sanitizeVnPhone,
 } from "@/shared/utils/validation";
 
@@ -216,6 +217,7 @@ export default function CheckoutPage() {
       toast.error(VN_NAME_ERROR);
       return;
     }
+    finalName = normalizeVnName(finalName);
 
     if (
       !isAuthenticated &&
@@ -444,7 +446,7 @@ export default function CheckoutPage() {
       const created = await apiFetch<AddressDto>("/account/addresses", {
         method: "POST",
         body: JSON.stringify({
-          recipientName: modalName.trim(),
+          recipientName: normalizeVnName(modalName),
           phone: modalPhone.trim(),
           province: modalProvince,
           district: modalDistrict,
@@ -489,6 +491,10 @@ export default function CheckoutPage() {
     const trimmed = codeToValidate.trim();
     if (!trimmed) {
       toast.error("Vui lòng nhập mã giảm giá");
+      return;
+    }
+    if (trimmed.length > 20) {
+      toast.error("Mã giảm giá không vượt quá 20 ký tự");
       return;
     }
     try {
@@ -641,6 +647,7 @@ export default function CheckoutPage() {
 
                       <div className="mt-4">
                         <textarea
+                          maxLength={300}
                           value={note}
                           onChange={(e) => setNote(e.target.value)}
                           className="w-full border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[80px] text-[14px] outline-none focus:border-[#222] transition-colors resize-none"
@@ -681,7 +688,7 @@ export default function CheckoutPage() {
                           autoComplete="off"
                           spellCheck={false}
                           minLength={2}
-                          maxLength={40}
+                          maxLength={50}
                           value={receiverName}
                           onChange={(e) => setReceiverName(e.target.value)}
                           className="w-full md:w-1/2 border border-[#ddd] rounded-tl-[4px] rounded-br-[4px] px-[15px] py-[10px] h-[45px] text-[14px] outline-none focus:border-[#222] transition-colors"
@@ -1070,6 +1077,7 @@ export default function CheckoutPage() {
                     <input
                       type="text"
                       autoComplete="off"
+                      maxLength={20}
                       value={voucherCode}
                       onChange={(e) => {
                         const val = e.target.value.toUpperCase();
@@ -1256,7 +1264,7 @@ export default function CheckoutPage() {
                   autoComplete="off"
                   spellCheck={false}
                   minLength={2}
-                  maxLength={40}
+                  maxLength={50}
                   value={modalName}
                   onChange={(e) => setModalName(e.target.value)}
                   placeholder="Họ tên người nhận *"

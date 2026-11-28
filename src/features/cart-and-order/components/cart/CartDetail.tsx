@@ -6,6 +6,7 @@ import {
 } from "@/features/cart-and-order/stores/cart.store";
 import Link from "next/link";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
+import { MAX_CART_ITEM_QTY } from "@/shared/utils/validation";
 
 export default function CartDetail() {
   const { items, totalItems, totalPrice, updateQuantity, removeItem } =
@@ -55,7 +56,10 @@ export default function CartDetail() {
             );
             const discountAmount = Math.max(0, baseItemPrice - salePrice);
             const lineTotal = salePrice * item.quantity;
-            const maxStock = Math.max(1, item.variant?.stock ?? 99);
+            const maxStock = Math.min(
+              MAX_CART_ITEM_QTY,
+              Math.max(1, item.variant?.stock ?? MAX_CART_ITEM_QTY)
+            );
 
             return (
               <div

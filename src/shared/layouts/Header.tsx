@@ -55,6 +55,7 @@ export function Header() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
+              maxLength={100}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm kiếm mã đơn hàng, khách hàng..."

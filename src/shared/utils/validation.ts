@@ -2,11 +2,13 @@ export const VN_PHONE_REGEX = /^0[35789]\d{8}$/;
 export const VN_PHONE_ERROR =
   "Số điện thoại phải gồm đúng 10 chữ số (đầu số 03, 05, 07, 08 hoặc 09)";
 
-export const VN_NAME_REGEX = /^[\p{L}\s]+$/u;
+export const VN_NAME_REGEX = /^[\p{L}\p{M}\s'.-]+$/u;
 export const VN_NAME_MIN_LENGTH = 2;
-export const VN_NAME_MAX_LENGTH = 40;
+export const VN_NAME_MAX_LENGTH = 50;
 export const VN_NAME_ERROR =
-  "Họ và tên phải từ 2 đến 40 ký tự và chỉ chứa chữ cái";
+  "Họ và tên phải từ 2 đến 50 ký tự và chỉ chứa chữ cái";
+
+export const MAX_CART_ITEM_QTY = 50;
 
 export const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 export const EMAIL_MAX_LENGTH = 100;
@@ -18,9 +20,10 @@ export const PASSWORD_ERROR =
 
 export const OTP_REGEX = /^\d{6}$/;
 export const HEX_COLOR_REGEX = /^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/;
+export const COLOR_NAME_REGEX = /^[\p{L}\p{M}0-9\s/-]+$/u;
 export const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const SKU_REGEX = /^[A-Za-z0-9_-]+$/;
-export const SIZE_NAME_REGEX = /^[A-Za-z0-9/_-]+$/;
+export const SIZE_NAME_REGEX = /^[A-Za-z0-9/_-]+(?:\s[A-Za-z0-9/_-]+)*$/;
 export const ORDER_CODE_REGEX = /^[A-Za-z0-9-]+$/;
 export const CARD_HOLDER_REGEX = /^[A-Z\s]+$/;
 
@@ -76,12 +79,38 @@ export function isValidVnPhone(phone: string): boolean {
   return VN_PHONE_REGEX.test(phone.trim());
 }
 
+export function normalizeVnName(raw: string): string {
+  return raw.normalize("NFC").trim().replace(/\s+/g, " ");
+}
+
 export function isValidVnName(name: string): boolean {
-  const trimmed = name.trim();
-  if (trimmed.length < VN_NAME_MIN_LENGTH || trimmed.length > VN_NAME_MAX_LENGTH) {
+  const normalized = normalizeVnName(name);
+  if (
+    normalized.length < VN_NAME_MIN_LENGTH ||
+    normalized.length > VN_NAME_MAX_LENGTH
+  ) {
     return false;
   }
-  return VN_NAME_REGEX.test(trimmed);
+  return /\p{L}/u.test(normalized) && VN_NAME_REGEX.test(normalized);
+}
+
+export function isValidColorName(name: string): boolean {
+  const normalized = name.normalize("NFC").trim().replace(/\s+/g, " ");
+  if (normalized.length < 2 || normalized.length > 30) {
+    return false;
+  }
+  return /\p{L}/u.test(normalized) && COLOR_NAME_REGEX.test(normalized);
+}
+
+export function isValidCardIssueDate(issueDate: string): boolean {
+  const match = /^(0[1-9]|1[0-2])\/(\d{2})$/.exec(issueDate.trim());
+  if (!match) return false;
+  const month = Number(match[1]);
+  const year = 2000 + Number(match[2]);
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+  return year < currentYear || (year === currentYear && month <= currentMonth);
 }
 
 export function isValidEmail(email: string): boolean {

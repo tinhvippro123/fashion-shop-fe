@@ -51,7 +51,11 @@ import {
   updateAdminSize,
   deleteAdminSize,
 } from "../api/attributes.api";
-import { SIZE_NAME_REGEX, isValidHexColor } from "@/shared/utils/validation";
+import {
+  SIZE_NAME_REGEX,
+  isValidColorName,
+  isValidHexColor,
+} from "@/shared/utils/validation";
 
 export function AttributesManagement() {
   const [activeTab, setActiveTab] = useState<"colors" | "sizes">("colors");
@@ -135,13 +139,15 @@ export function AttributesManagement() {
 
   // Submit Color
   const handleSaveColor = async () => {
-    const trimmed = colorName.trim();
+    const trimmed = colorName.normalize("NFC").trim().replace(/\s+/g, " ");
     if (!trimmed) {
       toast.error("Vui lòng nhập tên màu sắc");
       return;
     }
-    if (trimmed.length > 30) {
-      toast.error("Tên màu sắc không vượt quá 30 ký tự");
+    if (!isValidColorName(trimmed)) {
+      toast.error(
+        "Tên màu sắc phải từ 2 đến 30 ký tự, có chứa chữ cái và không gồm ký tự đặc biệt"
+      );
       return;
     }
     if (colorHex.trim() && !isValidHexColor(colorHex)) {
@@ -196,13 +202,15 @@ export function AttributesManagement() {
 
   // Submit Size
   const handleSaveSize = async () => {
-    const trimmed = sizeName.trim().toUpperCase();
+    const trimmed = sizeName.trim().replace(/\s+/g, " ").toUpperCase();
     if (!trimmed) {
       toast.error("Vui lòng nhập tên kích thước");
       return;
     }
     if (trimmed.length > 15 || !SIZE_NAME_REGEX.test(trimmed)) {
-      toast.error("Tên kích thước tối đa 15 ký tự, chỉ gồm chữ không dấu, số hoặc dấu gạch");
+      toast.error(
+        "Tên kích thước tối đa 15 ký tự, chỉ gồm chữ không dấu, số, khoảng trắng đơn hoặc dấu gạch (VD: XXL, 28, FREE SIZE)"
+      );
       return;
     }
     if (!Number.isInteger(sizeOrder) || sizeOrder < 1 || sizeOrder > 99) {

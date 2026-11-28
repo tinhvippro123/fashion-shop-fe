@@ -557,6 +557,7 @@ export function BannerManagement() {
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2">
                   <Input
+                    maxLength={500}
                     placeholder="Nhập đường dẫn ảnh hoặc tải file bên phải..."
                     value={formData.imageUrl}
                     onChange={(e) =>
@@ -583,7 +584,7 @@ export function BannerManagement() {
                   </label>
                 </div>
 
-                {formData.imageUrl && (
+                {formData.imageUrl && isValidSafeUrl(formData.imageUrl) && (
                   <div className="relative w-full h-36 bg-muted rounded-lg overflow-hidden border mt-1">
                     <Image
                       src={formData.imageUrl}

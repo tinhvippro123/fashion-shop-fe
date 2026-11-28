@@ -77,10 +77,19 @@ export const VoucherSchema = z
   )
   .refine(
     (data) => {
-      return new Date(data.endDate) >= new Date(data.startDate);
+      return data.minOrder === 0 || data.minOrder >= 1000;
     },
     {
-      message: "Ngày kết thúc phải sau ngày bắt đầu",
+      message: "Đơn tối thiểu phải bằng 0đ hoặc từ 1.000đ trở lên",
+      path: ["minOrder"],
+    }
+  )
+  .refine(
+    (data) => {
+      return new Date(data.endDate) > new Date(data.startDate);
+    },
+    {
+      message: "Ngày kết thúc phải sau thời điểm bắt đầu",
       path: ["endDate"],
     }
   );

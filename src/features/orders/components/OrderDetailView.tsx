@@ -118,16 +118,21 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
   };
 
   const handleCancel = async () => {
-    if (!cancelReason.trim()) {
+    const cleanReason = cancelReason.trim();
+    if (!cleanReason) {
       toast.error("Vui lòng chọn hoặc nhập lý do hủy đơn!");
+      return;
+    }
+    if (cleanReason.length < 2 || cleanReason.length > 300) {
+      toast.error("Lý do hủy đơn phải từ 2 đến 300 ký tự!");
       return;
     }
     if (submitting) return;
     setSubmitting(true);
     try {
-      await updateStatus("CANCELLED", cancelReason);
+      await updateStatus("CANCELLED", cleanReason);
       toast.success(
-        `Đã hủy đơn hàng #${order.id} và hoàn trả tồn kho! Lý do: ${cancelReason}`
+        `Đã hủy đơn hàng #${order.id} và hoàn trả tồn kho! Lý do: ${cleanReason}`
       );
       setCancelDialog(false);
       setCancelReason("");
@@ -629,6 +634,7 @@ export function OrderDetailView({ orderId }: { orderId: string }) {
               </Badge>
             </div>
             <Input
+              maxLength={300}
               placeholder="Hoặc nhập lý do khác..."
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}

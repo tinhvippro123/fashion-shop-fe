@@ -6,7 +6,9 @@ export const ProductOptionSchema = z.object({
     .string()
     .trim()
     .max(30, "Tên thuộc tính tối đa 30 ký tự"),
-  values: z.array(z.string().trim().min(1)),
+  values: z.array(
+    z.string().trim().min(1).max(30, "Giá trị phân loại tối đa 30 ký tự")
+  ),
 });
 
 export const ProductVariantSchema = z.object({
@@ -27,6 +29,7 @@ export const ProductVariantSchema = z.object({
     .max(100000000, "Giá bán tối đa 100.000.000đ"),
   costPrice: z
     .number()
+    .int("Giá vốn phải là số nguyên VNĐ")
     .min(0, "Giá vốn không được âm")
     .max(100000000, "Giá vốn tối đa 100.000.000đ")
     .optional(),
@@ -44,7 +47,7 @@ export const ProductSchema = z
     name: z
       .string()
       .trim()
-      .min(2, "Tên sản phẩm phải có ít nhất 2 ký tự")
+      .min(3, "Tên sản phẩm phải có ít nhất 3 ký tự")
       .max(100, "Tên sản phẩm không vượt quá 100 ký tự"),
     description: z.string().max(5000, "Mô tả không vượt quá 5000 ký tự").optional(),
     price: z

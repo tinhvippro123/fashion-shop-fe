@@ -402,6 +402,7 @@ export function ContactManagement() {
                   <textarea
                     id="admin-contact-reply"
                     rows={5}
+                    maxLength={1500}
                     value={replyText}
                     onChange={(e) => setReplyText(e.target.value)}
                     placeholder="Nhập câu trả lời hỗ trợ khách hàng..."

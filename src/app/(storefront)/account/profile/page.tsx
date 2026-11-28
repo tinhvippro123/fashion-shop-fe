@@ -15,6 +15,7 @@ import {
   isValidPassword,
   isValidVnName,
   isValidVnPhone,
+  normalizeVnName,
   sanitizeVnPhone,
 } from "@/shared/utils/validation";
 
@@ -68,10 +69,11 @@ export default function ProfilePage() {
     }
     setSaving(true);
     try {
+      const normalizedName = normalizeVnName(fullName);
       const updated = await apiFetch<User>("/account/profile", {
         method: "PUT",
         body: JSON.stringify({
-          fullName: fullName.trim(),
+          fullName: normalizedName,
           phone: phone.trim(),
           gender,
           dateOfBirth: dateOfBirth || null,
@@ -79,7 +81,7 @@ export default function ProfilePage() {
       });
       setUser({
         ...updated,
-        name: updated.fullName || updated.name || fullName.trim(),
+        name: updated.fullName || updated.name || normalizedName,
         isAdmin: Boolean(updated.isAdmin || updated.role === "ADMIN"),
       });
       setSuccessMessage("Cập nhật thông tin tài khoản thành công!");
@@ -165,7 +167,7 @@ export default function ProfilePage() {
                 <input
                   type="text"
                   minLength={2}
-                  maxLength={40}
+                  maxLength={50}
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   className="w-full border border-[#e1e1e1] rounded-[4px] p-[10px_15px] text-[14px] text-[#222] outline-none focus:border-[#222] transition-colors"

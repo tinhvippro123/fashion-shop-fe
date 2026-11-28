@@ -336,8 +336,8 @@ export function StockImportManager() {
         toast.error(`Dòng #${idx + 1}: Số lượng nhập phải là số nguyên từ 1 đến 10.000!`);
         return;
       }
-      if (!Number.isFinite(row.unitCost) || row.unitCost < 1000 || row.unitCost > 100000000) {
-        toast.error(`Dòng #${idx + 1}: Giá vốn đơn vị phải từ 1.000đ đến 100.000.000đ!`);
+      if (!Number.isInteger(row.unitCost) || row.unitCost < 1000 || row.unitCost > 100000000) {
+        toast.error(`Dòng #${idx + 1}: Giá vốn đơn vị phải là số nguyên từ 1.000đ đến 100.000.000đ!`);
         return;
       }
     }

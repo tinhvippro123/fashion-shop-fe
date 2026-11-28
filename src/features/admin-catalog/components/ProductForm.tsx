@@ -77,7 +77,12 @@ import {
 } from "../schemas/product.schema";
 import { getFashionColorHex, isColorAttribute } from "@/shared/utils/color";
 import { isSizeAttribute, getSizeSortOrder } from "@/shared/utils/size";
-import { toAsciiSkuToken } from "@/shared/utils/validation";
+import {
+  SIZE_NAME_REGEX,
+  isValidColorName,
+  isValidSafeUrl,
+  toAsciiSkuToken,
+} from "@/shared/utils/validation";
 import {
   AdminCategory,
   IOptionSuggestions,
@@ -567,6 +572,12 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const handleAddGeneralImage = (url: string) => {
     const trimmed = url.trim();
     if (!trimmed) return;
+    if (trimmed.length > 500 || !isValidSafeUrl(trimmed)) {
+      toast.error(
+        "Đường dẫn ảnh không hợp lệ (phải bắt đầu bằng / hoặc http(s)://, tối đa 500 ký tự)"
+      );
+      return;
+    }
     const prev = form.getValues("images") || [];
     if (!prev.includes(trimmed)) {
       form.setValue("images", [...prev, trimmed], { shouldDirty: true });
@@ -591,6 +602,12 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
   const handleAddColorImage = (colorName: string, imgUrl: string) => {
     const trimmed = imgUrl.trim();
     if (!trimmed) return;
+    if (trimmed.length > 500 || !isValidSafeUrl(trimmed)) {
+      toast.error(
+        "Đường dẫn ảnh không hợp lệ (phải bắt đầu bằng / hoặc http(s)://, tối đa 500 ký tự)"
+      );
+      return;
+    }
     const currentMap = form.getValues("colorImages") || {};
     const prevImgs = currentMap[colorName] || [];
     if (!prevImgs.includes(trimmed)) {
@@ -634,8 +651,8 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
 
   const applyBatchPrice = (customValue?: number) => {
     const p = customValue !== undefined ? customValue : Number(batchPrice);
-    if (isNaN(p) || p <= 0) {
-      toast.error("Vui lòng nhập giá bán lớn hơn 0");
+    if (!Number.isFinite(p) || p < 1000 || p > 100000000) {
+      toast.error("Giá bán hàng loạt phải từ 1.000đ đến 100.000.000đ");
       return;
     }
     const current = form.getValues("variants") || [];
@@ -749,12 +766,34 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
     syncVariantsFromOptions(currentOpts, true);
   };
 
-  const handleQuickAddValue = (index: number, rawVal: string) => {
-    const val = rawVal.trim();
-    if (!val) return;
+  const handleQuickAddValue = (index: number, rawVal: string): boolean => {
+    const normalizedRaw = rawVal.normalize("NFC").trim().replace(/\s+/g, " ");
+    if (!normalizedRaw) return false;
     const currentOpts = [...(form.getValues("options") || [])];
     const currentOpt = currentOpts[index];
-    if (!currentOpt) return;
+    if (!currentOpt) return false;
+
+    let val = normalizedRaw;
+    if (isColorAttribute(currentOpt.name)) {
+      if (!isValidColorName(val)) {
+        toast.error(
+          "Tên màu sắc phải từ 2 đến 30 ký tự, có chứa chữ cái và không gồm ký tự đặc biệt"
+        );
+        return false;
+      }
+    } else if (isSizeAttribute(currentOpt.name)) {
+      val = val.toUpperCase();
+      if (val.length > 15 || !SIZE_NAME_REGEX.test(val)) {
+        toast.error(
+          "Tên kích thước tối đa 15 ký tự, chỉ gồm chữ không dấu, số, khoảng trắng đơn hoặc dấu gạch (VD: XXL, 28, FREE SIZE)"
+        );
+        return false;
+      }
+    } else if (val.length > 30) {
+      toast.error("Giá trị phân loại không vượt quá 30 ký tự");
+      return false;
+    }
+
     const currentValues = currentOpt.values || [];
 
     if (!currentValues.some((v) => v.toLowerCase() === val.toLowerCase())) {
@@ -785,6 +824,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       currentOpts[index] = updatedOpt;
       syncVariantsFromOptions(currentOpts);
     }
+    return true;
   };
 
   const handleAddOptionValue = (
@@ -795,8 +835,9 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
       e.preventDefault();
       const val = e.currentTarget.value.trim();
       if (!val) return;
-      handleQuickAddValue(index, val);
-      e.currentTarget.value = "";
+      if (handleQuickAddValue(index, val)) {
+        e.currentTarget.value = "";
+      }
     }
   };
 
@@ -1614,6 +1655,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                   <FormControl>
                                     <Input
                                       placeholder="VD: Màu sắc"
+                                      maxLength={30}
                                       {...nameField}
                                       onBlur={(e) => {
                                         nameField.onBlur();
@@ -1653,6 +1695,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
                                 Giá trị (bấm nhanh gợi ý bên dưới hoặc tự gõ rồi nhấn Enter)
                               </Label>
                               <Input
+                                maxLength={isSizeAttribute(currentName) ? 15 : 30}
                                 placeholder={
                                   isColor
                                     ? "VD: Nâu socola, Xanh tím than, Đỏ... rồi nhấn Enter"
@@ -1810,6 +1853,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
 
                     <div className="flex gap-1.5">
                       <Input
+                        maxLength={500}
                         placeholder="Hoặc dán liên kết ảnh (https://...) rồi nhấn Enter"
                         className="h-9 text-xs"
                         value={generalUrlInput}
@@ -1946,6 +1990,7 @@ export function ProductForm({ productId, mode = "create" }: ProductFormProps) {
 
                             <div className="flex gap-1.5">
                               <Input
+                                maxLength={500}
                                 placeholder={`Hoặc dán URL ảnh màu ${colorName} rồi nhấn Enter...`}
                                 className="h-9 text-xs"
                                 value={colorUrlInputs[colorName] || ""}

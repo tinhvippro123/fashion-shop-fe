@@ -17,6 +17,7 @@ import {
   VN_PHONE_ERROR,
   isValidVnName,
   isValidVnPhone,
+  normalizeVnName,
   sanitizeVnPhone,
 } from "@/shared/utils/validation";
 
@@ -347,7 +348,7 @@ function AddressModal({
     setSaving(true);
     try {
       await onSubmit({
-        recipientName: recipientName.trim(),
+        recipientName: normalizeVnName(recipientName),
         phone: phone.trim(),
         province,
         district,
@@ -388,7 +389,7 @@ function AddressModal({
                   autoComplete="off"
                   spellCheck={false}
                   minLength={2}
-                  maxLength={40}
+                  maxLength={50}
                   className="w-full border-b border-[#e1e1e1] pb-[10px] pt-[10px] text-[#222] focus:border-[#222] outline-none transition-colors placeholder-[#6c6d70]"
                   placeholder="Họ tên người nhận *"
                   required

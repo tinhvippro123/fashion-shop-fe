@@ -52,7 +52,9 @@ function toVietnameseSlug(text: string): string {
     .replace(/đ/g, "d")
     .replace(/[^a-z0-9\s-]/g, "")
     .trim()
-    .replace(/\s+/g, "-");
+    .replace(/\s+/g, "-")
+    .replace(/-{2,}/g, "-")
+    .replace(/^-|-$/g, "");
 }
 
 export function CategoryFormModal({
@@ -193,6 +195,7 @@ export function CategoryFormModal({
                   </FormLabel>
                   <FormControl>
                     <Input
+                      maxLength={60}
                       placeholder="VD: Áo khoác mùa đông"
                       {...field}
                       onChange={(e) => {
@@ -217,7 +220,11 @@ export function CategoryFormModal({
                     Đường dẫn (Slug) <span className="text-red-500">*</span>
                   </FormLabel>
                   <FormControl>
-                    <Input placeholder="VD: ao-khoac-mua-dong" {...field} />
+                    <Input
+                      maxLength={80}
+                      placeholder="VD: ao-khoac-mua-dong"
+                      {...field}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

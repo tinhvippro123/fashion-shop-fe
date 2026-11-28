@@ -20,6 +20,7 @@ import {
   isValidPassword,
   isValidVnName,
   isValidVnPhone,
+  normalizeVnName,
   sanitizeOtp,
   sanitizeVnPhone,
 } from "@/shared/utils/validation";
@@ -133,8 +134,10 @@ export default function RegisterPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const fullName = `${lastName} ${firstName}`.trim();
-    if (!lastName.trim() || !firstName.trim() || !isValidVnName(fullName)) {
+    const cleanLast = normalizeVnName(lastName);
+    const cleanFirst = normalizeVnName(firstName);
+    const fullName = normalizeVnName(`${cleanLast} ${cleanFirst}`);
+    if (!cleanLast || !cleanFirst || !isValidVnName(fullName)) {
       toast.error(VN_NAME_ERROR);
       return;
     }
@@ -219,7 +222,7 @@ export default function RegisterPage() {
                   </label>
                   <input
                     type="text"
-                    maxLength={20}
+                    maxLength={24}
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"
@@ -233,7 +236,7 @@ export default function RegisterPage() {
                   </label>
                   <input
                     type="text"
-                    maxLength={20}
+                    maxLength={24}
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     className="w-full h-[50px] px-[15px] border border-[#e1e1e1] rounded-[8px] text-[14px] text-[#222] outline-none focus:border-[#222] placeholder-[#a3a3a3]"

@@ -7,6 +7,7 @@ import {
 import { useAuthStore } from "@/features/users/stores/auth.store";
 import Link from "next/link";
 import { formatPrice, resolveImageUrl } from "@/shared/utils/format";
+import { MAX_CART_ITEM_QTY } from "@/shared/utils/validation";
 
 export default function MiniCart() {
   const {
@@ -107,7 +108,11 @@ export default function MiniCart() {
                       />
                       <button
                         disabled={
-                          item.quantity >= Math.max(1, item.variant?.stock ?? 99)
+                          item.quantity >=
+                          Math.min(
+                            MAX_CART_ITEM_QTY,
+                            Math.max(1, item.variant?.stock ?? MAX_CART_ITEM_QTY)
+                          )
                         }
                         onClick={() =>
                           updateQuantity(item.id, item.quantity + 1)

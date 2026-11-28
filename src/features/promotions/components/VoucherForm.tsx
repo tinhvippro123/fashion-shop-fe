@@ -83,6 +83,10 @@ export function VoucherForm({
 
   const onSubmit = async (values: TVoucherPayload) => {
     if (submitting) return;
+    if (mode !== "edit" && new Date(values.endDate) <= new Date()) {
+      toast.error("Ngày kết thúc của mã giảm giá mới phải ở trong tương lai");
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
