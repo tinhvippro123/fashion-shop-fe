@@ -94,13 +94,13 @@ function mapServerCartToItems(serverCart: ServerCartResponse): CartItem[] {
   }));
 }
 
-function hasAuthToken(): boolean {
+function isUserAuthenticated(): boolean {
   if (typeof window === "undefined") return false;
   try {
     const raw = localStorage.getItem("auth-storage");
     if (!raw) return false;
     const parsed = JSON.parse(raw);
-    return Boolean(parsed?.state?.isAuthenticated || parsed?.state?.token);
+    return Boolean(parsed?.state?.isAuthenticated);
   } catch {
     return false;
   }
@@ -142,7 +142,7 @@ export const useCartStore = create<CartState>()(
         const { totalItems, totalPrice } = recalculateTotals(newItems);
         set({ items: newItems, totalItems, totalPrice });
 
-        if (hasAuthToken()) {
+        if (isUserAuthenticated()) {
           apiFetch("/cart/items", {
             method: "POST",
             body: JSON.stringify({ variantId: variant.id, quantity }),
@@ -156,7 +156,7 @@ export const useCartStore = create<CartState>()(
         const { totalItems, totalPrice } = recalculateTotals(newItems);
         set({ items: newItems, totalItems, totalPrice });
 
-        if (hasAuthToken()) {
+        if (isUserAuthenticated()) {
           apiFetch("/cart/sync", {
             method: "POST",
             body: JSON.stringify({
@@ -180,7 +180,7 @@ export const useCartStore = create<CartState>()(
         const { totalItems, totalPrice } = recalculateTotals(newItems);
         set({ items: newItems, totalItems, totalPrice });
 
-        if (hasAuthToken()) {
+        if (isUserAuthenticated()) {
           apiFetch("/cart/sync", {
             method: "POST",
             body: JSON.stringify({
@@ -209,13 +209,13 @@ export const useCartStore = create<CartState>()(
 
       clearCart: () => {
         set({ items: [], totalItems: 0, totalPrice: 0 });
-        if (hasAuthToken()) {
+        if (isUserAuthenticated()) {
           apiFetch("/cart", { method: "DELETE" }).catch(() => {});
         }
       },
 
       syncWithServer: async () => {
-        if (!hasAuthToken()) return;
+        if (!isUserAuthenticated()) return;
         try {
           const currentItems = get().items;
           const serverCart = await apiFetch<ServerCartResponse>("/cart/sync", {
@@ -238,7 +238,7 @@ export const useCartStore = create<CartState>()(
       },
 
       fetchServerCart: async () => {
-        if (!hasAuthToken()) return;
+        if (!isUserAuthenticated()) return;
         try {
           const serverCart = await apiFetch<ServerCartResponse>("/cart");
           if (serverCart) {

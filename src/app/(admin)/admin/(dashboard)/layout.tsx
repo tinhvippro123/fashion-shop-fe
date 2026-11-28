@@ -14,12 +14,17 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, refreshProfile } = useAuthStore();
   const hydrated = useSyncExternalStore(
     emptySubscribe,
     () => true,
     () => false
   );
+
+  useEffect(() => {
+    if (!hydrated || !isAuthenticated) return;
+    refreshProfile();
+  }, [hydrated, isAuthenticated, refreshProfile]);
 
   useEffect(() => {
     if (!hydrated) return;

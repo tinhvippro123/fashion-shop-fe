@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { apiFetch } from "@/shared/lib/api";
+import { ApiError, apiFetch } from "@/shared/lib/api";
 import { useCartStore } from "@/features/cart-and-order/stores/cart.store";
 
 export interface User {
@@ -18,7 +18,6 @@ export interface User {
 }
 
 interface AuthResponsePayload {
-  token: string;
   user: User;
 }
 
@@ -38,7 +37,6 @@ export interface RegisterPayload {
 
 interface AuthState {
   isAuthenticated: boolean;
-  token: string | null;
   user: User | null;
   wishlistIds: number[];
   login: (email: string, password: string) => Promise<User>;
@@ -51,11 +49,25 @@ interface AuthState {
   logout: () => void;
 }
 
+function sanitizeLegacyTokenInLocalStorage() {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = window.localStorage.getItem("auth-storage");
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    if (parsed?.state && "token" in parsed.state) {
+      delete parsed.state.token;
+      window.localStorage.setItem("auth-storage", JSON.stringify(parsed));
+    }
+  } catch {
+    // ignore malformed storage
+  }
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
       isAuthenticated: false,
-      token: null,
       user: null,
       wishlistIds: [],
 
@@ -71,7 +83,6 @@ export const useAuthStore = create<AuthState>()(
         };
         set({
           isAuthenticated: true,
-          token: res.token,
           user: normalizedUser,
         });
         useCartStore.getState().syncWithServer().catch(() => {});
@@ -90,7 +101,6 @@ export const useAuthStore = create<AuthState>()(
         };
         set({
           isAuthenticated: true,
-          token: res.token,
           user: normalizedUser,
         });
         useCartStore.getState().syncWithServer().catch(() => {});
@@ -109,7 +119,6 @@ export const useAuthStore = create<AuthState>()(
         };
         set({
           isAuthenticated: true,
-          token: res.token,
           user: normalizedUser,
         });
         useCartStore.getState().syncWithServer().catch(() => {});
@@ -117,9 +126,9 @@ export const useAuthStore = create<AuthState>()(
       },
 
       refreshProfile: async () => {
-        if (!get().isAuthenticated && !get().token) return null;
+        if (!get().isAuthenticated) return null;
         try {
-          const profile = await apiFetch<User>("/account/profile");
+          const profile = await apiFetch<User>("/auth/me");
           const normalizedUser: User = {
             ...profile,
             name: profile.name || profile.fullName || profile.email,
@@ -127,8 +136,13 @@ export const useAuthStore = create<AuthState>()(
           };
           set({ isAuthenticated: true, user: normalizedUser });
           return normalizedUser;
-        } catch {
-          set({ isAuthenticated: false, token: null, user: null });
+        } catch (err) {
+          if (
+            err instanceof ApiError &&
+            (err.status === 401 || err.status === 403)
+          ) {
+            set({ isAuthenticated: false, user: null, wishlistIds: [] });
+          }
           return null;
         }
       },
@@ -138,7 +152,7 @@ export const useAuthStore = create<AuthState>()(
       },
 
       syncWishlist: async () => {
-        if (!get().isAuthenticated && !get().token) {
+        if (!get().isAuthenticated) {
           set({ wishlistIds: [] });
           return;
         }
@@ -174,7 +188,6 @@ export const useAuthStore = create<AuthState>()(
         apiFetch("/auth/logout", { method: "POST" }).catch(() => {});
         set({
           isAuthenticated: false,
-          token: null,
           user: null,
           wishlistIds: [],
         });
@@ -182,12 +195,23 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
+      version: 2,
+      migrate: (persistedState: unknown) => {
+        const prev = (persistedState || {}) as Partial<AuthState>;
+        return {
+          isAuthenticated: Boolean(prev.isAuthenticated),
+          user: prev.user ?? null,
+          wishlistIds: Array.isArray(prev.wishlistIds) ? prev.wishlistIds : [],
+        };
+      },
       partialize: (state) => ({
         isAuthenticated: state.isAuthenticated,
-        token: state.token,
         user: state.user,
         wishlistIds: state.wishlistIds,
       }),
+      onRehydrateStorage: () => () => {
+        sanitizeLegacyTokenInLocalStorage();
+      },
     }
   )
 );

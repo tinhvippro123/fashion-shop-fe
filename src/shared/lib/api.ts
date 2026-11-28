@@ -1,3 +1,16 @@
+function resolveApiBaseUrl(): string {
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname === "127.0.0.1"
+  ) {
+    return "http://127.0.0.1:8081/api";
+  }
+  return "http://localhost:8081/api";
+}
+
 export const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8081/api";
 
@@ -20,33 +33,17 @@ export class ApiError extends Error {
   }
 }
 
-function getAuthToken(): string | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem("auth-storage");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.state?.token || null;
-  } catch {
-    return null;
-  }
-}
-
 export async function apiRequestWithMeta<T>(
   path: string,
   options: RequestInit = {}
 ): Promise<{ data: T; message?: string }> {
-  const token = getAuthToken();
   const headers = new Headers(options.headers || {});
   if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
     headers.set("Content-Type", "application/json");
   }
-  if (token && !headers.has("Authorization")) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  const res = await fetch(`${API_BASE_URL}${normalizedPath}`, {
+  const res = await fetch(`${resolveApiBaseUrl()}${normalizedPath}`, {
     ...options,
     headers,
     credentials: "include",

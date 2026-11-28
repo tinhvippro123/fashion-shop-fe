@@ -123,7 +123,8 @@ export default function Header() {
     useState<SubCategoryGroup[]>(WOMEN_NAV_GROUPS);
   const [menNavGroups, setMenNavGroups] =
     useState<SubCategoryGroup[]>(MEN_NAV_GROUPS);
-  const { isAuthenticated, user, logout, syncWishlist } = useAuthStore();
+  const { isAuthenticated, user, logout, refreshProfile, syncWishlist } =
+    useAuthStore();
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>(
     {}
   );
@@ -175,9 +176,13 @@ export default function Header() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      syncWishlist();
+      refreshProfile().then((validUser) => {
+        if (validUser) {
+          syncWishlist();
+        }
+      });
     }
-  }, [isAuthenticated, syncWishlist]);
+  }, [isAuthenticated, refreshProfile, syncWishlist]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
